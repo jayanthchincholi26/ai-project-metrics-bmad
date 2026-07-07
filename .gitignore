@@ -1,0 +1,6 @@
+.claude/settings.local.json
+_bmad/config.user.toml
+_bmad/custom/*.user.toml
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,425 @@
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#111823; --panel2:#0d131c; --line:#1e2a3a;
+    --cyan:#4fd1ff; --amber:#ffb454; --green:#5fd88a; --red:#ff6b6b; --violet:#b58bff;
+    --text:#cddcee; --dim:#7f92ab; --auto:#4fd1ff; --human:#ffb454;
+    font-family:'Segoe UI',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  .page{
+    background:radial-gradient(1200px 600px at 10% -10%, #14202f 0%, var(--bg) 60%);
+    color:var(--text); padding:2rem 1rem 4rem; max-width:1200px; margin:0 auto;
+    font-family:'Segoe UI',Arial,sans-serif; line-height:1.5;
+  }
+  .hero{
+    border:1px solid var(--line); border-radius:14px; padding:2rem;
+    background:linear-gradient(160deg,#0f1621,#0a0e14);
+    box-shadow:0 0 0 1px #000 inset, 0 20px 60px -30px #000;
+    position:relative; overflow:hidden;
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background-image:repeating-linear-gradient(90deg, rgba(79,209,255,0.035) 0 1px, transparent 1px 40px);
+    pointer-events:none;
+  }
+  .kicker{ letter-spacing:.2em; text-transform:uppercase; font-size:.72rem; color:var(--cyan); font-weight:600;}
+  h1{ font-size:clamp(1.6rem,3.5vw,2.4rem); margin:.4rem 0 .3rem; color:#f2f7ff; font-weight:800;}
+  .subtitle{ color:var(--dim); font-size:.95rem; max-width:65ch;}
+  .meta-strip{ display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1.2rem;}
+  .chip{
+    border:1px solid var(--line); background:var(--panel2); color:var(--dim);
+    padding:.3rem .7rem; border-radius:999px; font-size:.75rem;
+  }
+  .chip b{color:var(--text);}
+  .status-led{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green);
+    box-shadow:0 0 8px var(--green); margin-right:.4rem; animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  .legend{
+    display:flex; gap:1.5rem; flex-wrap:wrap; margin:1.5rem 0 2.5rem; padding:.9rem 1.1rem;
+    border:1px dashed var(--line); border-radius:10px; background:var(--panel2); font-size:.82rem;
+  }
+  .legend-item{display:flex; align-items:center; gap:.5rem; color:var(--dim);}
+  .swatch{width:14px;height:14px;border-radius:3px;display:inline-block;}
+  .sw-auto{background:var(--auto); box-shadow:0 0 8px var(--auto);}
+  .sw-human{background:var(--human); box-shadow:0 0 8px var(--human);}
+
+  section.stage{ margin:2.6rem 0; position:relative; padding-left:2.2rem;}
+  section.stage::before{
+    content:""; position:absolute; left:.55rem; top:.3rem; bottom:-2.6rem; width:2px;
+    background:linear-gradient(var(--line),transparent);
+  }
+  section.stage:last-of-type::before{display:none;}
+  .stage-dot{
+    position:absolute; left:0; top:0; width:1.3rem; height:1.3rem; border-radius:50%;
+    background:var(--panel); border:2px solid var(--cyan); display:flex; align-items:center; justify-content:center;
+    font-size:.65rem; color:var(--cyan); font-weight:800;
+  }
+  .stage-head{ display:flex; align-items:baseline; gap:.7rem; flex-wrap:wrap;}
+  .tech-tag{
+    font-size:.68rem; text-transform:uppercase; letter-spacing:.12em; color:var(--bg);
+    background:var(--cyan); padding:.15rem .5rem; border-radius:4px; font-weight:800;
+  }
+  .stage h2{ margin:.2rem 0 .8rem; font-size:1.25rem; color:#f2f7ff;}
+
+  .card-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:.9rem;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:.9rem 1rem;
+    position:relative;
+  }
+  .card .role{ font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin-bottom:.35rem;}
+  .card p{margin:0; font-size:.9rem;}
+  .card.q{border-left:3px solid var(--violet);}
+  .card.idea{border-left:3px solid var(--cyan);}
+  .card.decision{border-left:3px solid var(--green);}
+  .card.insight{border-left:3px solid var(--amber);}
+
+  /* Constraint roulette dice */
+  .dice-row{display:flex; gap:1rem; flex-wrap:wrap;}
+  .die{
+    width:100%; max-width:320px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:1rem; position:relative;
+  }
+  .die::before{content:"CONSTRAINT SURVIVED";position:absolute; top:-9px; left:12px; font-size:.6rem;
+    background:var(--bg); padding:0 6px; color:var(--red); letter-spacing:.1em;}
+  .die b{color:var(--cyan);}
+
+  /* Affinity clusters */
+  .cluster-board{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1rem;}
+  .cluster{
+    border:1px solid var(--line); border-radius:10px; padding:1rem; background:var(--panel);
+  }
+  .cluster h3{margin:0 0 .5rem; font-size:.95rem; color:var(--cyan);}
+  .cluster ul{margin:0; padding-left:1.1rem; font-size:.85rem; color:var(--text);}
+  .cluster.deferred{border-color:var(--red); background:#1a0f10;}
+  .cluster.deferred h3{color:var(--red);}
+
+  /* unsolved callout */
+  .unsolved{
+    margin:2.5rem 0; border:2px dashed var(--red); border-radius:12px; padding:1.2rem 1.4rem;
+    background:repeating-linear-gradient(135deg, rgba(255,107,107,.06) 0 10px, transparent 10px 20px);
+  }
+  .unsolved .label{ display:inline-flex; align-items:center; gap:.5rem; font-weight:800; color:var(--red);
+    letter-spacing:.08em; text-transform:uppercase; font-size:.8rem;}
+  .unsolved .label::before{content:"⚠";}
+  .unsolved p{margin:.6rem 0 0; color:var(--text);}
+
+  /* PIPELINE - climax */
+  .pipeline-wrap{
+    margin-top:1.2rem; border:1px solid var(--line); border-radius:14px; background:var(--panel2);
+    padding:1.4rem 1rem;
+  }
+  .pipeline-scroll{ overflow-x:auto; padding-bottom:.6rem;}
+  .pipeline{
+    display:flex; align-items:stretch; gap:0; min-width:1100px; padding:.5rem;
+  }
+  .pnode{
+    flex:0 0 170px; border-radius:10px; padding:.8rem .7rem; position:relative;
+    display:flex; flex-direction:column; gap:.3rem; justify-content:center; text-align:center;
+  }
+  .pnode .ptitle{font-weight:800; font-size:.85rem;}
+  .pnode .psub{font-size:.7rem; color:var(--dim);}
+  .p-human{ background:linear-gradient(160deg,#241a0c,#1b1409); border:1px solid var(--human);}
+  .p-human .ptitle{color:var(--human);}
+  .p-auto{ background:linear-gradient(160deg,#0c1b24,#09131b); border:1px solid var(--cyan);}
+  .p-auto .ptitle{color:var(--cyan);}
+  .p-out{ background:linear-gradient(160deg,#0c2418,#091b12); border:1px solid var(--green);}
+  .p-out .ptitle{color:var(--green);}
+  .arrow{ flex:0 0 40px; display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:1.3rem;}
+
+  .families{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.9rem; margin-top:1.4rem;}
+  .gauge-card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1rem; text-align:center;}
+  .gauge{
+    width:110px; height:60px; margin:0 auto .5rem; position:relative; overflow:hidden;
+  }
+  .gauge svg{width:100%; height:100%;}
+  .gauge-label{font-size:.78rem; color:var(--text); font-weight:700;}
+  .gauge-sub{font-size:.68rem; color:var(--dim);}
+
+  .trend-card{
+    margin-top:1.4rem; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1.1rem;
+  }
+  .trend-card h3{margin:0 0 .3rem; font-size:.95rem; color:var(--amber);}
+  .trend-card p{margin:0 0 .7rem; font-size:.82rem; color:var(--dim);}
+  .sparkline{width:100%; max-width:520px; height:70px; display:block;}
+
+  footer{ margin-top:3rem; text-align:center; color:var(--dim); font-size:.75rem;}
+
+  @media (max-width:600px){
+    .page{padding:1.2rem .7rem 3rem;}
+    section.stage{padding-left:1.6rem;}
+  }
+</style>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="kicker">Brainstorming Session Keepsake</div>
+    <h1>Capturing PM Metrics as a Byproduct of the AI-Accelerated Engineering Flow</h1>
+    <p class="subtitle">
+      Goal: find an approach where developer inputs at project/story start, combined with automatic triggers
+      during engineering phases, produce the metrics a leadership dashboard needs — without double-entry.
+    </p>
+    <div class="meta-strip">
+      <span class="chip"><span class="status-led"></span><b>Status:</b>&nbsp;Complete</span>
+      <span class="chip"><b>Mode:</b>&nbsp;Partner</span>
+      <span class="chip"><b>Updated:</b>&nbsp;2026-07-01 21:46</span>
+      <span class="chip"><b>Techniques:</b>&nbsp;5</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch sw-auto"></span> Automatic / silent capture</div>
+    <div class="legend-item"><span class="swatch sw-human"></span> Human / bookend input</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--green);box-shadow:0 0 8px var(--green);"></span> Decision locked in</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--red);box-shadow:0 0 8px var(--red);"></span> Open / deferred</div>
+  </div>
+
+  <!-- STAGE 1: How Might We -->
+  <section class="stage">
+    <div class="stage-dot">1</div>
+    <div class="stage-head">
+      <h2>How Might We</h2>
+      <span class="tech-tag">Divergent Framing</span>
+    </div>
+    <div class="card-grid">
+      <div class="card q">
+        <div class="role">Question · Coach</div>
+        <p>HMW get story-level PM metrics captured as a byproduct of AI-driven dev flow without double-entry?</p>
+      </div>
+      <div class="card q">
+        <div class="role">Question · User</div>
+        <p>HMW keep estimates/velocity meaningful when AI accelerates delivery and makes sprint pace unpredictable?</p>
+      </div>
+      <div class="card idea">
+        <div class="role">Idea A · Coach</div>
+        <p>A <b>story manifest file</b> (<code>.story.yaml</code>) created at kickoff — carries PM metadata, read by downstream events.</p>
+      </div>
+      <div class="card idea">
+        <div class="role">Idea B · Coach</div>
+        <p><b>Git hooks</b> silently extract PM signals from branch names, commits, and PR timestamps — zero prompts.</p>
+      </div>
+      <div class="card idea">
+        <div class="role">Idea C · Coach</div>
+        <p>The <b>AI/SDD agent narrates its own status</b> (design / coding / testing / done) as structured events — acting as a PM proxy.</p>
+      </div>
+      <div class="card decision">
+        <div class="role">Decision · User</div>
+        <p>Chose the combination of <b>Idea A + B + C</b> as the direction to develop.</p>
+      </div>
+      <div class="card decision">
+        <div class="role">Decision (correction) · User</div>
+        <p>Story points should be <b>auto-calculated via defined rules</b> (not manually entered) since code is now LLM-generated. Rules TBD. Direction confirmed: A+B+C.</p>
+      </div>
+      <div class="card insight">
+        <div class="role">Insight · User</div>
+        <p>Leadership's real job: capture <b>PM metrics + Engineering metrics + cost of story points + token cost</b>, per story, rolled up per developer and per project overall.</p>
+      </div>
+      <div class="card decision">
+        <div class="role">Decision · User</div>
+        <p>Completion trigger: the <b>openspec/speckit close/archive command</b> (e.g. <code>opsx archive</code>) is the moment all 4 metric families get calculated and snapshotted.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2: Role Playing -->
+  <section class="stage">
+    <div class="stage-dot">2</div>
+    <div class="stage-head">
+      <h2>Role Playing</h2>
+      <span class="tech-tag">Perspective Shift</span>
+    </div>
+    <div class="card-grid">
+      <div class="card idea">
+        <div class="role">Idea · User</div>
+        <p><b>Tiered flow:</b> skip the heavy metrics-capture flow for small/low-complexity tasks; apply it for complex tasks where the overhead is worth it.</p>
+      </div>
+      <div class="card insight">
+        <div class="role">Insight · User</div>
+        <p>Developer effort/time-on-task is hard to isolate because they multi-task and multi-prompt across stories concurrently — yet we still need to estimate time spent per story and its completion point.</p>
+      </div>
+      <div class="card decision">
+        <div class="role">Decision · User</div>
+        <p><b>Complexity classification:</b> the LLM estimates complexity at story initiation using project-defined rules, plus a <b>~30% manual-activity buffer</b> for code review, unit testing, local feature testing.</p>
+      </div>
+      <div class="card decision">
+        <div class="role">Decision (simplifying assumption) · User</div>
+        <p>For now: developer focuses on <b>one single story at a time</b> — multi-tasking time-tracking is deferred, unanswered.</p>
+      </div>
+      <div class="card idea">
+        <div class="role">Idea · Coach</div>
+        <p>Leadership dashboard should surface a trend metric: <b>token-cost-per-story-point over time</b>, to show whether AI investment is improving delivery efficiency.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 3: Constraint Roulette -->
+  <section class="stage">
+    <div class="stage-dot">3</div>
+    <div class="stage-head">
+      <h2>Constraint Roulette</h2>
+      <span class="tech-tag">Forced Constraints</span>
+    </div>
+    <p style="color:var(--dim); font-size:.85rem; margin-top:-.4rem;">Constraint: capture metrics <b>without modifying openspec/speckit internals</b>. Three survival strategies rolled out:</p>
+    <div class="dice-row">
+      <div class="die"><b>Option 1 — Wrap the CLI.</b> Intercept openspec/speckit CLI invocations without touching internals.</div>
+      <div class="die"><b>Option 2 — Custom skills.</b> Build skills that take developer-facing inputs directly as part of this flow.</div>
+      <div class="die"><b>Option 3 — Claude Code hooks.</b> Auto-trigger on tool-use/stop events to capture metrics without touching openspec/speckit source.</div>
+    </div>
+  </section>
+
+  <!-- STAGE 4: Affinity Clustering -->
+  <section class="stage">
+    <div class="stage-dot">4</div>
+    <div class="stage-head">
+      <h2>Affinity Clustering</h2>
+      <span class="tech-tag">Convergence</span>
+    </div>
+    <div class="cluster-board">
+      <div class="cluster">
+        <h3>1 · Capture Point Architecture</h3>
+        <ul>
+          <li>Story manifest (.story.yaml)</li>
+          <li>Git hooks</li>
+          <li>Agent narration</li>
+          <li>CLI wrap</li>
+          <li>Custom skill</li>
+          <li>Claude Code hook</li>
+        </ul>
+      </div>
+      <div class="cluster">
+        <h3>2 · Trigger &amp; Lifecycle</h3>
+        <ul>
+          <li>Complexity gate</li>
+          <li>Kickoff bookend</li>
+          <li>Close-command bookend</li>
+        </ul>
+      </div>
+      <div class="cluster">
+        <h3>3 · Metrics Model</h3>
+        <ul>
+          <li>4 metric families</li>
+          <li>Cost-efficiency trend</li>
+          <li>Rollups (dev / project)</li>
+        </ul>
+      </div>
+      <div class="cluster deferred">
+        <h3>4 · Open / Deferred</h3>
+        <ul>
+          <li>Auto story-point rules (TBD)</li>
+          <li>Multi-task time tracking (unanswered)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- UNSOLVED CALLOUT -->
+  <div class="unsolved">
+    <span class="label">Unsolved · Deferred Question</span>
+    <p>
+      When a developer multi-tasks and multi-prompts across several stories concurrently, how do we attribute
+      time-on-task to a single story? The session's working assumption — one story at a time — sidesteps this
+      rather than solving it. Session-slice time attribution remains an open problem for a future session.
+    </p>
+  </div>
+
+  <!-- SYNTHESIS / CLIMAX: PIPELINE -->
+  <section class="stage" style="padding-left:0; border-left:none;">
+    <div class="stage-head" style="margin-bottom:.3rem;">
+      <h2 style="font-size:1.5rem;">Synthesis — The Pipeline</h2>
+      <span class="tech-tag" style="background:var(--violet); color:#fff;">Final Convergence</span>
+    </div>
+    <p style="color:var(--dim); font-size:.9rem; max-width:70ch;">
+      A single pipeline emerged from all five techniques: a complexity gate decides whether the heavy flow even
+      engages, human bookends mark start and finish, silent capture runs invisibly in between, and the close
+      command triggers a full metrics snapshot that rolls up per developer and per project.
+    </p>
+
+    <div class="pipeline-wrap">
+      <div class="pipeline-scroll">
+        <div class="pipeline">
+          <div class="pnode p-human">
+            <div class="ptitle">Complexity Gate</div>
+            <div class="psub">LLM classifies complexity + 30% manual buffer</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="pnode p-human">
+            <div class="ptitle">Kickoff Bookend</div>
+            <div class="psub">Human input · story manifest seeded</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="pnode p-auto">
+            <div class="ptitle">Silent Capture</div>
+            <div class="psub">Manifest + git hooks + agent narration (A+B+C)</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="pnode p-human">
+            <div class="ptitle">Close-Command Trigger</div>
+            <div class="psub">opsx archive · human-initiated</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="pnode p-auto">
+            <div class="ptitle">4-Family Snapshot</div>
+            <div class="psub">PM · Engineering · Story-point cost · Token cost</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="pnode p-out">
+            <div class="ptitle">Rollup</div>
+            <div class="psub">Per developer · per project</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metric family gauges -->
+    <div class="families">
+      <div class="gauge-card">
+        <div class="gauge">
+          <svg viewBox="0 0 110 60"><path d="M10,55 A45,45 0 0 1 100,55" fill="none" stroke="#1e2a3a" stroke-width="8"/>
+            <path d="M10,55 A45,45 0 0 1 78,20" fill="none" stroke="#4fd1ff" stroke-width="8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="gauge-label">PM Metrics</div>
+        <div class="gauge-sub">cycle time, status transitions, throughput</div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge">
+          <svg viewBox="0 0 110 60"><path d="M10,55 A45,45 0 0 1 100,55" fill="none" stroke="#1e2a3a" stroke-width="8"/>
+            <path d="M10,55 A45,45 0 0 1 95,45" fill="none" stroke="#5fd88a" stroke-width="8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="gauge-label">Engineering Metrics</div>
+        <div class="gauge-sub">commits, PR size, test coverage delta</div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge">
+          <svg viewBox="0 0 110 60"><path d="M10,55 A45,45 0 0 1 100,55" fill="none" stroke="#1e2a3a" stroke-width="8"/>
+            <path d="M10,55 A45,45 0 0 1 55,10" fill="none" stroke="#ffb454" stroke-width="8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="gauge-label">Story-Point Cost</div>
+        <div class="gauge-sub">auto-calculated LLM-derived points</div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge">
+          <svg viewBox="0 0 110 60"><path d="M10,55 A45,45 0 0 1 100,55" fill="none" stroke="#1e2a3a" stroke-width="8"/>
+            <path d="M10,55 A45,45 0 0 1 30,15" fill="none" stroke="#b58bff" stroke-width="8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="gauge-label">Token Cost</div>
+        <div class="gauge-sub">LLM spend per story, aggregated</div>
+      </div>
+    </div>
+
+    <!-- Trend -->
+    <div class="trend-card">
+      <h3>Derived Trend for Leadership · Token-Cost-per-Story-Point</h3>
+      <p>A downward trend signals AI investment is improving delivery efficiency over time.</p>
+      <svg class="sparkline" viewBox="0 0 500 70" preserveAspectRatio="none">
+        <polyline points="0,15 60,22 120,18 180,32 240,28 300,45 360,40 420,55 480,50" fill="none" stroke="#ffb454" stroke-width="3"/>
+        <circle cx="480" cy="50" r="5" fill="#ffb454"/>
+      </svg>
+    </div>
+  </section>
+
+  <footer>
+    Brainstorming session · pm-metrics-ai-engineering-flow · captured 2026-07-01 · techniques used: How Might We, Role Playing, Constraint Roulette, Affinity Clustering
+  </footer>
+
+</div>

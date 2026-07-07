@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developer Experience Flow</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#111927; --panel2:#151f30; --line:#22304a;
+    --text:#dbe4f3; --dim:#8fa2c2; --dim2:#5f7396;
+    --accent:#3ddc97; --accent2:#5eb6ff; --hidden:#ff9f6b;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f6f8fb; --panel:#ffffff; --panel2:#f1f4f9; --line:#dde3ee;
+      --text:#1b2434; --dim:#4d5b74; --dim2:#7d89ba;
+      --accent:#0b8f57; --accent2:#1f6fd1; --hidden:#b85a24;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0a0e14; --panel:#111927; --panel2:#151f30; --line:#22304a;
+    --text:#dbe4f3; --dim:#8fa2c2; --dim2:#5f7396;
+    --accent:#3ddc97; --accent2:#5eb6ff; --hidden:#ff9f6b;
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f8fb; --panel:#ffffff; --panel2:#f1f4f9; --line:#dde3ee;
+    --text:#1b2434; --dim:#4d5b74; --dim2:#7d89ba;
+    --accent:#0b8f57; --accent2:#1f6fd1; --hidden:#b85a24;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:40px 16px;
+  }
+  .wrap{max-width:1000px; width:100%;}
+  h1{font-size:1.5rem; margin:0 0 4px; text-align:center;}
+  .sub{color:var(--dim); text-align:center; font-size:0.95rem; margin:0 0 34px;}
+  .row{display:flex; align-items:stretch; gap:0; flex-wrap:wrap; justify-content:center;}
+  .step{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:18px 16px; width:190px; text-align:center; position:relative;
+  }
+  .step .num{
+    width:28px; height:28px; border-radius:50%; background:var(--accent); color:#08110c;
+    font-weight:700; display:flex; align-items:center; justify-content:center;
+    margin:0 auto 10px; font-size:0.9rem;
+  }
+  .step h3{font-size:0.95rem; margin:0 0 6px;}
+  .step p{font-size:0.8rem; color:var(--dim); margin:0; line-height:1.4;}
+  .arrow{display:flex; align-items:center; color:var(--dim2); font-size:1.4rem; padding:0 6px;}
+  .hidden-band{
+    margin:18px auto 0; max-width:640px; border:1px dashed var(--hidden); border-radius:10px;
+    padding:10px 16px; font-size:0.8rem; color:var(--hidden); text-align:center;
+    background:color-mix(in srgb, var(--hidden) 8%, transparent);
+  }
+  .outcome{
+    margin-top:34px; display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;
+  }
+  .outcome .card{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:14px 20px;
+    font-size:0.85rem; color:var(--text); text-align:center; max-width:220px;
+  }
+  .outcome .card b{color:var(--accent2);}
+  .outcome .conn{color:var(--dim2); font-size:1.3rem;}
+  @media (max-width:820px){
+    .row{flex-direction:column; align-items:center;}
+    .arrow{transform:rotate(90deg); padding:6px 0;}
+    .step{width:100%; max-width:320px;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Developer Experience Flow</h1>
+    <p class="sub">What the developer actually sees — confirm at the start, work normally, close at the end.</p>
+
+    <div class="row">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Start a story</h3>
+        <p>Kickoff skill confirms points + goal/sprint (auto-filled if JIRA/Confluence).</p>
+      </div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Code normally with AI</h3>
+        <p>Git commits, Claude Code sessions &mdash; nothing extra to do or type.</p>
+      </div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Close the story</h3>
+        <p><code>opsx archive</code> + a one-line "actual vs blockers" note.</p>
+      </div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">
+        <div class="num">4</div>
+        <h3>Snapshot created</h3>
+        <p>Automatically &mdash; no manual report to write.</p>
+      </div>
+    </div>
+
+    <div class="hidden-band">Between steps 1 and 3, hooks silently capture everything in the background &mdash; fully invisible to the developer.</div>
+
+    <div class="outcome">
+      <div class="card"><b>Velocity</b><br>trends over time</div>
+      <div class="conn">+</div>
+      <div class="card"><b>Estimate accuracy</b><br>plan vs. actual</div>
+      <div class="conn">+</div>
+      <div class="card"><b>AI cost efficiency</b><br>token cost per point</div>
+      <div class="conn">&#8594;</div>
+      <div class="card" style="border-color:var(--accent2);"><b>Leadership dashboard</b><br>updates itself</div>
+    </div>
+  </div>
+</body>
+</html>

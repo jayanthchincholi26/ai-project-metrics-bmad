@@ -1,0 +1,37 @@
+In the organization, we have a traditional method for managing multiple clients while adhering to agile and scrum methodologies, and the organization has established a defined project process flow.
+SDLC life cycle
+Typically begins with
+
+Legacy flow:
+Flow 1:
+1. A High-Level PRD document is provided by the client.
+2. The team reviews the document, engages in discussions with the client, estimates the work, organizes it into the backlog, plans sprints, and then commences development.
+3. Following this, standard project management activities (sprint planning, story points esimates, goal etc..), engineering tasks (Analysis - Design - Coding - Testing - Deploying), and QA activities are conducted, leading to Stage and PROD releases.
+
+Flow 21:
+1. The client creates Epics in JIRA.
+2. The team examines the JIRA EPICs, discusses them with the client, estimates the work, organizes it into the backlog, plans sprints, and then begins development.
+3. Subsequently, regular project management activities (sprint planning, story points esimates, goal etc..), engineering tasks (Analysis - Design - Coding - Testing - Deploying), and QA activities are performed, leading in Stage and PROD releases.
+
+In the aforementioned flows,
+we will document testing bugs, review bugs, and several metrics such as the number of committed stories, delivered stories, goals, start dates, end dates, and more.
+The previous flow was entirely manual and required several days to deliver the sprint deliverables.
+
+With the introduction of AI/LLM during the development phase, the situation has transformed.
+
+Everything has become so rapid and dynamic that most project deliverables are now based on the SDD framework and AI-generated development activities. The project management is way behind the engineering activities and not easy to capture the required metrics during the implementation phase.
+
+So, management has assigned me a challenging task:
+As the project lead, how can you ensure that project management activities (sprint, requirements, velocity, estimates, story points, etc.) are calculated or captured during the engineering flow or activities (as most of the development team utilizes tools like openspec, speckit, etc.)?
+
+I am not seeking solutions for the implementation phase. I desire discussions or planning phases so that we can converse and finalize the approach to address these issues.
+
+At a high level:
+
+When a developer initiates a project, it should begin by requesting all necessary inputs pertinent to project management. Subsequently, depending on the development phase, certain elements will automatically trigger and capture relevant metrics.
+
+This description is rather broad.
+
+However, I need to create a standardized implementation that prompts the developer for inputs, and based on these inputs, the "new flow" we are set to develop should function accordingly and record the metrics.
+
+Ultimately, for each story, there are specific metrics that must be captured and presented as a dashboard for leadership.
