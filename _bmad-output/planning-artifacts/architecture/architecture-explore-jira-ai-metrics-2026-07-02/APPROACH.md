@@ -1,5 +1,18 @@
 # Approach: PM Metrics as a Byproduct of the AI-Accelerated Engineering Flow
 
+## Table of Contents
+
+1. [Problem](#problem)
+2. [How This Data Will and Won't Be Used](#how-this-data-will-and-wont-be-used-proposed--needs-leadership-sign-off)
+3. [Chosen Approach](#chosen-approach)
+4. [Developer Experience Flow](#developer-experience-flow)
+5. [What's Deliberately Deferred](#whats-deliberately-deferred)
+6. [Known Risks](#known-risks)
+7. [Delivery Path](#delivery-path)
+8. [Extending Beyond Development — Architecture, UX, and QA](#extending-beyond-development--architecture-ux-and-qa)
+9. [Supporting AI Tools Other Than Claude Code](#supporting-ai-tools-other-than-claude-code)
+10. [Full Reference](#full-reference)
+
 ## Problem
 
 AI-accelerated engineering (openspec/speckit, SDD-driven development) now moves faster and less predictably than manual project-management tracking can follow. Developers are asked to manually re-enter what already happened — points, time, review cycles — duplicating work the tools already know. Leadership needs reliable per-story, per-developer, and per-project PM/engineering/cost/token metrics without adding developer overhead.
