@@ -35,7 +35,7 @@ Layer → directory mapping:
 - `capture/` — hook scripts and the CLI wrapper (producers; append-only, never read/mutate each other's state)
 - `local-store/` — the per-story manifest, event log, and active-story pointer (all local, git-ignorable)
 - `assembly/` — the snapshot assembler (the only reducer; the only writer of a snapshot)
-- `adapters/` — one per source-of-truth backend (JIRA / Confluence / docs-only), behind a single normalized interface
+- `adapters/` — one per source-of-truth backend (JIRA / Confluence / docs-only) and one per AI tool (AD-10; Claude Code today, Cursor/Copilot/Gemini deferred), each family behind its own single normalized interface
 
 ## Invariants & Rules
 
@@ -49,7 +49,7 @@ Layer → directory mapping:
 
 - **Binds:** every event a producer appends
 - **Prevents:** two producers legitimately emitting the same bare `type` (e.g. both a git hook and the opsx wrapper emitting `type: "commit"`) with different payload shapes, corrupting the assembler's reduction logic
-- **Rule:** `type` is namespaced by source: `git.<event>` (e.g. `git.commit`, `git.checkout`, `git.merge`), `claude.<event>` (e.g. `claude.session_start`, `claude.tool_use`, `claude.prompt`), `opsx.<event>` (e.g. `opsx.archive`). The assembler dispatches on the full namespaced string, never a bare suffix.
+- **Rule:** `type` is namespaced by source: `git.<event>` (e.g. `git.commit`, `git.checkout`, `git.merge`), `ai.<tool>.<event>` (e.g. `ai.claude-code.session_start`, `ai.cursor.tool_use`) — generalized from a Claude-only `claude.*` prefix so any AI-tool adapter (AD-10) can emit events without colliding — and `opsx.<event>` (e.g. `opsx.archive`). The assembler dispatches on the full namespaced string, never a bare suffix.
 
 ### AD-1b — Ordering: events may arrive before the manifest exists
 
@@ -114,6 +114,12 @@ Layer → directory mapping:
 - **Prevents:** a story's metrics coming out quietly incomplete because a hook errored once and nobody noticed (the "silent data loss" risk)
 - **Rule:** A producer that fails to append an event retries up to 3 times; if it still fails, it surfaces a visible error to the developer rather than swallowing the failure. Silence is never an acceptable outcome for a failed capture.
 
+### AD-10 — AI-tool capture adapter pattern
+
+- **Binds:** `adapters/ai-tools/`, the kickoff manifest, AD-1a's namespacing, AD-6's Phase-2 reconciliation
+- **Prevents:** hard-coding "everyone uses Claude Code" — and either breaking or silently under-reporting for a developer on Cursor, GitHub Copilot, Gemini, or another AI tool with different (or no) telemetry
+- **Rule:** One normalized "AI activity" event shape (`session_start`, `session_end`, `activity_count`, `token_cost`) is emitted by a tool-specific adapter per AI tool, namespaced `ai.<tool>.*` (AD-1a). A field the tool genuinely cannot report (e.g. Copilot exposes no per-token cost) is emitted as **null with a reason**, never defaulted to zero — a null and a real zero must never be visually or computationally indistinguishable downstream. The kickoff manifest carries an `ai_tool` field, declared the same way as `source_of_truth` (AD-4): once per project by default, per-story only if a team genuinely mixes tools. When the active tool cannot supply the signals AD-6's Phase-2 formula depends on (decision-narration, token cost), that story's reconciliation is marked **reduced-confidence** and falls back to diff-size/commit-count proxies, rather than presenting a number with the same apparent confidence as a fully-instrumented Claude Code story.
+
 ## Consistency Conventions
 
 | Concern | Convention |
@@ -169,5 +175,5 @@ Layer → directory mapping:
 - **Story-point weight tuning** — confirmed best-guess: the Phase-1/Phase-2 tables (AD-6) are seeded from an existing internal reference document that was never validated against real AI-driven delivery data. Expect retuning once usage data accumulates.
 - **Variance feedback loop** — Phase-1 vs Phase-2 variance (AD-6) is captured and logged, but there is no defined process or threshold yet for *acting* on it (i.e. recalibrating the AD-6 weights). Deliberately left for a later pass.
 - **Adapter credential provisioning mechanics** (how a developer's JIRA/Confluence token gets into their environment in the first place) — AD-4 fixes that credentials never enter shared files, but not the provisioning flow itself.
-- **AI-tool coverage beyond Claude Code** — this spine's capture side only knows Claude Code hooks. A developer using GitHub Copilot, Cursor, Codex, or another AI tool instead produces no `claude.*` events, and their AI-driven work is invisible to this pipeline today. Whether the kickoff flow should ask which tool a developer is using, and whether tool-specific capture adapters get built, is unresolved.
+- **AI-tool adapters beyond Claude Code are not yet built** — AD-10 fixes the boundary (one normalized shape, `ai.<tool>.*` namespacing, an `ai_tool` manifest field, graceful degradation of AD-6 reconciliation), but only a Claude Code adapter exists today. Cursor, Copilot, Gemini, and others each need their own adapter implementation, deliberately pushed past the pilot (which stays Claude-Code-only per current Non-goals).
 - **Rollout sequencing** — the plan is a small pilot group of developers first, using pilot data to tweak the AD-6 story-point formula before wider rollout. Multi-repo scaling and schema-versioning ownership are explicitly out of scope until the pilot proves out.

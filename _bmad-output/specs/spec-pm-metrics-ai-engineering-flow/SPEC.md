@@ -38,6 +38,10 @@ AI/LLM-accelerated engineering (openspec/speckit, SDD-driven development) now mo
   - **intent:** Per-story snapshots are producible in a stable, versioned shape that a future central presentation layer can consume without needing to understand raw capture-side event detail.
   - **success:** `opsx archive` produces an immutable, schema-versioned snapshot (AD-3, AD-3a) that leadership can eventually roll up per developer and per project, including a token-cost-per-story-point trend.
 
+- **CAP-7**
+  - **intent:** The capture side can be extended to AI tools other than Claude Code (Cursor, Copilot, Gemini, etc.) via a normalized AI-tool adapter, without redesigning event integrity or the reconciliation formula.
+  - **success:** A new AI-tool adapter can be added that emits the AD-10 normalized shape under its own `ai.<tool>.*` namespace, and AD-6 Phase-2 reconciliation degrades to reduced-confidence rather than breaking when that tool cannot supply decision-narration or token-cost signals.
+
 ## Constraints
 
 - No modification of openspec/speckit internals; all interception is external (CLI wrapping, git hooks, Claude Code hooks) since no plugin/extension API exists.
@@ -46,13 +50,14 @@ AI/LLM-accelerated engineering (openspec/speckit, SDD-driven development) now mo
 - Adapter credentials (JIRA/Confluence tokens) must never be written into `.story.yaml`, the event log, or any snapshot (AD-4).
 - Branch-per-story is assumed as a hard team convention for time attribution; no per-story time tracking is defined if violated (AD-7, confirmed).
 - A hook that fails to append an event retries up to 3 times, then surfaces a visible error to the developer; it never fails silently (AD-9).
+- An AI-tool field a producer cannot report (e.g. token cost on Copilot) must be emitted as null-with-reason, never defaulted to zero (AD-10).
 
 ## Non-goals
 
 - Building or selecting the central presentation layer/BI tool itself — only its input contract (the versioned snapshot) is fixed here.
 - Time attribution when a developer works multiple stories on a single branch (violating branch-per-story) — no manual-override path is designed.
 - Recalibrating the AD-6 story-point weight tables based on captured variance data — variance is only captured/logged in this spec, not acted on.
-- Capturing AI-driven work from tools other than Claude Code (GitHub Copilot, Cursor, Codex, etc.) — this spec's capture side only recognizes `claude.*` events.
+- Building AI-tool adapters for tools other than Claude Code — AD-10 fixes the adapter boundary, but only the Claude Code adapter is built; Cursor, Copilot, Gemini, etc. are out of scope for the pilot.
 
 ## Success signal
 
@@ -68,4 +73,4 @@ A project lead can, at any time after a story's `opsx archive`, view a complete 
 
 - Adapter credential provisioning mechanics (how a developer's JIRA/Confluence token first gets into their environment) are not designed.
 - Central-service/BI-tool technology, hosting, and environment topology are not yet chosen; user confirmed no urgency yet.
-- Should the kickoff flow ask which AI tool/editor a developer is using, so coverage is explicit per story and tool-specific capture adapters can eventually be built for tools beyond Claude Code?
+- Now resolved: yes — the kickoff manifest carries an `ai_tool` field (AD-10), declared like `source_of_truth`. Remaining open question is *when* to build adapters for tools beyond Claude Code, not *whether* the boundary exists.

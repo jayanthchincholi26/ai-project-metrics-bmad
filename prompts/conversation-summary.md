@@ -43,6 +43,7 @@
 - **Hook installation is git-versioned** (`tools/setup-hooks`), not per-machine.
 - **Hook failures retry then surface (AD-9)**: 3 retries, then a visible error to the developer — never silent.
 - **Sanctioned data use**: billing justification and process improvement only — not staffing or individual performance review.
+- **AI-tool capture adapter (AD-10)**: resolves the multi-AI-tool coverage gap by mirroring the source-of-truth adapter (AD-4). One normalized "AI activity" shape (session start/end, activity count, token cost) behind a per-tool adapter; event namespace generalized from `claude.*` to `ai.<tool>.*` (amends AD-1a); kickoff manifest gains an `ai_tool` field; a signal a tool can't report (e.g. Copilot's lack of per-token cost) is null-with-reason, never zero; AD-6 Phase-2 reconciliation marks a story reduced-confidence when the tool can't supply decision-narration/token-cost signals. Only the Claude Code adapter is built — Cursor/Copilot/Gemini adapters are deliberately out of scope for the pilot, but the plug-in boundary now exists. Added as `SPEC.md` CAP-7.
 
 ## Delivery path discussed (not yet built)
 
@@ -57,7 +58,7 @@ Recommendation: ship strictly in that order, only building the next step once th
 - Adapter credential provisioning mechanics.
 - Story-point weight recalibration process — pilot-first plan agreed, but the actual feedback loop (acting on variance) is still undesigned.
 - Manual-override path if branch-per-story is ever violated.
-- AI-tool coverage beyond Claude Code (Copilot/Cursor/Codex) — real named gap; whether kickoff should ask which tool is unresolved.
+- Non-Claude-Code AI-tool adapters (Cursor/Copilot/Gemini) — boundary designed (AD-10), implementations not built; deliberately out of scope for the pilot.
 - Multi-repo scaling / schema-versioning ownership — deliberately deferred until after the pilot.
 - `epics.md` requirements extraction — **on hold**, awaiting user confirmation → Step 2 (epic design) of `bmad-create-epics-and-stories`, to resume after the leadership conversation.
 - Leadership sign-off on the "How This Data Will and Won't Be Used" policy in `APPROACH.md` — currently proposed, not yet ratified.

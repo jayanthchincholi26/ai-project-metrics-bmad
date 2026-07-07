@@ -79,7 +79,7 @@ What a developer actually sees is much simpler than the architecture behind it �
 - ~~**Quiet data loss.**~~ **Resolved:** a failed hook now retries 3 times and then surfaces a visible error, so a failure is never silent.
 - **Numbers trusted too early.** The story-point weights we're using are a best guess, not calibrated against real data — an early dashboard could give people **more confidence than the numbers deserve**.
 - **A soft loophole in the complexity gate.** Since small or low-complexity stories skip the full tracking pipeline, there's a mild incentive to **under-classify** a story just to avoid the extra overhead.
-- **Coverage gaps — still open.** Anything that happens outside git, Claude Code, and openspec/speckit simply **won't show up**. This is a real, named gap: developers on GitHub Copilot, Cursor, Codex, or other AI tools produce no capturable signal today. A likely fix is having the kickoff flow ask which tool a developer is using, but that's not designed yet.
+- **Coverage gap — boundary designed, adapters not yet built.** Developers on GitHub Copilot, Cursor, Gemini, or other AI tools produce no capturable signal today. We've now designed the fix (an **AI-tool capture adapter**, AD-10 — see below), but only the Claude Code adapter exists; the others are deliberately out of scope for the pilot.
 - **Adoption risk.** Automatically capturing active time and AI usage can feel like **surveillance** if it isn't introduced carefully, with a clear explanation of what it is and isn't used for. How well this lands with the team depends as much on that conversation as on how well it's built.
 
 ## Delivery Path
@@ -107,6 +107,16 @@ The underlying pattern isn't really "track code" — it's *capture AI-assisted w
 - **QA automation** — fits arguably even more cleanly, since QA engineers writing AI-assisted test automation use the identical git + Claude Code loop, so the capture substrate needs **no changes**. The close trigger can be a **CI pipeline run completing** — more machine-verifiable than any manual close command. Metrics shift to defects found, test coverage delta, flaky-test rate, and a token-cost-per-test-generated efficiency metric mirroring the token-cost-per-story-point trend already planned for dev.
 
 **Bottom line:** the riskiest part of extending this isn't technical — it's agreeing what "good architecture" or "good UX" means as a number, which is fuzzier than "did the tests pass." But the core capture infrastructure (hooks, event log, snapshot assembler, adapter pattern) should carry over largely unchanged, which is a strong signal this is a reusable pattern across the whole SDLC, not just a dev-tracking tool.
+
+## Supporting AI Tools Other Than Claude Code
+
+Today's design assumes Claude Code, but developers on Cursor, GitHub Copilot, or Gemini would produce no signal at all without a deliberate extension point — so we've designed one now, without building it yet:
+
+- **An AI-tool capture adapter, mirroring the source-of-truth adapter.** The same pattern already used for JIRA/Confluence/docs-only (AD-4) applies here: one normalized "AI activity" shape (session start/end, activity count, token cost), with a tool-specific adapter behind it per AI tool.
+- **Missing signals are marked missing, never faked.** Some tools simply can't report what Claude Code can — Copilot, for instance, exposes no per-token cost at all, since it's subscription-based. A field the tool can't supply is emitted as **null with a reason**, never defaulted to zero, so a dashboard never mistakes "unmeasurable" for "free."
+- **The kickoff flow will ask which tool a developer is using**, the same way it already asks for the source-of-truth once per project — this determines which adapter activates.
+- **Reconciliation degrades honestly.** The two-phase story-point formula leans on signals (decision narration, token cost) that only Claude Code fully provides today. For any other tool, that story's estimate reconciliation is marked **reduced-confidence** and falls back to weaker proxies (diff size, commit count) — rather than presenting a number that looks just as trustworthy as a fully-instrumented one.
+- **Scope for now:** only the Claude Code adapter is built. Cursor, Copilot, and Gemini adapters are deliberately out of scope for the pilot — the boundary is designed so adding them later is a plug-in, not a rewrite.
 
 ## Full Reference
 
