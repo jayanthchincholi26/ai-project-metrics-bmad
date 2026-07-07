@@ -92,6 +92,22 @@ Ship in sequence, not in parallel — each step is a strict upgrade of the last,
 
 **Rollout plan:** run Step 1 as a **pilot with a small group of developers first**. Use real pilot data — not guesswork — to tweak the story-point formula (the current weights are a best-guess starting point, consistent with the common practice of estimating from a reference document). Only after the pilot proves out should scaling to more repos, or the harder multi-repo/schema-versioning ownership questions, be tackled.
 
+## Extending Beyond Development — Architecture, UX, and QA
+
+The underlying pattern isn't really "track code" — it's *capture AI-assisted work silently, snapshot it at a natural completion point, roll it up*. That generalizes across the SDLC with the same core infrastructure; only a few pieces change per phase.
+
+**Stays the same:**
+- Git hooks + Claude Code hooks as the capture mechanism — architecture and UX work already happen inside Claude Code sessions, emitting the same `SessionStart`/`PostToolUse`/`Stop` events.
+- The event-sourced, append-only-log-then-snapshot-at-close pattern (AD-1/AD-3).
+- Notably, the BMad skills used to *design* this very project already do a version of this: `bmad-architecture` and `bmad-spec` write to an append-only `.memlog.md` and emit an event like "spine finalized" when done — structurally the same shape, just not yet wired into hooks.
+
+**Changes per phase:**
+- **Architecture** — manifest becomes something like `.architecture-session.yaml` (same parent story/epic ID for traceability); close trigger is the spine reaching `status: final`; metrics shift to decision count, decision volatility (options considered vs. chosen), stakeholder review cycles, and time-to-decision.
+- **UX** — manifest becomes `.ux-session.yaml`; close trigger is the design contract (`DESIGN.md`/`EXPERIENCE.md`) reaching a finalized state; metrics shift to design iteration count, usability/accessibility fixes, and time-to-finalized-design. The source-of-truth adapter might point to Figma instead of JIRA.
+- **QA automation** — fits arguably even more cleanly, since QA engineers writing AI-assisted test automation use the identical git + Claude Code loop, so the capture substrate needs **no changes**. The close trigger can be a **CI pipeline run completing** — more machine-verifiable than any manual close command. Metrics shift to defects found, test coverage delta, flaky-test rate, and a token-cost-per-test-generated efficiency metric mirroring the token-cost-per-story-point trend already planned for dev.
+
+**Bottom line:** the riskiest part of extending this isn't technical — it's agreeing what "good architecture" or "good UX" means as a number, which is fuzzier than "did the tests pass." But the core capture infrastructure (hooks, event log, snapshot assembler, adapter pattern) should carry over largely unchanged, which is a strong signal this is a reusable pattern across the whole SDLC, not just a dev-tracking tool.
+
 ## Full Reference
 
 - Architecture spine (all AD invariants): `ARCHITECTURE-SPINE.md` (this folder)
