@@ -156,6 +156,8 @@ So that both PM tools are supported identically.
 
 ### Story 1.5: Kickoff Manifest Declares Which AI Tool Is In Use
 
+> ✅ **Complete** — 2026-07-09 · [PR #9](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/9)
+
 As a developer,
 I want my project to declare which AI tool it uses,
 So that the capture side knows which adapter to activate without asking me on every story.
