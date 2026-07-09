@@ -27,7 +27,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any, Optional
-from urllib import error, request
+from urllib import error, parse, request
 
 CONFIG = ".story-config.yaml"
 DEFAULT_POINTS_FIELD = "customfield_10016"
@@ -64,7 +64,7 @@ def read_config(path: Path) -> dict[str, str]:
 
 
 def fetch(base_url: str, email: str, token: str, issue: str, fields: list[str]) -> dict:
-    url = f"{base_url.rstrip('/')}/rest/api/2/issue/{issue}?fields={','.join(fields)}"
+    url = f"{base_url.rstrip('/')}/rest/api/2/issue/{parse.quote(issue, safe='')}?fields={','.join(fields)}"
     auth = base64.b64encode(f"{email}:{token}".encode("utf-8")).decode("ascii")
     req = request.Request(
         url, headers={"Authorization": f"Basic {auth}", "Accept": "application/json"}

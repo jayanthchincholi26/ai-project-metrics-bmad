@@ -47,6 +47,16 @@ so that I don't retype what JIRA already knows.
 - [x] Task 6: Full regression + lint (all ACs)
   - [x] `uv run pytest -q` all green; `uv run ruff check .` + `format --check` clean; docs-only E2E behavior unchanged
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #6) triaged per project-context §9 — 2026-07-09:
+
+- [x] [AI-Review][Low] Fractional story points: adapter could return `1.5` but the writer rejected non-integers — writer now accepts any finite number > 0 (integers stay integers); hardening the `float()` change also added nan/inf rejection (a hole Gemini didn't flag but the fix would have opened). 3 regression tests.
+- [x] [AI-Review][Low] Issue key interpolated raw into the URL — now `urllib.parse.quote(issue, safe="")`; regression test asserts `PROJ 123/../x` → `PROJ%20123%2F..%2Fx`.
+- Factual correction — "missing test for `--source-of-truth` recorded in manifest": the test exists (`test_source_of_truth_flag_is_recorded`, added in this PR); pointed the reviewer at it, no change needed.
+- Declined — extract shared `tools/adapters/config.py` for the duplicated parser: the spine's Stack table fixes single-file self-contained scripts; a shared module needs cross-dir import machinery (sys.path/packaging) the architecture deliberately avoids. **Flagged to Jayanth:** Story 1.4 adds a third copy — if that's the pain threshold, the right move is a spine amendment (e.g. a sanctioned `tools/lib/`), not review-driven drift. Logged as a wontfix issue.
+- Declined — `__init__.py`/PYTHONPATH for native test imports: this is Issue #5 verbatim; no new issue.
+
 ## Dev Notes
 
 ### Scope — what this story is and is not
@@ -130,6 +140,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 ### Change Log
 
 - 2026-07-09: Story 1.3 implemented — JIRA fetch adapter (urllib, env creds, custom-field config), writer `--source-of-truth` flag, resolver jira→implemented, skill JIRA flow. 20 new tests (56 total). Status → review.
+- 2026-07-09: Addressed Gemini review of PR #6 — 2 applied (fractional points end-to-end + nan/inf guard; URL-encoded issue key), 1 factual correction (the `--source-of-truth` test already exists), 2 declined with rationale (shared config module — spine-level question flagged to Jayanth; `__init__.py` = Issue #5). 60 tests passing.
 
 ### File List
 

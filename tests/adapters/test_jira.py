@@ -39,7 +39,7 @@ def payload(summary="Ship the demo", description="Longer text", points=5, sprint
     return {"fields": fields}
 
 
-def run(tmp_path, monkeypatch, body=None, exc=None, requests_seen=None, env=True):
+def run(tmp_path, monkeypatch, body=None, exc=None, requests_seen=None, env=True, issue="PROJ-123"):
     if env:
         monkeypatch.setenv("JIRA_BASE_URL", BASE_URL)
         monkeypatch.setenv("JIRA_EMAIL", EMAIL)
@@ -54,7 +54,7 @@ def run(tmp_path, monkeypatch, body=None, exc=None, requests_seen=None, env=True
         return FakeResponse(raw)
 
     monkeypatch.setattr(jira.request, "urlopen", fake_urlopen)
-    return jira.main(["--repo-root", str(tmp_path), "--issue", "PROJ-123"])
+    return jira.main(["--repo-root", str(tmp_path), "--issue", issue])
 
 
 def read_ack(capsys) -> dict:
@@ -88,6 +88,14 @@ def test_request_carries_basic_auth_and_field_list(tmp_path, monkeypatch, capsys
     assert POINTS_FIELD in req.full_url and SPRINT_FIELD in req.full_url
     auth = req.get_header("Authorization")
     assert auth is not None and auth.startswith("Basic ")
+
+
+def test_issue_key_is_url_encoded(tmp_path, monkeypatch, capsys):
+    seen = []
+    run(tmp_path, monkeypatch, body=payload(), requests_seen=seen, issue="PROJ 123/../x")
+
+    assert "PROJ%20123%2F..%2Fx" in seen[0].full_url
+    assert "PROJ 123" not in seen[0].full_url
 
 
 def test_absent_points_yield_null(tmp_path, monkeypatch, capsys):

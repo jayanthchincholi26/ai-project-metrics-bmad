@@ -75,7 +75,11 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="repository root; the manifest is {repo-root}/.story.yaml",
     )
-    p.add_argument("--points", required=True, help="confirmed story points (integer > 0)")
+    p.add_argument(
+        "--points",
+        required=True,
+        help="confirmed story points (number > 0; fractional allowed for teams that use them)",
+    )
     p.add_argument("--goal", required=True, help="story goal (one line)")
     p.add_argument("--sprint", required=True, help="sprint the story belongs to")
     p.add_argument("--description", help="optional longer description")
@@ -88,11 +92,13 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     try:
-        points = int(args.points)
+        points = float(args.points)
     except ValueError:
-        return fail(f"--points must be an integer, got {args.points!r}")
-    if points <= 0:
-        return fail(f"--points must be > 0, got {points}")
+        return fail(f"--points must be a number, got {args.points!r}")
+    if not 0 < points < float("inf"):  # also rejects nan: every nan comparison is false
+        return fail(f"--points must be a finite number > 0, got {args.points}")
+    if points.is_integer():
+        points = int(points)
     goal = clean(args.goal)
     if not goal:
         return fail("--goal must not be empty")
