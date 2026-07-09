@@ -4,7 +4,7 @@ baseline_commit: b6395ba25dbf3347e147d646df27e06deb0701e5
 
 # Story 1.5: Kickoff Manifest Declares Which AI Tool Is In Use
 
-Status: review
+Status: done
 
 ## Story
 
@@ -68,6 +68,8 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 ### Change Log
 
 - 2026-07-09: Story 1.5 implemented — ai_tool resolution (resolver), --ai-tool manifest field (writer), skill wiring. 10 new tests (87 total). Status → review. Epic 1's final story.
+- 2026-07-09: Gemini review of PR #9 returned zero findings — first clean §9 pass of the project. No fixes, no declines. Logged on the PR.
+- 2026-07-09: PR #9 squash-merged to `develop` (e786ef6). Status → done. **Epic 1 complete (5/5).**
 
 ### File List
 

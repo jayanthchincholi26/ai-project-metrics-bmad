@@ -93,6 +93,10 @@ Switching between stories never corrupts time attribution, and nobody manually s
 
 A developer can kick off a story without re-typing PM data, whatever tool (or lack of one) the project uses.
 
+> ✅ **Epic complete** — 2026-07-09, all 5 stories done (PRs #1, #4, #6, #8, #9).
+>
+> **Retro note (§13):** *What worked* — fetch-only adapters composed with one manifest writer kept NFR4 trivially provable; test-first + manual E2E caught what green suites missed (the UTF-8 BOM bug); external-LLM review found one real defect per early story, then zero by 1.5 as its lessons (URL encoding, format-over-membership validation, resilient parsing) got pre-applied; duration fell 60→13 min/story as patterns stabilized. *What to adjust* — squash-merge discipline slipped once (PR #1, merge commit); LLM review produced one hallucinated finding (nonexistent `import math`) — keep grep-verifying before acting; the duplicated flat-YAML parser (2 copies) is fine for now, but revisit at spine level if Epic 2's hooks need it too (Issue #7).
+
 ### Story 1.1: Create the Story Manifest via Docs-Only Kickoff
 
 > ✅ **Complete** — 2026-07-09 · [PR #1](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/1) (merged to `develop`, 9ab68f8)
