@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import uuid
 from datetime import datetime
@@ -89,7 +90,16 @@ def main(argv: list[str] | None = None) -> int:
         default="docs-only",
         help="which backend supplied the values (default: docs-only)",
     )
+    p.add_argument(
+        "--ai-tool",
+        default="claude-code",
+        help="AI tool whose adapter captures this story's sessions (default: claude-code; "
+        "lowercase token — it becomes the ai.<tool>.* event namespace)",
+    )
     args = p.parse_args(argv)
+
+    if not re.fullmatch(r"[a-z][a-z0-9-]*", args.ai_tool):
+        return fail(f"--ai-tool {args.ai_tool!r} must match [a-z][a-z0-9-]*")
 
     try:
         points = float(args.points)
@@ -122,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
             {
                 "story_id": story_id,
                 "source_of_truth": args.source_of_truth,
+                "ai_tool": args.ai_tool,
                 "points": points,
                 "goal": goal,
                 "sprint": sprint,

@@ -13,6 +13,11 @@ backend would be reported with `implemented: false` so the caller can surface
 it honestly — never a silent docs-only fallback, and never treated as invalid
 config. As of Story 1.4 all three backends are implemented.
 
+Story 1.5: the same config declares `ai_tool` (default claude-code — the only
+implemented capture adapter, AD-10). The value must be a lowercase token
+because it becomes the `ai.<tool>.*` event-namespace segment (AD-1a); an
+unimplemented-but-valid tool resolves with `ai_tool_implemented: false`.
+
 Read-only: this script never writes or creates any file.
 """
 
@@ -20,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -27,6 +33,9 @@ from typing import Any
 CONFIG = ".story-config.yaml"
 BACKENDS = ("jira", "confluence", "docs-only")
 IMPLEMENTED = ("docs-only", "jira", "confluence")
+DEFAULT_AI_TOOL = "claude-code"
+AI_TOOLS_IMPLEMENTED = ("claude-code",)
+AI_TOOL_FORMAT = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
 def parse_scalar(raw: str) -> str:
@@ -86,37 +95,29 @@ def main(argv: list[str] | None = None) -> int:
         return fail(f"--repo-root {args.repo_root!r} is not a directory")
 
     path = root / CONFIG
-    if not path.exists():
-        return ack(
-            {
-                "ok": True,
-                "source_of_truth": "docs-only",
-                "declared": False,
-                "implemented": True,
-                "config": None,
-            }
+    config = read_config(path) if path.exists() else {}
+
+    source = config.get("source_of_truth")
+    if source is not None and source not in BACKENDS:
+        return fail(f"source_of_truth {source!r} in {path} is not one of: {', '.join(BACKENDS)}")
+
+    ai_tool = config.get("ai_tool")
+    if ai_tool is not None and not AI_TOOL_FORMAT.match(ai_tool):
+        return fail(
+            f"ai_tool {ai_tool!r} in {path} must match [a-z][a-z0-9-]* — "
+            "it becomes the ai.<tool>.* event namespace (AD-1a/AD-10)"
         )
 
-    value = read_config(path).get("source_of_truth")
-    if value is None:
-        return ack(
-            {
-                "ok": True,
-                "source_of_truth": "docs-only",
-                "declared": False,
-                "implemented": True,
-                "config": str(path.resolve()),
-            }
-        )
-    if value not in BACKENDS:
-        return fail(f"source_of_truth {value!r} in {path} is not one of: {', '.join(BACKENDS)}")
     return ack(
         {
             "ok": True,
-            "source_of_truth": value,
-            "declared": True,
-            "implemented": value in IMPLEMENTED,
-            "config": str(path.resolve()),
+            "source_of_truth": source or "docs-only",
+            "declared": source is not None,
+            "implemented": (source or "docs-only") in IMPLEMENTED,
+            "config": str(path.resolve()) if path.exists() else None,
+            "ai_tool": ai_tool or DEFAULT_AI_TOOL,
+            "ai_tool_declared": ai_tool is not None,
+            "ai_tool_implemented": (ai_tool or DEFAULT_AI_TOOL) in AI_TOOLS_IMPLEMENTED,
         }
     )
 

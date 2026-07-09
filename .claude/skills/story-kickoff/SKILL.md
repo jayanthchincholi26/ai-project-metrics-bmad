@@ -25,7 +25,9 @@ Dispatch on the JSON ack:
 - `"source_of_truth": "jira"` → continue with steps 2–4, using the **JIRA variant of step 3** (step 3a).
 - `"source_of_truth": "confluence"` → continue with steps 2–4, using the **Confluence variant of step 3** (step 3b).
 - Any backend with `"implemented": false` → tell the developer it isn't built yet and stop. Do **not** silently fall back to docs-only.
-- Non-zero exit (e.g. an invalid `source_of_truth` value) → surface the script's stderr to the developer **verbatim** and stop; the config file needs fixing before any kickoff can proceed.
+- Non-zero exit (e.g. an invalid `source_of_truth` or `ai_tool` value) → surface the script's stderr to the developer **verbatim** and stop; the config file needs fixing before any kickoff can proceed.
+
+The ack also carries the project's **AI tool** (`ai_tool`, default `claude-code` when undeclared — never ask). Remember it: step 4 passes it to the writer. If `ai_tool_implemented` is `false`, tell the developer that capture for that tool isn't built yet (AD-10 — metrics will be reduced-confidence until its adapter exists), but do **not** block the kickoff. Only override the resolved value per story if the team genuinely mixes tools and the developer says so.
 
 ### 2. Refuse a double kickoff early
 
@@ -75,10 +77,10 @@ Confluence pages have no native points/sprint fields; the adapter reads **page l
 Run from the repo root:
 
 ```
-uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --goal "<goal>" --sprint "<sprint>" [--description "<text>"] [--source-of-truth jira|confluence|docs-only]
+uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --goal "<goal>" --sprint "<sprint>" [--description "<text>"] [--source-of-truth jira|confluence|docs-only] --ai-tool <resolved ai_tool>
 ```
 
-(`--source-of-truth` defaults to `docs-only`; the JIRA flow passes `jira` so the manifest records which backend supplied the values.)
+(`--source-of-truth` defaults to `docs-only`; the JIRA/Confluence flows pass their backend so the manifest records which one supplied the values. `--ai-tool` carries the step-1 resolved value — the manifest field AI-session capture producers read to pick their `ai.<tool>.*` event namespace.)
 
 - **Exit 0:** the script prints a one-line JSON ack `{"ok": true, "story_yaml": ..., "story_id": ...}`. Relay the `story_id` and the manifest path to the developer — kickoff complete.
 - **Non-zero exit:** surface the script's stderr to the developer **verbatim**, then return to step 3 and re-elicit. Never retry silently with altered values.
