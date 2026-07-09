@@ -111,6 +111,8 @@ So that every downstream capture mechanism has a story identity to attach to.
 
 ### Story 1.2: Project-Level Source-of-Truth Configuration
 
+> ✅ **Complete** — 2026-07-09 · [PR #4](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/4)
+
 As a developer,
 I want my project to declare its PM tool once,
 So that I'm never asked which tool applies on every single story.
