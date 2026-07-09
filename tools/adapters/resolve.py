@@ -29,8 +29,23 @@ BACKENDS = ("jira", "confluence", "docs-only")
 IMPLEMENTED = ("docs-only",)
 
 
+def parse_scalar(raw: str) -> str:
+    """One flat-YAML scalar: a paired quote (single or double) wins and shields any `#`
+    inside it; a bare value ends at the first ` #` inline comment."""
+    value = raw.strip()
+    if value[:1] in ("'", '"'):
+        quote, body = value[0], value[1:]
+        end = body.find(quote)
+        return body[:end] if end != -1 else body
+    if value.startswith("#"):
+        return ""
+    if " #" in value:
+        value = value.split(" #", 1)[0].strip()
+    return value
+
+
 def read_config(path: Path) -> dict[str, str]:
-    """Flat YAML by hand (stdlib-only rule): bare or JSON-quoted scalars, one per line.
+    """Flat YAML by hand (stdlib-only rule), one `key: value` per line.
 
     utf-8-sig: Windows editors and PowerShell 5.1 commonly write a UTF-8 BOM; without
     stripping it the first key silently fails to match and the declared backend is lost.
@@ -41,10 +56,7 @@ def read_config(path: Path) -> dict[str, str]:
         if not stripped or stripped.startswith("#") or ":" not in stripped:
             continue
         key, raw = stripped.split(":", 1)
-        value = raw.strip()
-        if value.startswith('"'):
-            value = json.loads(value)
-        config[key.strip()] = value
+        config[key.strip()] = parse_scalar(raw)
     return config
 
 

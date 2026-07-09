@@ -40,6 +40,15 @@ so that I'm never asked which tool applies on every single story.
   - [x] Ack is exactly one JSON line with the five contract keys
 - [x] Task 4: Regression — full suite green; docs-only kickoff E2E unchanged (AC: 2)
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #4) triaged per project-context §9 — 2026-07-09:
+
+- [x] [AI-Review][Med] Inline comments broke bare-value parsing (`source_of_truth: jira # note` → invalid) — fixed via `parse_scalar()`: bare values end at ` #`; paired quotes shield `#`. Test-first repro also exposed an uncaught `JSONDecodeError` crash on `"quoted"  # comment` (worse than reported). 4 regression tests added.
+- [x] [AI-Review][Low] Single-quoted values unsupported — fixed in the same `parse_scalar()` (paired single/double quotes; deliberately not a blind `.strip("'\"")`, which would accept mismatched quotes)
+- [x] [AI-Review][Low] `read_config() -> dict[str, str]` inaccurate while `json.loads` could return non-str — resolved by construction: `json.loads` removed from parsing; the hint is now exact
+- Declined — add `__init__.py`/PYTHONPATH so tests import `tools.adapters.resolve` natively: same theme as Issue #2; `tools/` holds `uv run` script entry points, not a package, and one uniform `importlib` loading pattern across the test suite beats two mechanisms. Pre-documented in this story's Dev Notes (Previous Story Intelligence). Logged as a wontfix issue per the §9 convention.
+
 ## Dev Notes
 
 ### Scope — what this story is and is not
@@ -127,6 +136,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 ### Change Log
 
 - 2026-07-09: Story 1.2 implemented — config resolver, skill dispatch update, 13 new tests (32 total). BOM-handling defect found via E2E and fixed pre-review. Status → review.
+- 2026-07-09: Addressed Gemini review of PR #4 — 3 fixed (inline-comment parsing incl. a latent `JSONDecodeError` crash, single-quote support, exact return hint), 1 declined with logged rationale (test packaging change). 36 tests passing.
 
 ### File List
 

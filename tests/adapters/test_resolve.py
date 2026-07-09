@@ -107,6 +107,42 @@ def test_comments_blanks_whitespace_and_unrelated_keys_are_tolerated(tmp_path, c
     assert read_ack(capsys)["source_of_truth"] == "confluence"
 
 
+def test_inline_comment_on_bare_value_is_stripped(tmp_path, capsys):
+    write_config(tmp_path, "source_of_truth: jira  # use jira backend\n")
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    assert read_ack(capsys)["source_of_truth"] == "jira"
+
+
+def test_single_quoted_value_is_accepted(tmp_path, capsys):
+    write_config(tmp_path, "source_of_truth: 'confluence'\n")
+
+    run(tmp_path)
+
+    assert read_ack(capsys)["source_of_truth"] == "confluence"
+
+
+def test_quoted_value_followed_by_comment_is_accepted(tmp_path, capsys):
+    write_config(tmp_path, 'source_of_truth: "docs-only"  # default anyway\n')
+
+    run(tmp_path)
+
+    ack = read_ack(capsys)
+    assert ack["source_of_truth"] == "docs-only"
+    assert ack["declared"] is True
+
+
+def test_value_that_is_only_a_comment_exits_2(tmp_path, capsys):
+    write_config(tmp_path, "source_of_truth: # pick one later\n")
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 2
+    assert capsys.readouterr().out == ""
+
+
 def test_utf8_bom_config_is_parsed(tmp_path, capsys):
     (tmp_path / ".story-config.yaml").write_bytes(b"\xef\xbb\xbfsource_of_truth: jira\n")
 
