@@ -4,7 +4,7 @@ baseline_commit: bb70d3057de596940fd6fae781efea79b2e6cd60
 
 # Story 1.4: Confluence Adapter Auto-Fills Kickoff
 
-Status: review
+Status: done
 
 ## Story
 
@@ -80,6 +80,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 
 - 2026-07-09: Story 1.4 implemented — Confluence fetch adapter (labels convention for points/sprint, HTML-stripped description), resolver all-implemented, skill step 3b. 18 new tests (77 total). Status → review.
 - 2026-07-09: Addressed Gemini review of PR #8 — 1 applied (resilient label parsing: first *valid* label wins), 1 factual correction (no `import math` exists in docs-only/main.py — hallucinated finding). 79 tests passing.
+- 2026-07-09: PR #8 squash-merged to `develop` (43e779c). Status → done. Story branch retained per user preference.
 
 ### File List
 
