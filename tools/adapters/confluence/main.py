@@ -59,22 +59,24 @@ def labels_of(payload: dict) -> list[str]:
 
 
 def extract_points(labels: list[str]) -> Optional[float]:
-    """`points-<number>` label; a malformed number is a human typo, treated as absent."""
+    """First valid `points-<number>` label wins; malformed ones are human typos, skipped."""
     for name in labels:
         if name.startswith("points-"):
             try:
                 value = float(name[len("points-") :])
             except ValueError:
-                return None
+                continue
             return int(value) if value.is_integer() else value
     return None
 
 
 def extract_sprint(labels: list[str]) -> Optional[str]:
+    """First non-empty `sprint-<name>` label wins; a bare `sprint-` typo is skipped."""
     for name in labels:
         if name.startswith("sprint-"):
             remainder = name[len("sprint-") :]
-            return remainder or None
+            if remainder:
+                return remainder
     return None
 
 

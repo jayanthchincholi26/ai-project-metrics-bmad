@@ -113,6 +113,18 @@ def test_malformed_points_label_yields_null(tmp_path, monkeypatch, capsys):
     assert read_ack(capsys)["points"] is None
 
 
+def test_malformed_points_label_does_not_mask_a_valid_one(tmp_path, monkeypatch, capsys):
+    run(tmp_path, monkeypatch, body=payload(labels=("points-typo", "points-5")))
+
+    assert read_ack(capsys)["points"] == 5
+
+
+def test_empty_sprint_label_does_not_mask_a_valid_one(tmp_path, monkeypatch, capsys):
+    run(tmp_path, monkeypatch, body=payload(labels=("sprint-", "sprint-13")))
+
+    assert read_ack(capsys)["sprint"] == "13"
+
+
 def test_sprint_label_remainder_taken_verbatim(tmp_path, monkeypatch, capsys):
     run(tmp_path, monkeypatch, body=payload(labels=("sprint-2026-Q3-S4",)))
 

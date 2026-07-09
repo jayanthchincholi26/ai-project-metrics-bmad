@@ -35,6 +35,13 @@ so that both PM tools are supported identically.
   - [x] Mirror test_jira.py: success normalization, label parsing (points/sprint present, absent, malformed points label → null), HTML-strip + truncation of description, empty body → null description, missing env naming all three, 401/404/network/malformed → exit 2, token-absence on success and failure paths, writes-no-files, page id URL-encoded
 - [x] Task 4: Full regression + lint (all ACs)
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #8) triaged per project-context §9 — 2026-07-09:
+
+- [x] [AI-Review][Low] Label parsing stopped at the first prefix match even when invalid — a typo'd `points-typo`/bare `sprint-` could mask a valid label later in the list. Fixed with `continue`-style search (first *valid* label wins); 2 regression tests.
+- Factual correction — "local `import math` inside try block in docs-only/main.py": no `math` import exists anywhere in that file (grep-verified); the finiteness check deliberately uses `float("inf")` to avoid one. Hallucinated finding; corrected on the PR, no change needed.
+
 ## Dev Notes
 
 - **Same shape as JIRA is the whole point (AC 1):** the ack keys and null semantics must be byte-compatible with the jira adapter's — the skill's step-3a/3b logic is identical except for the fetch command and reference prompt (issue key vs page id).
@@ -72,6 +79,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 ### Change Log
 
 - 2026-07-09: Story 1.4 implemented — Confluence fetch adapter (labels convention for points/sprint, HTML-stripped description), resolver all-implemented, skill step 3b. 18 new tests (77 total). Status → review.
+- 2026-07-09: Addressed Gemini review of PR #8 — 1 applied (resilient label parsing: first *valid* label wins), 1 factual correction (no `import math` exists in docs-only/main.py — hallucinated finding). 79 tests passing.
 
 ### File List
 
