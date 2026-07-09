@@ -3,14 +3,14 @@
 ## Table of Contents
 
 1. [Problem](#problem)
-2. [How This Data Will and Won't Be Used](#how-this-data-will-and-wont-be-used-proposed--needs-leadership-sign-off)
-3. [Chosen Approach](#chosen-approach)
-4. [Developer Experience Flow](#developer-experience-flow)
-5. [What's Deliberately Deferred](#whats-deliberately-deferred)
-6. [Known Risks](#known-risks)
-7. [Delivery Path](#delivery-path)
-8. [Extending Beyond Development — Architecture, UX, and QA](#extending-beyond-development--architecture-ux-and-qa)
-9. [Supporting AI Tools Other Than Claude Code](#supporting-ai-tools-other-than-claude-code)
+2. [Chosen Approach](#chosen-approach)
+3. [Developer Experience Flow](#developer-experience-flow)
+4. [Delivery Path](#delivery-path)
+5. [Extending Beyond Development — Architecture, UX, and QA](#extending-beyond-development--architecture-ux-and-qa)
+6. [Supporting AI Tools Other Than Claude Code](#supporting-ai-tools-other-than-claude-code)
+7. [How This Data Will and Won't Be Used](#how-this-data-will-and-wont-be-used-proposed--needs-leadership-sign-off)
+8. [Known Risks](#known-risks)
+9. [What's Deliberately Deferred](#whats-deliberately-deferred)
 10. [Full Reference](#full-reference)
 
 ## Problem
@@ -25,7 +25,7 @@ AI-accelerated engineering (openspec/speckit, SDD-driven development) now moves 
 - **Claude Code hooks** (`SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`) capture AI-session activity, token usage, and phase narration.
 - **A CLI wrapper** around openspec/speckit captures lifecycle events (e.g. `opsx archive`) without modifying its internals.
 
-All three append to a local `.story-events.jsonl` (namespaced event types: `git.*`, `claude.*`, `opsx.*`; early events buffered, never dropped). At story close, a **snapshot assembler** reduces the log into one immutable, versioned snapshot — the *only* thing that ever crosses the boundary to a future central presentation layer. The raw event log never leaves the developer's machine.
+All three append to a local `.story-events.jsonl` (namespaced event types: `git.*`, `ai.<tool>.*`, `opsx.*` — generalized so any AI-tool adapter can emit events without colliding, see "Supporting AI Tools Other Than Claude Code" below; early events buffered, never dropped). At story close, a **snapshot assembler** reduces the log into one immutable, versioned snapshot — the *only* thing that ever crosses the boundary to a future central presentation layer. The raw event log never leaves the developer's machine.
 
 **Story identity** lives solely in `.story.yaml`, written once at kickoff by a **source-of-truth adapter** (JIRA / Confluence / docs-only — declared once per project, never re-asked per story).
 
@@ -116,7 +116,6 @@ This system captures some sensitive-feeling signals — active time, AI token co
 
 - **Behavior over technology.** The biggest risk here isn't technical. Once people know a number like token cost or review-cycle count is being tracked, some will start **optimizing for the number** instead of just doing good work. The usage policy above is meant to head this off, but only if we actually stick to it.
 - **Numbers trusted too early.** The story-point weights we're using are a best guess, not calibrated against real data — an early dashboard could give people **more confidence than the numbers deserve**.
-- ~~A soft loophole in the complexity gate~~ — **closed by design.** The pipeline now runs for **every story regardless of complexity**, so there is no lighter path to game and no incentive to under-classify a story. Complexity classification still happens, but only as an input to the story-point estimate — never as a switch that turns capture off. The residual cost is that trivial stories carry the same (fully silent, near-zero-effort) capture overhead as complex ones, which is acceptable because the capture is invisible to the developer anyway.
 - **Coverage gap — boundary designed, adapters not yet built.** Developers on GitHub Copilot, Cursor, Gemini, or other AI tools produce no capturable signal today. We've now designed the fix (an **AI-tool capture adapter**, AD-10 — see below), but only the Claude Code adapter exists; the others are deliberately out of scope for the pilot.
 - **Adoption risk.** Automatically capturing active time and AI usage can feel like **surveillance** if it isn't introduced carefully, with a clear explanation of what it is and isn't used for. How well this lands with the team depends as much on that conversation as on how well it's built.
 
@@ -127,7 +126,7 @@ This system captures some sensitive-feeling signals — active time, AI token co
 - Acting on estimate-vs-actual variance (a recalibration feedback loop) — captured today, not yet used.
 - A manual-override path if branch-per-story is ever violated.
 - Adapter credential provisioning mechanics.
-- Support for AI tools other than Claude Code (Copilot, Cursor, Codex, etc.) — a real, named coverage gap, not yet designed.
+- Non-Claude-Code AI-tool adapters (Cursor, Copilot, Gemini, etc.) — the adapter boundary is designed (AD-10), but only the Claude Code adapter is built; the rest are deliberately out of scope for the pilot.
 - Multi-repo scaling and schema-versioning ownership — deliberately pushed past the pilot stage.
 
 ## Full Reference
