@@ -4,7 +4,7 @@ baseline_commit: 00e0c2dc1d9146601cc8c22e763e3bf1ee31afeb
 
 # Story 1.3: JIRA Adapter Auto-Fills Kickoff
 
-Status: review
+Status: done
 
 ## Story
 
@@ -141,6 +141,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 
 - 2026-07-09: Story 1.3 implemented — JIRA fetch adapter (urllib, env creds, custom-field config), writer `--source-of-truth` flag, resolver jira→implemented, skill JIRA flow. 20 new tests (56 total). Status → review.
 - 2026-07-09: Addressed Gemini review of PR #6 — 2 applied (fractional points end-to-end + nan/inf guard; URL-encoded issue key), 1 factual correction (the `--source-of-truth` test already exists), 2 declined with rationale (shared config module — spine-level question flagged to Jayanth; `__init__.py` = Issue #5). 60 tests passing.
+- 2026-07-09: PR #6 squash-merged to `develop` (53b18d3). Status → done. Story branch retained per user preference.
 
 ### File List
 
