@@ -95,6 +95,8 @@ A developer can kick off a story without re-typing PM data, whatever tool (or la
 
 ### Story 1.1: Create the Story Manifest via Docs-Only Kickoff
 
+> ✅ **Complete** — 2026-07-09 · [PR #1](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/1) (merged to `develop`, 9ab68f8)
+
 As a developer,
 I want to kick off a story and have my points/goal/sprint captured into a manifest, even when my project has no PM tool,
 So that every downstream capture mechanism has a story identity to attach to.

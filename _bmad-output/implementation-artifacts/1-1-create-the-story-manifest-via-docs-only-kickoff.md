@@ -4,7 +4,7 @@ baseline_commit: 0642acfe3f239713ae080b9240bd87bf314b3f01
 
 # Story 1.1: Create the Story Manifest via Docs-Only Kickoff
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -175,6 +175,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 
 - 2026-07-09: Story 1.1 implemented — docs-only kickoff adapter, story-kickoff skill, dev tooling bootstrap, 18 tests. All ACs verified; ruff + pytest clean. Status → review.
 - 2026-07-09: Addressed external LLM (Gemini) review findings — 2 fixed (single-`now` timestamp consistency + f-strings/type hint), 2 declined with logged rationale (dir rename vs. spine seed; PyYAML vs. stdlib-only rule). 19 tests passing.
+- 2026-07-09: PR #1 merged to `develop` (9ab68f8, human sign-off by Jayanth). epics.md annotated. Status → done. Note: merged as a merge commit rather than §10's squash — process note for next PR. Story branch retained for now at user request (delete later per §10).
 
 ### File List
 
