@@ -87,6 +87,7 @@ Separate from, and in addition to, the mandatory LLM pass (§9):
 
 - Every PR runs `bmad-code-review` (or `/code-review`) before merge — no exceptions.
 - **Findings are triaged:** Critical/High must be fixed before merge. Medium/Low may be deferred to a follow-up story, but must be explicitly logged (PR description or a new `epics.md` note) — never dropped silently. This mirrors AD-9's own philosophy: nothing fails silently.
+- **Declined (won't-fix) findings are also logged as GitHub Issues**, labeled `wontfix` and closed as "not planned", titled `Review-declined: {short description}`, with the rationale and a link to the PR triage. This keeps declined findings searchable in one place (Issues) rather than buried in PR threads. (Adopted 2026-07-09, applied retroactively to PR #1.)
 - The LLM review is a mandatory gate, **not a replacement** for human sign-off (§7) — a human reviewer still approves the PR.
 
 ## 10. PR Merge to `develop`
