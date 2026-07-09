@@ -1,6 +1,8 @@
 .claude/settings.local.json
 _bmad/config.user.toml
 _bmad/custom/*.user.toml
+.venv/
+__pycache__/
 *.log
 .DS_Store
 Thumbs.db
