@@ -17,16 +17,6 @@
 
 AI-accelerated engineering (openspec/speckit, SDD-driven development) now moves faster and less predictably than manual project-management tracking can follow. Developers are asked to manually re-enter what already happened — points, time, review cycles — duplicating work the tools already know. Leadership needs reliable per-story, per-developer, and per-project PM/engineering/cost/token metrics without adding developer overhead.
 
-## How This Data Will and Won't Be Used (proposed — needs leadership sign-off)
-
-This system captures some sensitive-feeling signals — active time, AI token cost, review rounds. That's not a problem on its own, but it can become one if we're not upfront about what it's for. A few ground rules, to confirm with leadership and share with developers before wide rollout:
-
-- **Used for billing justification and process improvement** — sprint trends, estimate accuracy over time, and whether the AI tooling is paying off in cost terms. Confirmed as the two sanctioned uses; not staffing decisions, not individual judgment.
-- **Not used to compare or evaluate individual developers.** Signals like "time on task" or "review cycles" reflect how complicated a story turned out to be, not how good or fast a person is. They should never show up in a performance conversation.
-- **Metrics should never become targets.** The moment someone feels a number is judging them personally, they'll start managing the number instead of doing the work — and the number stops meaning anything.
-- **Early numbers come with a trust caveat.** The story-point weights we're starting with are a **best guess**, not validated against real data. Dashboards should say so plainly, and trend lines are expected to shift once we've calibrated against real usage.
-- **Developers should be told upfront**, before it starts running on their machine — not discovered after the fact. How this gets introduced matters as much as how well it's built.
-
 ## Chosen Approach
 
 **Event-sourced, local-first capture.** Three independent sources only ever *append* events — nothing writes shared state directly:
@@ -55,7 +45,7 @@ What a developer actually sees is much simpler than the architecture behind it �
  Developer                                                        Leadership
  ─────────                                                        ──────────
 
- [1] Start a story
+ [1] Start the development
       |  kickoff skill confirms
       |  points + goal/sprint
       |  (auto-filled if JIRA/Confluence)
@@ -75,25 +65,6 @@ What a developer actually sees is much simpler than the architecture behind it �
                                                                      (velocity, cost,
                                                                       token trends)
 ```
-
-## What's Deliberately Deferred
-
-- The central presentation layer's technology, hosting, and topology — only its input contract (the versioned snapshot) is fixed.
-- Story-point weight calibration — the current tables are a confirmed best guess, not yet validated against real usage data.
-- Acting on estimate-vs-actual variance (a recalibration feedback loop) — captured today, not yet used.
-- A manual-override path if branch-per-story is ever violated.
-- Adapter credential provisioning mechanics.
-- Support for AI tools other than Claude Code (Copilot, Cursor, Codex, etc.) — a real, named coverage gap, not yet designed.
-- Multi-repo scaling and schema-versioning ownership — deliberately pushed past the pilot stage.
-
-## Known Risks
-
-- **Behavior over technology.** The biggest risk here isn't technical. Once people know a number like token cost or review-cycle count is being tracked, some will start **optimizing for the number** instead of just doing good work. The usage policy above is meant to head this off, but only if we actually stick to it.
-- ~~**Quiet data loss.**~~ **Resolved:** a failed hook now retries 3 times and then surfaces a visible error, so a failure is never silent.
-- **Numbers trusted too early.** The story-point weights we're using are a best guess, not calibrated against real data — an early dashboard could give people **more confidence than the numbers deserve**.
-- **A soft loophole in the complexity gate.** Since small or low-complexity stories skip the full tracking pipeline, there's a mild incentive to **under-classify** a story just to avoid the extra overhead.
-- **Coverage gap — boundary designed, adapters not yet built.** Developers on GitHub Copilot, Cursor, Gemini, or other AI tools produce no capturable signal today. We've now designed the fix (an **AI-tool capture adapter**, AD-10 — see below), but only the Claude Code adapter exists; the others are deliberately out of scope for the pilot.
-- **Adoption risk.** Automatically capturing active time and AI usage can feel like **surveillance** if it isn't introduced carefully, with a clear explanation of what it is and isn't used for. How well this lands with the team depends as much on that conversation as on how well it's built.
 
 ## Delivery Path
 
@@ -130,6 +101,34 @@ Today's design assumes Claude Code, but developers on Cursor, GitHub Copilot, or
 - **The kickoff flow will ask which tool a developer is using**, the same way it already asks for the source-of-truth once per project — this determines which adapter activates.
 - **Reconciliation degrades honestly.** The two-phase story-point formula leans on signals (decision narration, token cost) that only Claude Code fully provides today. For any other tool, that story's estimate reconciliation is marked **reduced-confidence** and falls back to weaker proxies (diff size, commit count) — rather than presenting a number that looks just as trustworthy as a fully-instrumented one.
 - **Scope for now:** only the Claude Code adapter is built. Cursor, Copilot, and Gemini adapters are deliberately out of scope for the pilot — the boundary is designed so adding them later is a plug-in, not a rewrite.
+
+## How This Data Will and Won't Be Used (proposed — needs leadership sign-off)
+
+This system captures some sensitive-feeling signals — active time, AI token cost, review rounds. That's not a problem on its own, but it can become one if we're not upfront about what it's for. A few ground rules, to confirm with leadership and share with developers before wide rollout:
+
+- **Used for billing justification and process improvement** — sprint trends, estimate accuracy over time, and whether the AI tooling is paying off in cost terms. Confirmed as the two sanctioned uses; not staffing decisions, not individual judgment.
+- **Not used to compare or evaluate individual developers.** Signals like "time on task" or "review cycles" reflect how complicated a story turned out to be, not how good or fast a person is. They should never show up in a performance conversation.
+- **Metrics should never become targets.** The moment someone feels a number is judging them personally, they'll start managing the number instead of doing the work — and the number stops meaning anything.
+- **Early numbers come with a trust caveat.** The story-point weights we're starting with are a **best guess**, not validated against real data. Dashboards should say so plainly, and trend lines are expected to shift once we've calibrated against real usage.
+- **Developers should be told upfront**, before it starts running on their machine — not discovered after the fact. How this gets introduced matters as much as how well it's built.
+
+## Known Risks
+
+- **Behavior over technology.** The biggest risk here isn't technical. Once people know a number like token cost or review-cycle count is being tracked, some will start **optimizing for the number** instead of just doing good work. The usage policy above is meant to head this off, but only if we actually stick to it.
+- **Numbers trusted too early.** The story-point weights we're using are a best guess, not calibrated against real data — an early dashboard could give people **more confidence than the numbers deserve**.
+- ~~A soft loophole in the complexity gate~~ — **closed by design.** The pipeline now runs for **every story regardless of complexity**, so there is no lighter path to game and no incentive to under-classify a story. Complexity classification still happens, but only as an input to the story-point estimate — never as a switch that turns capture off. The residual cost is that trivial stories carry the same (fully silent, near-zero-effort) capture overhead as complex ones, which is acceptable because the capture is invisible to the developer anyway.
+- **Coverage gap — boundary designed, adapters not yet built.** Developers on GitHub Copilot, Cursor, Gemini, or other AI tools produce no capturable signal today. We've now designed the fix (an **AI-tool capture adapter**, AD-10 — see below), but only the Claude Code adapter exists; the others are deliberately out of scope for the pilot.
+- **Adoption risk.** Automatically capturing active time and AI usage can feel like **surveillance** if it isn't introduced carefully, with a clear explanation of what it is and isn't used for. How well this lands with the team depends as much on that conversation as on how well it's built.
+
+## What's Deliberately Deferred
+
+- The central presentation layer's technology, hosting, and topology — only its input contract (the versioned snapshot) is fixed.
+- Story-point weight calibration — the current tables are a confirmed best guess, not yet validated against real usage data.
+- Acting on estimate-vs-actual variance (a recalibration feedback loop) — captured today, not yet used.
+- A manual-override path if branch-per-story is ever violated.
+- Adapter credential provisioning mechanics.
+- Support for AI tools other than Claude Code (Copilot, Cursor, Codex, etc.) — a real, named coverage gap, not yet designed.
+- Multi-repo scaling and schema-versioning ownership — deliberately pushed past the pilot stage.
 
 ## Full Reference
 

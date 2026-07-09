@@ -31,8 +31,8 @@ AI/LLM-accelerated engineering (openspec/speckit, SDD-driven development) now mo
   - **success:** A project declares `source_of_truth` once (`jira` | `confluence` | `docs-only`), and the kickoff skill never asks which backend applies on a per-story basis (AD-4).
 
 - **CAP-5**
-  - **intent:** Small or low-complexity stories skip the full metrics-capture overhead so the heavier pipeline only runs where its cost is justified.
-  - **success:** An LLM-classified complexity gate at kickoff (task count + volatility, AD-6) decides whether full capture runs for a given story.
+  - **intent:** The full metrics-capture pipeline runs uniformly for stories of every complexity — since capture is silent and near-zero-effort, no story is exempted, which removes any incentive to under-classify a story to dodge tracking.
+  - **success:** Full A+B+C capture runs for every story regardless of the LLM-classified complexity at kickoff (task count + volatility, AD-6); complexity classification feeds only the Phase-1 point estimate, never a capture on/off decision.
 
 - **CAP-6**
   - **intent:** Per-story snapshots are producible in a stable, versioned shape that a future central presentation layer can consume without needing to understand raw capture-side event detail.

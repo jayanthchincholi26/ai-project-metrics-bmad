@@ -17,7 +17,7 @@ FR1 (CAP-1): A story's PM, engineering, story-point-cost, and token-cost metrics
 FR2 (CAP-2): A story's points are estimated automatically at kickoff and reconciled against actuals at close, using defined rules (AD-6), with variance logged rather than overwritten.
 FR3 (CAP-3): The system attributes active working time to the correct story as a developer moves between stories, without a manual time-log entry.
 FR4 (CAP-4): The kickoff flow adapts its questions and data source to whatever project-management tool (or lack of one) a given project actually uses.
-FR5 (CAP-5): Small or low-complexity stories skip the full metrics-capture overhead so the heavier pipeline only runs where its cost is justified.
+FR5 (CAP-5): The full metrics-capture pipeline runs uniformly for stories of every complexity; complexity classification at kickoff feeds only the Phase-1 point estimate, never a capture on/off decision (removes the under-classification loophole).
 FR6 (CAP-6): Per-story snapshots are producible in a stable, versioned shape that a future central presentation layer can consume without needing raw capture-side event detail.
 
 ### NonFunctional Requirements
