@@ -76,7 +76,7 @@ def test_declared_jira_is_resolved_and_implemented(tmp_path, capsys):
     assert ack["implemented"] is True
 
 
-def test_declared_confluence_is_resolved_but_not_implemented(tmp_path, capsys):
+def test_declared_confluence_is_resolved_and_implemented(tmp_path, capsys):
     write_config(tmp_path, "source_of_truth: confluence\n")
 
     exit_code = run(tmp_path)
@@ -84,7 +84,7 @@ def test_declared_confluence_is_resolved_but_not_implemented(tmp_path, capsys):
     assert exit_code == 0
     ack = read_ack(capsys)
     assert ack["source_of_truth"] == "confluence"
-    assert ack["implemented"] is False
+    assert ack["implemented"] is True
 
 
 def test_json_quoted_value_is_accepted(tmp_path, capsys):

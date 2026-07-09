@@ -52,7 +52,7 @@ development_status:
   1-1-create-the-story-manifest-via-docs-only-kickoff: done
   1-2-project-level-source-of-truth-configuration: done
   1-3-jira-adapter-auto-fills-kickoff: done
-  1-4-confluence-adapter-auto-fills-kickoff: backlog
+  1-4-confluence-adapter-auto-fills-kickoff: review
   1-5-kickoff-manifest-declares-which-ai-tool-is-in-use: backlog
   epic-1-retrospective: optional
   epic-2: backlog

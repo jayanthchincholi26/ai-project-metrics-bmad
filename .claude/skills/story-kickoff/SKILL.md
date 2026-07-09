@@ -23,7 +23,8 @@ Dispatch on the JSON ack:
 
 - `"source_of_truth": "docs-only"` → continue with steps 2–4 below.
 - `"source_of_truth": "jira"` → continue with steps 2–4, using the **JIRA variant of step 3** (step 3a).
-- `"source_of_truth": "confluence"` with `"implemented": false` → tell the developer their project declares Confluence but its adapter arrives in Story 1.4, and stop. Do **not** silently fall back to docs-only.
+- `"source_of_truth": "confluence"` → continue with steps 2–4, using the **Confluence variant of step 3** (step 3b).
+- Any backend with `"implemented": false` → tell the developer it isn't built yet and stop. Do **not** silently fall back to docs-only.
 - Non-zero exit (e.g. an invalid `source_of_truth` value) → surface the script's stderr to the developer **verbatim** and stop; the config file needs fixing before any kickoff can proceed.
 
 ### 2. Refuse a double kickoff early
@@ -56,6 +57,18 @@ An optional **description** may also be offered, but never block on it.
    - Any `null` field → elicit it via the step-3 re-prompt rule.
 4. On non-zero exit → surface stderr **verbatim** (it never contains the token) and either re-ask the issue key (e.g. typo'd key / 404) or stop (missing env vars, credential failure — the developer must fix their environment first).
 5. Proceed to step 4 with the confirmed values and `--source-of-truth jira`.
+
+### 3b. Confluence variant: fetch, then confirm
+
+Same flow as 3a with two differences — the reference is a **Confluence content id** (the number in the page URL), and the fetch command is:
+
+```
+uv run tools/adapters/confluence/main.py --repo-root <repo-root> --page <ID>
+```
+
+Credentials: `CONFLUENCE_BASE_URL` (including `/wiki` for Cloud sites), `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN` — same rules as JIRA (env only, never in chat).
+
+Confluence pages have no native points/sprint fields; the adapter reads **page labels** by convention: `points-<number>` (e.g. `points-5`) and `sprint-<name>` (e.g. `sprint-13`). Tell teams about this convention when fields come back `null` — labeled pages auto-fill, unlabeled pages just mean the developer confirms the values here. Points confirmation stays human either way (CAP-1), and nulls are elicited via the step-3 re-prompt rule. Proceed to step 4 with `--source-of-truth confluence`.
 
 ### 4. Write the manifest
 

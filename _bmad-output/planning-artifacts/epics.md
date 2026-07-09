@@ -141,6 +141,8 @@ So that I don't retype what JIRA already knows.
 
 ### Story 1.4: Confluence Adapter Auto-Fills Kickoff
 
+> ✅ **Complete** — 2026-07-09 · [PR #8](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/8)
+
 As a developer on a Confluence-backed project,
 I want the same automatic fill as JIRA,
 So that both PM tools are supported identically.
