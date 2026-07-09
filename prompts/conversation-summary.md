@@ -66,6 +66,13 @@ Recommendation: ship strictly in that order, only building the next step once th
 - A fourth source-of-truth adapter (GitLab) — held for later per user; JIRA/Confluence/docs-only remain the only designed adapters (AD-4).
 - Leadership sign-off on the "How This Data Will and Won't Be Used" policy in `APPROACH.md` — currently proposed, not yet ratified.
 
+## Clarified: BMad vs. openspec/opsx, and where the tool actually runs
+
+User asked two clarifying questions after the readiness check; answered and worth remembering exactly because it's a subtle distinction:
+
+1. **Implementation framework = BMad, not opsx.** `bmad-sprint-planning` → `bmad-create-story` → `bmad-dev-story` is the right continuation, since `epics.md` was already produced in BMad's own Epic/Story/Given-When-Then format — switching to openspec/opsx now would mean redundantly re-deriving everything into `proposal.md`/`specs/`/`tasks.md`. **Critical distinction:** openspec/speckit (`opsx`) is not a competing build framework for this tool — it's the *target workflow the finished tool observes* (via the CLI wrapper intercepting other developers' `opsx archive` calls, reading their `tasks.md`, etc.) once deployed into someone else's project. BMad and opsx play two entirely different roles: BMad builds this tool; opsx is what this tool watches, in the wild.
+2. **Where it runs once built:** this repo (`ai-project-metrics-bmad`) is the design/planning repo only — it never runs the tool. Per the Delivery Path, the runtime pieces (`tools/hooks/`, `tools/setup-hooks`, `.claude/skills/story-kickoff`, etc.) get built here via `bmad-dev-story`, then copied/adopted into whichever *other* target project uses this pipeline. Execution there is editor-agnostic by design — git hooks fire regardless of editor; Claude Code hooks fire wherever Claude Code runs (terminal, VS Code extension, JetBrains, etc.) — there's no hard VS Code dependency anywhere in AD-1 through AD-10.
+
 ## Where we left off
 
-`bmad-create-epics-and-stories` and `bmad-check-implementation-readiness` are both **complete**; `epics.md` is at overall status **READY**. Next natural step in the BMad flow: `bmad-sprint-planning` (required gate into Phase 4/Implementation), followed by `bmad-create-story` and `bmad-dev-story` for actual implementation. No pending user decisions block moving forward — this is a good point to either continue into sprint planning or pause.
+`bmad-create-epics-and-stories` and `bmad-check-implementation-readiness` are both **complete**; `epics.md` is at overall status **READY**. Next natural step in the BMad flow: `bmad-sprint-planning` (required gate into Phase 4/Implementation), followed by `bmad-create-story` and `bmad-dev-story` for actual implementation, run in *this* repo — the resulting tool is then adopted into other target projects per the Delivery Path. No pending user decisions block moving forward — this is a good point to either continue into sprint planning or pause.
