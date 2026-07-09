@@ -4,7 +4,7 @@ baseline_commit: 71857039707c4d729fcd18508660be7dc733103e
 
 # Story 1.2: Project-Level Source-of-Truth Configuration
 
-Status: review
+Status: done
 
 ## Story
 
@@ -137,6 +137,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 
 - 2026-07-09: Story 1.2 implemented — config resolver, skill dispatch update, 13 new tests (32 total). BOM-handling defect found via E2E and fixed pre-review. Status → review.
 - 2026-07-09: Addressed Gemini review of PR #4 — 3 fixed (inline-comment parsing incl. a latent `JSONDecodeError` crash, single-quote support, exact return hint), 1 declined with logged rationale (test packaging change). 36 tests passing.
+- 2026-07-09: PR #4 squash-merged to `develop` (ee89bb6) — §10 followed correctly this time. Status → done. Story branch retained at user request.
 
 ### File List
 
