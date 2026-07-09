@@ -74,3 +74,4 @@ A project lead can, at any time after a story's `opsx archive`, view a complete 
 - Adapter credential provisioning mechanics (how a developer's JIRA/Confluence token first gets into their environment) are not designed.
 - Central-service/BI-tool technology, hosting, and environment topology are not yet chosen; user confirmed no urgency yet.
 - Now resolved: yes — the kickoff manifest carries an `ai_tool` field (AD-10), declared like `source_of_truth`. Remaining open question is *when* to build adapters for tools beyond Claude Code, not *whether* the boundary exists.
+- Held for later: a fourth source-of-truth adapter for GitLab, alongside JIRA/Confluence/docs-only (AD-4/CAP-4). Not in scope now; add only if real demand emerges.

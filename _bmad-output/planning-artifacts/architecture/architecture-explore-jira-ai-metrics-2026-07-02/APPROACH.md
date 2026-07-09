@@ -127,6 +127,7 @@ This system captures some sensitive-feeling signals — active time, AI token co
 - A manual-override path if branch-per-story is ever violated.
 - Adapter credential provisioning mechanics.
 - Non-Claude-Code AI-tool adapters (Cursor, Copilot, Gemini, etc.) — the adapter boundary is designed (AD-10), but only the Claude Code adapter is built; the rest are deliberately out of scope for the pilot.
+- A fourth source-of-truth adapter (GitLab) — only JIRA, Confluence, and docs-only are designed (AD-4); GitLab is held for later, added only if real demand emerges.
 - Multi-repo scaling and schema-versioning ownership — deliberately pushed past the pilot stage.
 
 ## Full Reference

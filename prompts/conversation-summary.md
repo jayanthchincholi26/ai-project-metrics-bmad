@@ -11,10 +11,13 @@
 3. **Spec** (`bmad-spec`) distilled the spine + intent doc into the canonical machine contract: 6 capabilities (CAP-1–6), 5 constraints, 3 non-goals, a concrete success signal.
    - Output: `_bmad-output/specs/spec-pm-metrics-ai-engineering-flow/SPEC.md` (adopts `ARCHITECTURE-SPINE.md` as companion)
 
-4. **Epics & Stories** (`bmad-create-epics-and-stories`, **paused by user request**) — extracted FR1–FR6 (from CAP-1–6), NFR1–NFR5 (from Constraints), and 9 additional architecture requirements (from AD-1–AD-8) into a proposed 5-epic split. User chose to hold off confirming this until after the leadership discussion ("let's wait").
+4. **Epics & Stories** (`bmad-create-epics-and-stories`, **complete**) — resumed after the leadership discussion. Redesigned the initial 5-epic technical-layer draft into a proper user-value-first **3-epic structure**: Epic 1 (Start a Story With Zero Manual PM Setup, 5 stories after fixes), Epic 2 (Metrics Appear Automatically When You Close a Story, 6 stories — the core capture/snapshot/points loop), Epic 3 (Time Tracked Without Logging Hours, 3 stories). 14 stories total, all FR1–FR7/NFR1–5/AD-1–10 traced and validated (no forward dependencies, no epic independence violations).
    - Output: `_bmad-output/planning-artifacts/epics.md`
 
-5. **Presentation polish + leadership prep** — reworked both `architecture-walkthrough.html` (dark) and `-light.html`: clearer title, per-slide plain-language "Takeaway" footers, a simple 6-step flow strip on the title slide, plainer wording for AD-1 ("one writer per line, every time"), worked examples added for the adapter pattern, time-on-task, and git-versioned hooks, and a new "Delivering to Developers" slide (repo starter kit → scaffolding CLI → VS Code extension, in that order).
+5. **Implementation Readiness Check** (`bmad-check-implementation-readiness`, **complete**) — validated SPEC.md (as PRD-equivalent), ARCHITECTURE-SPINE.md, and epics.md together. Found 1 high-priority gap (Story 2.3 assumed an `ai_tool` manifest field that no story actually created) and 3 minor AC/sequencing concerns. All 4 were fixed immediately: added **Story 1.5** (kickoff declares `ai_tool`, mirroring Story 1.2's `source_of_truth` pattern), tightened Story 1.1's missing-input path and Story 3.2's idle-timeout precision. Final status: **READY** for `bmad-sprint-planning`.
+   - Output: `_bmad-output/planning-artifacts/implementation-readiness-report-2026-07-09.md`
+
+6. **Presentation polish + leadership prep** — reworked both `architecture-walkthrough.html` (dark) and `-light.html`: clearer title, per-slide plain-language "Takeaway" footers, a simple 6-step flow strip on the title slide, plainer wording for AD-1 ("one writer per line, every time"), worked examples added for the adapter pattern, time-on-task, and git-versioned hooks, and a new "Delivering to Developers" slide (repo starter kit → scaffolding CLI → VS Code extension, in that order).
    - Created `APPROACH.md` — a one-page leadership-ready summary (problem, chosen approach, deferred items, delivery path), then added two more sections after discussing risk with the user:
      - **"How This Data Will and Won't Be Used"** (proposed, needs leadership sign-off) — used for project/portfolio visibility only, explicitly not for individual performance judgment, early numbers flagged as unvalidated, developers to be told upfront.
      - **"Known Risks"** — metric-gaming (people optimizing the number instead of the work — deliberately described without the term "Goodhart's Law" per user preference), silent data loss from unmonitored hook failures, over-trusting unvalidated story-point weights, a soft loophole in the complexity gate, coverage gaps outside git/Claude Code/openspec, and adoption/surveillance-perception risk.
@@ -22,9 +25,9 @@
    - User's plan: bring `APPROACH.md` (as the leave-behind doc) + the HTML deck (for live walkthrough) to leadership, then resume `bmad-create-epics-and-stories` afterward.
    - Output: `_bmad-output/planning-artifacts/architecture/architecture-explore-jira-ai-metrics-2026-07-02/APPROACH.md`
 
-6. **Developer Experience Flow diagram** — added a plain-language "confirm at start, work normally, close at end" line diagram to both `APPROACH.md` (ASCII, new section right after "Chosen Approach") and as a standalone self-contained artifact `developer-flow.html` (theme-aware, drop-in for a slide/email, separate from the full walkthrough deck).
+7. **Developer Experience Flow diagram** — added a plain-language "confirm at start, work normally, close at end" line diagram to both `APPROACH.md` (ASCII, new section right after "Chosen Approach") and as a standalone self-contained artifact `developer-flow.html` (theme-aware, drop-in for a slide/email, separate from the full walkthrough deck).
 
-7. **Answered own review questions from earlier (risk pass) — real decisions, not just discussion:**
+8. **Answered own review questions from earlier (risk pass) — real decisions, not just discussion:**
    - **Data use scope confirmed:** billing justification and process improvement only — not staffing or individual performance review. Updated in `APPROACH.md`'s usage-policy section and `SPEC.md`'s Assumptions.
    - **Hook-failure handling decided → new invariant AD-9** in `ARCHITECTURE-SPINE.md`: a failed hook retries up to 3 times, then surfaces a visible error to the developer — never fails silently. This *resolves* the previously-open "quiet data loss" risk (marked resolved in `APPROACH.md`'s Known Risks). Also added to `SPEC.md` Constraints.
    - **Story-point formula validation plan:** pilot with a small group of developers first; tweak the AD-6 weights from real pilot data rather than guessing further. Consistent with the user's note that most orgs estimate off a reference document as a starting point. Added to `APPROACH.md` Delivery Path as a new "Rollout plan" and to the architecture/spec memlogs as a `direction` entry.
@@ -60,9 +63,9 @@ Recommendation: ship strictly in that order, only building the next step once th
 - Manual-override path if branch-per-story is ever violated.
 - Non-Claude-Code AI-tool adapters (Cursor/Copilot/Gemini) — boundary designed (AD-10), implementations not built; deliberately out of scope for the pilot.
 - Multi-repo scaling / schema-versioning ownership — deliberately deferred until after the pilot.
-- `epics.md` requirements extraction — **on hold**, awaiting user confirmation → Step 2 (epic design) of `bmad-create-epics-and-stories`, to resume after the leadership conversation.
+- A fourth source-of-truth adapter (GitLab) — held for later per user; JIRA/Confluence/docs-only remain the only designed adapters (AD-4).
 - Leadership sign-off on the "How This Data Will and Won't Be Used" policy in `APPROACH.md` — currently proposed, not yet ratified.
 
 ## Where we left off
 
-User is taking `APPROACH.md` + the HTML walkthrough decks to a leadership discussion. Next session should pick up with: (1) how that discussion went / any feedback or new constraints from leadership, then (2) resuming `bmad-create-epics-and-stories` Step 2 if the approach is confirmed.
+`bmad-create-epics-and-stories` and `bmad-check-implementation-readiness` are both **complete**; `epics.md` is at overall status **READY**. Next natural step in the BMad flow: `bmad-sprint-planning` (required gate into Phase 4/Implementation), followed by `bmad-create-story` and `bmad-dev-story` for actual implementation. No pending user decisions block moving forward — this is a good point to either continue into sprint planning or pause.
