@@ -9,9 +9,9 @@ jira | confluence | docs-only` a single time in `.story-config.yaml` at the
 repo root (flat YAML, committed), and the story-kickoff skill reads it via
 this script instead of ever asking the developer per story. An absent file or
 key defaults to docs-only (Story 1.1's behavior). A declared-but-unbuilt
-backend (jira/confluence until Stories 1.3/1.4) is reported with
-`implemented: false` so the caller can surface it honestly — never a silent
-docs-only fallback, and never treated as invalid config.
+backend (confluence until Story 1.4) is reported with `implemented: false`
+so the caller can surface it honestly — never a silent docs-only fallback,
+and never treated as invalid config.
 
 Read-only: this script never writes or creates any file.
 """
@@ -26,7 +26,7 @@ from typing import Any
 
 CONFIG = ".story-config.yaml"
 BACKENDS = ("jira", "confluence", "docs-only")
-IMPLEMENTED = ("docs-only",)
+IMPLEMENTED = ("docs-only", "jira")
 
 
 def parse_scalar(raw: str) -> str:

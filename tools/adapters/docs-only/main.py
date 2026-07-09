@@ -7,7 +7,10 @@
 The docs-only backend of the AD-4 source-of-truth adapter contract
 ({points, goal, sprint, description}): values come from the developer's
 confirmed answers (elicited by the story-kickoff skill) instead of a PM-tool
-API. The manifest this writes is the sole source of story identity (AD-5) —
+API. It doubles as the common manifest writer for the fetch-only adapters
+(jira/confluence pass confirmed values here with --source-of-truth, so the
+manifest records which backend supplied them). The manifest this writes is
+the sole source of story identity (AD-5) —
 producers read `story_id` from it and never infer identity from a branch name
 or ticket key. An existing manifest is never overwritten, since a re-kickoff
 would change story identity mid-story.
@@ -76,6 +79,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--goal", required=True, help="story goal (one line)")
     p.add_argument("--sprint", required=True, help="sprint the story belongs to")
     p.add_argument("--description", help="optional longer description")
+    p.add_argument(
+        "--source-of-truth",
+        choices=("jira", "confluence", "docs-only"),
+        default="docs-only",
+        help="which backend supplied the values (default: docs-only)",
+    )
     args = p.parse_args(argv)
 
     try:
@@ -106,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         render(
             {
                 "story_id": story_id,
-                "source_of_truth": "docs-only",
+                "source_of_truth": args.source_of_truth,
                 "points": points,
                 "goal": goal,
                 "sprint": sprint,

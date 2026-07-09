@@ -64,7 +64,7 @@ def test_declared_docs_only_is_resolved_and_implemented(tmp_path, capsys):
     assert Path(ack["config"]) == config.resolve()
 
 
-def test_declared_jira_is_resolved_but_not_implemented(tmp_path, capsys):
+def test_declared_jira_is_resolved_and_implemented(tmp_path, capsys):
     write_config(tmp_path, "source_of_truth: jira\n")
 
     exit_code = run(tmp_path)
@@ -73,7 +73,7 @@ def test_declared_jira_is_resolved_but_not_implemented(tmp_path, capsys):
     ack = read_ack(capsys)
     assert ack["source_of_truth"] == "jira"
     assert ack["declared"] is True
-    assert ack["implemented"] is False
+    assert ack["implemented"] is True
 
 
 def test_declared_confluence_is_resolved_but_not_implemented(tmp_path, capsys):

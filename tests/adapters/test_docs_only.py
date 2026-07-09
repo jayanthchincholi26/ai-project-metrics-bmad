@@ -118,6 +118,26 @@ def test_created_is_isoformat_with_offset(tmp_path):
     )
 
 
+def test_source_of_truth_flag_is_recorded(tmp_path):
+    kickoff(tmp_path, **{"source-of-truth": "jira"})
+
+    assert parse_manifest(tmp_path)["source_of_truth"] == "jira"
+
+
+def test_source_of_truth_defaults_to_docs_only(tmp_path):
+    kickoff(tmp_path)
+
+    assert parse_manifest(tmp_path)["source_of_truth"] == "docs-only"
+
+
+def test_invalid_source_of_truth_is_rejected_and_writes_nothing(tmp_path):
+    with pytest.raises(SystemExit) as excinfo:
+        kickoff(tmp_path, **{"source-of-truth": "gitlab"})
+
+    assert excinfo.value.code == 2
+    assert not manifest_path(tmp_path).exists()
+
+
 def test_story_id_date_matches_created_date(tmp_path):
     kickoff(tmp_path)
 

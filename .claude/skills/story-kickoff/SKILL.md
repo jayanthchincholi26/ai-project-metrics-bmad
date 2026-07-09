@@ -22,7 +22,8 @@ The project declares its PM tool **once** in `.story-config.yaml` (`source_of_tr
 Dispatch on the JSON ack:
 
 - `"source_of_truth": "docs-only"` → continue with steps 2–4 below.
-- `"source_of_truth": "jira"` or `"confluence"` with `"implemented": false` → tell the developer their project declares that backend but its adapter arrives in Story 1.3 (JIRA) / 1.4 (Confluence), and stop. Do **not** silently fall back to docs-only.
+- `"source_of_truth": "jira"` → continue with steps 2–4, using the **JIRA variant of step 3** (step 3a).
+- `"source_of_truth": "confluence"` with `"implemented": false` → tell the developer their project declares Confluence but its adapter arrives in Story 1.4, and stop. Do **not** silently fall back to docs-only.
 - Non-zero exit (e.g. an invalid `source_of_truth` value) → surface the script's stderr to the developer **verbatim** and stop; the config file needs fixing before any kickoff can proceed.
 
 ### 2. Refuse a double kickoff early
@@ -41,19 +42,37 @@ An optional **description** may also be offered, but never block on it.
 
 **Re-prompt rule (Story 1.1 AC 3):** if any of the three required fields is missing, blank, or invalid (e.g. points not a positive whole number), re-ask for the missing/invalid field(s) specifically — do not proceed, do not substitute defaults, and never invoke the writer with incomplete input.
 
+### 3a. JIRA variant: fetch, then confirm
+
+1. Ask the developer for the **JIRA issue key** (e.g. `PROJ-123`).
+2. Fetch the fields (credentials come from the developer's environment — `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`; **never ask the developer to paste a token into chat**):
+
+   ```
+   uv run tools/adapters/jira/main.py --repo-root <repo-root> --issue <KEY>
+   ```
+
+3. On exit 0, the ack carries `{points, goal, sprint, description}` (any field JIRA doesn't have is `null`). Present the fetched values, then:
+   - **Always confirm points with the developer** — even when JIRA supplied a number, points confirmation stays human (CAP-1).
+   - Any `null` field → elicit it via the step-3 re-prompt rule.
+4. On non-zero exit → surface stderr **verbatim** (it never contains the token) and either re-ask the issue key (e.g. typo'd key / 404) or stop (missing env vars, credential failure — the developer must fix their environment first).
+5. Proceed to step 4 with the confirmed values and `--source-of-truth jira`.
+
 ### 4. Write the manifest
 
 Run from the repo root:
 
 ```
-uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --goal "<goal>" --sprint "<sprint>" [--description "<text>"]
+uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --goal "<goal>" --sprint "<sprint>" [--description "<text>"] [--source-of-truth jira|confluence|docs-only]
 ```
+
+(`--source-of-truth` defaults to `docs-only`; the JIRA flow passes `jira` so the manifest records which backend supplied the values.)
 
 - **Exit 0:** the script prints a one-line JSON ack `{"ok": true, "story_yaml": ..., "story_id": ...}`. Relay the `story_id` and the manifest path to the developer — kickoff complete.
 - **Non-zero exit:** surface the script's stderr to the developer **verbatim**, then return to step 3 and re-elicit. Never retry silently with altered values.
 
 ## Boundaries
 
-- Only the writer script writes `.story.yaml` (atomically); this skill never writes or edits the manifest itself, and the resolver never writes anything.
+- Only the writer script writes `.story.yaml` (atomically); this skill never writes or edits the manifest itself, and the resolver and fetch adapters never write anything.
+- Credentials live in environment variables, read by the adapter at call time — never in `.story.yaml`, `.story-config.yaml`, chat, or any output (NFR4).
 - Do not create `.story-events.jsonl`, `.active-story`, or any event/spool file — those belong to later capture stories (Epic 2/3).
 - `.story.yaml` and `.story-config.yaml` are meant to be committed; neither ever contains credentials.
