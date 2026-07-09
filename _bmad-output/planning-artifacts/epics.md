@@ -126,6 +126,8 @@ So that I'm never asked which tool applies on every single story.
 
 ### Story 1.3: JIRA Adapter Auto-Fills Kickoff
 
+> ✅ **Complete** — 2026-07-09 · [PR #6](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/6)
+
 As a developer on a JIRA-backed project,
 I want my story's points/goal/sprint pulled automatically from a JIRA issue key,
 So that I don't retype what JIRA already knows.
