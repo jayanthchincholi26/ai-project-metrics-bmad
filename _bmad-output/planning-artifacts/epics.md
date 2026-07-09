@@ -40,6 +40,7 @@ NFR5: Branch-per-story is assumed as a hard team convention for time attribution
 - Active-story time pointer (`.active-story`) auto-updates on `git checkout` and Claude Code `SessionStart`; a live session's `SessionStart`/`SessionEnd` boundaries take precedence over a mid-session checkout for time-slice accounting (AD-7).
 - Hook installation is git-versioned: hook scripts live in a tracked `tools/hooks/` directory, installed by a single committed setup script into `.git/hooks/` and `.claude/settings.json` — never hand-maintained per machine (AD-8).
 - Deployment: capture side runs entirely on the developer machine, no server/network dependency; central presentation layer's hosting/tech is explicitly out of scope for this breakdown (Deferred, spine).
+- Implementation language/runtime: Python 3.8+ via `uv run` (single-file scripts, no venv management) for all hook logic, the opsx CLI wrapper, and the snapshot assembler — ratifies the existing convention used by `_bmad/scripts/*.py` in this repo. Git-invoked hooks are thin shell/batch shims that call the Python script via `uv run` (git requires a directly executable file, not a bare `.py`).
 - A hook that fails to append an event retries up to 3 times, then surfaces a visible error to the developer; never fails silently (AD-9).
 - Event namespace generalizes to `ai.<tool>.*` (not just `claude.*`); a signal an AI tool can't report (e.g. token cost) is emitted null-with-reason, never defaulted to zero; the kickoff manifest carries an `ai_tool` field declared like `source_of_truth` (AD-10).
 

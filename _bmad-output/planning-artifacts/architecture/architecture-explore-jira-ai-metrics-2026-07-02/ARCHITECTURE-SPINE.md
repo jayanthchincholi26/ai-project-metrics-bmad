@@ -7,7 +7,7 @@ paradigm: 'event-sourced pipes-and-filters'
 scope: 'Capturing PM, engineering, story-point-cost, and token-cost metrics as a byproduct of the AI-accelerated engineering flow (openspec/speckit), without manual double-entry, rolled up to a leadership dashboard.'
 status: final
 created: '2026-07-02'
-updated: '2026-07-02'
+updated: '2026-07-09'
 binds: []
 sources: ['_bmad-output/brainstorming/brainstorm-pm-metrics-ai-engineering-flow-2026-07-01/brainstorm-intent.md']
 companions: []
@@ -132,8 +132,9 @@ Layer → directory mapping:
 
 | Name | Version |
 | --- | --- |
-| git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`) | native git, no added dependency; verified stable, no staleness risk |
-| Claude Code hooks — wired via `hooks` entries in `.claude/settings.json` (event → matcher → command), **not** auto-discovered by folder/filename | this spine uses six of the available events: `SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`; more events exist (e.g. `SubagentStop`, `PreCompact`, `Notification`) and are out of scope here |
+| Python | 3.8+, run via `uv run` (no venv management) — ratifies the existing convention used by `_bmad/scripts/*.py` in this repo. All hook logic, the CLI wrapper, and the snapshot assembler are single-file Python scripts. |
+| git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`) | native git, no added dependency; verified stable, no staleness risk. Each is a thin shell/batch shim (git requires a directly executable file) that calls `uv run tools/hooks/git/<name>.py` |
+| Claude Code hooks — wired via `hooks` entries in `.claude/settings.json` (event → matcher → command), **not** auto-discovered by folder/filename | this spine uses six of the available events: `SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`; more events exist (e.g. `SubagentStop`, `PreCompact`, `Notification`) and are out of scope here. Each configured command invokes `uv run tools/hooks/claude/<name>.py` |
 | openspec ([Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec)) / speckit ([github/spec-kit](https://github.com/github/spec-kit)) CLI | existing project tooling, wrapped not modified; verified current and maintained |
 
 ## Structural Seed
@@ -150,11 +151,15 @@ Layer → directory mapping:
       story-close/          # human bookend: actual-vs-blockers note
   tools/
     hooks/
-      git/                  # post-commit, post-checkout, post-merge, commit-msg scripts, installed by setup (AD-8)
-      claude/                # scripts referenced by .claude/settings.json hook entries (AD-8)
-    setup-hooks              # committed installer: wires tools/hooks/git/* into .git/hooks/, merges .claude/settings.json (AD-8)
-    opsx-wrapper/            # intercepts openspec/speckit CLI invocations
-    snapshot-assembler/      # reduces the event log into a versioned snapshot at close (AD-3, AD-3a)
+      git/                  # post-commit.sh etc. — thin shims calling `uv run tools/hooks/git/*.py` (AD-8)
+        post-commit.sh
+        post-commit.py
+      claude/                # *.py referenced by .claude/settings.json hook entries via `uv run` (AD-8)
+    setup-hooks.py           # committed installer: wires tools/hooks/git/* into .git/hooks/, merges .claude/settings.json (AD-8)
+    opsx-wrapper/            # Python — intercepts openspec/speckit CLI invocations
+      main.py
+    snapshot-assembler/      # Python — reduces the event log into a versioned snapshot at close (AD-3, AD-3a)
+      main.py
     adapters/
       jira/
       confluence/
