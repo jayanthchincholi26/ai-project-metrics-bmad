@@ -118,6 +118,26 @@ def test_created_is_isoformat_with_offset(tmp_path):
     )
 
 
+def test_source_of_truth_flag_is_recorded(tmp_path):
+    kickoff(tmp_path, **{"source-of-truth": "jira"})
+
+    assert parse_manifest(tmp_path)["source_of_truth"] == "jira"
+
+
+def test_source_of_truth_defaults_to_docs_only(tmp_path):
+    kickoff(tmp_path)
+
+    assert parse_manifest(tmp_path)["source_of_truth"] == "docs-only"
+
+
+def test_invalid_source_of_truth_is_rejected_and_writes_nothing(tmp_path):
+    with pytest.raises(SystemExit) as excinfo:
+        kickoff(tmp_path, **{"source-of-truth": "gitlab"})
+
+    assert excinfo.value.code == 2
+    assert not manifest_path(tmp_path).exists()
+
+
 def test_story_id_date_matches_created_date(tmp_path):
     kickoff(tmp_path)
 
@@ -148,10 +168,37 @@ def test_negative_points_exits_2_and_writes_nothing(tmp_path):
     assert not manifest_path(tmp_path).exists()
 
 
+def test_fractional_points_are_accepted_and_recorded(tmp_path):
+    kickoff(tmp_path, points="1.5")
+
+    assert parse_manifest(tmp_path)["points"] == 1.5
+
+
+def test_integral_float_points_are_recorded_as_int(tmp_path):
+    kickoff(tmp_path, points="5.0")
+
+    points = parse_manifest(tmp_path)["points"]
+    assert points == 5
+    assert isinstance(points, int)
+
+
 def test_non_numeric_points_exits_2_and_writes_nothing(tmp_path):
     exit_code = kickoff(tmp_path, points="a lot")
 
     assert exit_code == 2
+    assert not manifest_path(tmp_path).exists()
+
+
+def test_nan_and_inf_points_exit_2_and_write_nothing(tmp_path):
+    for value in ("nan", "inf"):
+        exit_code = kickoff(tmp_path, points=value)
+
+        assert exit_code == 2
+        assert not manifest_path(tmp_path).exists()
+    # "-inf" never even reaches validation: argparse rejects it as an unknown option
+    with pytest.raises(SystemExit) as excinfo:
+        kickoff(tmp_path, points="-inf")
+    assert excinfo.value.code == 2
     assert not manifest_path(tmp_path).exists()
 
 

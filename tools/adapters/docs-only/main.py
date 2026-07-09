@@ -7,7 +7,10 @@
 The docs-only backend of the AD-4 source-of-truth adapter contract
 ({points, goal, sprint, description}): values come from the developer's
 confirmed answers (elicited by the story-kickoff skill) instead of a PM-tool
-API. The manifest this writes is the sole source of story identity (AD-5) —
+API. It doubles as the common manifest writer for the fetch-only adapters
+(jira/confluence pass confirmed values here with --source-of-truth, so the
+manifest records which backend supplied them). The manifest this writes is
+the sole source of story identity (AD-5) —
 producers read `story_id` from it and never infer identity from a branch name
 or ticket key. An existing manifest is never overwritten, since a re-kickoff
 would change story identity mid-story.
@@ -72,18 +75,30 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="repository root; the manifest is {repo-root}/.story.yaml",
     )
-    p.add_argument("--points", required=True, help="confirmed story points (integer > 0)")
+    p.add_argument(
+        "--points",
+        required=True,
+        help="confirmed story points (number > 0; fractional allowed for teams that use them)",
+    )
     p.add_argument("--goal", required=True, help="story goal (one line)")
     p.add_argument("--sprint", required=True, help="sprint the story belongs to")
     p.add_argument("--description", help="optional longer description")
+    p.add_argument(
+        "--source-of-truth",
+        choices=("jira", "confluence", "docs-only"),
+        default="docs-only",
+        help="which backend supplied the values (default: docs-only)",
+    )
     args = p.parse_args(argv)
 
     try:
-        points = int(args.points)
+        points = float(args.points)
     except ValueError:
-        return fail(f"--points must be an integer, got {args.points!r}")
-    if points <= 0:
-        return fail(f"--points must be > 0, got {points}")
+        return fail(f"--points must be a number, got {args.points!r}")
+    if not 0 < points < float("inf"):  # also rejects nan: every nan comparison is false
+        return fail(f"--points must be a finite number > 0, got {args.points}")
+    if points.is_integer():
+        points = int(points)
     goal = clean(args.goal)
     if not goal:
         return fail("--goal must not be empty")
@@ -106,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         render(
             {
                 "story_id": story_id,
-                "source_of_truth": "docs-only",
+                "source_of_truth": args.source_of_truth,
                 "points": points,
                 "goal": goal,
                 "sprint": sprint,
