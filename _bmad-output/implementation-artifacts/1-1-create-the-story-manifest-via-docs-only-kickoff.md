@@ -53,6 +53,15 @@ so that every downstream capture mechanism has a story identity to attach to.
   - [x] Multiline goal input → collapsed to a single line in the manifest
   - [x] Load the hyphenated-dir script in tests via `importlib.util.spec_from_file_location` (see Dev Notes → Testing the script)
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #1) triaged per project-context §9 — 2026-07-09:
+
+- [x] [AI-Review][Low] Midnight race: `story_id` date and `created` came from two separate `datetime.now()` calls — fixed with a single aware `now = datetime.now().astimezone()` passed to both; regression test `test_story_id_date_matches_created_date` added (also resolves the naive-vs-aware datetime smell)
+- [x] [AI-Review][Low] Replace `.format()` with f-strings; parameterize `render()` hint to `dict[str, Any]` — applied
+- Declined — `docs-only` → `docs_only` rename: the hyphenated path is fixed by the ARCHITECTURE-SPINE Structural Seed (consistent with `opsx-wrapper/`, `snapshot-assembler/`); scripts are `uv run` entry points, never package imports in production — the `importlib` loader in tests is the deliberate, documented trade-off. Revisit only via a spine change, not ad hoc in a story.
+- Declined — introduce PyYAML/ruamel for unquoted YAML strings: stdlib-only is a hard rule (project-context §1); JSON-quoted scalars are valid YAML and the quoting is deliberate. A dependency addition requires explicit standards discussion, not a lint-level preference.
+
 ## Dev Notes
 
 ### Scope — what this story is and is not
@@ -165,6 +174,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 ### Change Log
 
 - 2026-07-09: Story 1.1 implemented — docs-only kickoff adapter, story-kickoff skill, dev tooling bootstrap, 18 tests. All ACs verified; ruff + pytest clean. Status → review.
+- 2026-07-09: Addressed external LLM (Gemini) review findings — 2 fixed (single-`now` timestamp consistency + f-strings/type hint), 2 declined with logged rationale (dir rename vs. spine seed; PyYAML vs. stdlib-only rule). 19 tests passing.
 
 ### File List
 

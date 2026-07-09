@@ -118,6 +118,15 @@ def test_created_is_isoformat_with_offset(tmp_path):
     )
 
 
+def test_story_id_date_matches_created_date(tmp_path):
+    kickoff(tmp_path)
+
+    manifest = parse_manifest(tmp_path)
+    story_id_date = manifest["story_id"].split("-")[1]
+    created_date = manifest["created"][:10].replace("-", "")
+    assert story_id_date == created_date
+
+
 def test_multiline_goal_collapses_to_single_line(tmp_path):
     kickoff(tmp_path, goal="line one\nline two\n\tindented")
 

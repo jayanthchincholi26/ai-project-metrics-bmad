@@ -26,12 +26,13 @@ import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 MANIFEST = ".story.yaml"
 
 
-def new_story_id() -> str:
-    return "story-{:%Y%m%d}-{}".format(datetime.now(), uuid.uuid4().hex[:6])
+def new_story_id(now: datetime) -> str:
+    return f"story-{now:%Y%m%d}-{uuid.uuid4().hex[:6]}"
 
 
 def clean(text: str) -> str:
@@ -39,10 +40,10 @@ def clean(text: str) -> str:
     return " ".join(text.split())
 
 
-def render(manifest: dict) -> str:
+def render(manifest: dict[str, Any]) -> str:
     """Flat YAML by hand (stdlib-only rule): JSON scalars are valid YAML scalars."""
     return "".join(
-        "{}: {}\n".format(key, "null" if value is None else json.dumps(value))
+        f"{key}: {'null' if value is None else json.dumps(value)}\n"
         for key, value in manifest.items()
     )
 
@@ -98,7 +99,8 @@ def main(argv: list[str] | None = None) -> int:
     if path.exists():
         return fail(f"{path} already exists; re-running kickoff would change story identity (AD-5)")
 
-    story_id = new_story_id()
+    now = datetime.now().astimezone()
+    story_id = new_story_id(now)
     write_atomic(
         path,
         render(
@@ -109,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
                 "goal": goal,
                 "sprint": sprint,
                 "description": description or None,
-                "created": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "created": now.isoformat(timespec="seconds"),
             }
         ),
     )
