@@ -184,3 +184,15 @@ All 4 findings from this assessment were fixed in `epics.md` immediately after t
 4. **Sequencing note — acknowledged**, no document change needed; carried forward as guidance for sprint planning (Day 1 developer setup spans Epic 1 + Epic 2 Story 2.1).
 
 **Revised Overall Readiness Status: READY** — all identified gaps closed; no remaining blockers before `bmad-sprint-planning`.
+
+## Addendum: A Gap in This Review's Own Coverage (2026-07-09)
+
+After this assessment closed, the user asked what tech stack had been decided and why it wasn't flagged here. Worth recording honestly: **it wasn't caught because this skill's checklist doesn't check for it.**
+
+Step 5 (Epic Quality Review) checks specifically for a *starter template* ("does Architecture specify a starter/greenfield template? If yes, Epic 1 Story 1 must set it up"). That's a narrower, different question than "does the Stack section actually name a concrete implementation language/runtime." Since this project has no starter template, that check correctly returned N/A — but no step in this workflow asks the broader question. `ARCHITECTURE-SPINE.md`'s Stack table named *mechanisms* (git hooks, Claude Code hook config, CLI-wrapping) without ever pinning a language, and this assessment passed that through without comment.
+
+**Consequence:** the READY verdict above was accurate for everything this skill actually checks, but not fully exhaustive — a dev agent starting Story 2.1 without the follow-up conversation would have hit "wait, what language?" as a real blocker despite the report saying READY.
+
+**Resolution:** the gap was closed via a follow-up architecture decision — **Python 3.8+ via `uv run`** for all hook logic, the CLI wrapper, and the snapshot assembler, ratifying the existing `_bmad/scripts/*.py` convention in this repo. `ARCHITECTURE-SPINE.md`'s Stack table and Structural Seed, and `epics.md`'s Additional Requirements, were updated accordingly (see their memlogs, 2026-07-09).
+
+**Process note for future runs of `bmad-check-implementation-readiness` on this or other projects:** consider explicitly verifying the Architecture document's Stack/tech-decisions section is populated with concrete, buildable choices — not just mechanism names — as part of Step 5, alongside the existing starter-template check.
