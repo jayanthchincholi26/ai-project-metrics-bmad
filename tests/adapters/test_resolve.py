@@ -11,7 +11,16 @@ _spec = importlib.util.spec_from_file_location("adapters_resolve", SCRIPT)
 resolve = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(resolve)
 
-ACK_KEYS = {"ok", "source_of_truth", "declared", "implemented", "config"}
+ACK_KEYS = {
+    "ok",
+    "source_of_truth",
+    "declared",
+    "implemented",
+    "config",
+    "ai_tool",
+    "ai_tool_declared",
+    "ai_tool_implemented",
+}
 
 
 def run(repo_root: Path) -> int:
@@ -186,6 +195,60 @@ def test_ack_has_exactly_the_contract_keys(tmp_path, capsys):
     run(tmp_path)
 
     assert set(read_ack(capsys).keys()) == ACK_KEYS
+
+
+def test_unset_ai_tool_defaults_to_claude_code(tmp_path, capsys):
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    ack = read_ack(capsys)
+    assert ack["ai_tool"] == "claude-code"
+    assert ack["ai_tool_declared"] is False
+    assert ack["ai_tool_implemented"] is True
+
+
+def test_declared_claude_code_is_resolved(tmp_path, capsys):
+    write_config(tmp_path, "ai_tool: claude-code\n")
+
+    run(tmp_path)
+
+    ack = read_ack(capsys)
+    assert ack["ai_tool"] == "claude-code"
+    assert ack["ai_tool_declared"] is True
+    assert ack["ai_tool_implemented"] is True
+
+
+def test_declared_cursor_is_valid_but_not_implemented(tmp_path, capsys):
+    write_config(tmp_path, "ai_tool: cursor\n")
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    ack = read_ack(capsys)
+    assert ack["ai_tool"] == "cursor"
+    assert ack["ai_tool_declared"] is True
+    assert ack["ai_tool_implemented"] is False
+
+
+def test_invalid_ai_tool_format_exits_2(tmp_path, capsys):
+    write_config(tmp_path, "ai_tool: Claude Code!\n")
+
+    exit_code = run(tmp_path)
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert "ai_tool" in captured.err
+
+
+def test_ai_tool_and_source_of_truth_resolve_together(tmp_path, capsys):
+    write_config(tmp_path, "source_of_truth: jira\nai_tool: cursor\n")
+
+    run(tmp_path)
+
+    ack = read_ack(capsys)
+    assert ack["source_of_truth"] == "jira"
+    assert ack["ai_tool"] == "cursor"
 
 
 def test_resolver_writes_nothing(tmp_path):

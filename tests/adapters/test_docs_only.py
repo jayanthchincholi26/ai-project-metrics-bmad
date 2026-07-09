@@ -19,6 +19,7 @@ _spec.loader.exec_module(docs_only)
 MANIFEST_KEYS = [
     "story_id",
     "source_of_truth",
+    "ai_tool",
     "points",
     "goal",
     "sprint",
@@ -135,6 +136,25 @@ def test_invalid_source_of_truth_is_rejected_and_writes_nothing(tmp_path):
         kickoff(tmp_path, **{"source-of-truth": "gitlab"})
 
     assert excinfo.value.code == 2
+    assert not manifest_path(tmp_path).exists()
+
+
+def test_ai_tool_defaults_to_claude_code(tmp_path):
+    kickoff(tmp_path)
+
+    assert parse_manifest(tmp_path)["ai_tool"] == "claude-code"
+
+
+def test_ai_tool_flag_is_recorded(tmp_path):
+    kickoff(tmp_path, **{"ai-tool": "cursor"})
+
+    assert parse_manifest(tmp_path)["ai_tool"] == "cursor"
+
+
+def test_invalid_ai_tool_format_exits_2_and_writes_nothing(tmp_path):
+    exit_code = kickoff(tmp_path, **{"ai-tool": "Claude Code!"})
+
+    assert exit_code == 2
     assert not manifest_path(tmp_path).exists()
 
 
