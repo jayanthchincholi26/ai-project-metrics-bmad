@@ -4,7 +4,7 @@ baseline_commit: 48658bed39178b337c7f5194dcbe6fcb2d81e15a
 
 # Story 2.5: Story Points Are Estimated Automatically at Kickoff
 
-Status: review
+Status: done
 
 ## Story
 
@@ -78,6 +78,8 @@ claude-sonnet-5 (create-story context engineering)
 ### Change Log
 
 - 2026-07-10: Story 2.5 implemented — Phase-1 estimator (change discovery, base/volatility/novelty formula), story-kickoff skill wiring (advisory-only). 18 new tests (165 total). Live E2E caught and fixed a real novelty-modifier defect (task-count/points-value confusion) the unit suite's own fixture coincidentally masked. Status → review.
+- 2026-07-10: Gemini review of PR #14 — zero findings (fourth clean §9 pass). Reviewer specifically highlighted the novelty regression test born from the pre-review E2E-caught bug.
+- 2026-07-10: PR #14 squash-merged to `develop` (35fd4bf). Status → done.
 
 ### File List
 
