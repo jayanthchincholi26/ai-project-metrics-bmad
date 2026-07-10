@@ -53,6 +53,8 @@ MANIFEST = ".story.yaml"
 ACTIVE_STORY_FILE = ".active-story"
 ATTEMPTS = 4  # 1 initial + 3 retries (AD-9)
 RETRY_DELAY_SECONDS = 0.1
+
+
 def _idle_threshold_seconds() -> int:
     """A malformed override must never break import - every hook (incl. commit-msg,
     which must always exit 0) imports this module, so a bad env var falls back

@@ -106,7 +106,9 @@ def test_none_incoming_story_id_does_not_disturb_an_existing_pointer(repo):
 # --- record_activity() (Story 3.2) ---
 
 
-def write_pointer(repo_root: Path, story_id: str, opened_at: str, last_activity_at: str | None = None) -> None:
+def write_pointer(
+    repo_root: Path, story_id: str, opened_at: str, last_activity_at: str | None = None
+) -> None:
     data = {"story_id": story_id, "opened_at": opened_at}
     if last_activity_at is not None:
         data["last_activity_at"] = last_activity_at
@@ -115,7 +117,9 @@ def write_pointer(repo_root: Path, story_id: str, opened_at: str, last_activity_
 
 def test_first_activity_stamps_last_activity_at_with_no_pause_event(repo, monkeypatch):
     write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00")
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:05:00+00:00"))
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:05:00+00:00")
+    )
 
     events.record_activity(repo)
 
@@ -125,8 +129,12 @@ def test_first_activity_stamps_last_activity_at_with_no_pause_event(repo, monkey
 
 
 def test_activity_within_threshold_is_a_no_op_beyond_the_stamp(repo, monkeypatch):
-    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:19:59+00:00"))
+    write_pointer(
+        repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00"
+    )
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:19:59+00:00")
+    )
 
     events.record_activity(repo)
 
@@ -135,8 +143,12 @@ def test_activity_within_threshold_is_a_no_op_beyond_the_stamp(repo, monkeypatch
 
 
 def test_activity_at_exactly_the_threshold_does_not_pause(repo, monkeypatch):
-    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:00+00:00"))
+    write_pointer(
+        repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00"
+    )
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:00+00:00")
+    )
 
     events.record_activity(repo)
 
@@ -144,8 +156,12 @@ def test_activity_at_exactly_the_threshold_does_not_pause(repo, monkeypatch):
 
 
 def test_activity_one_second_past_the_threshold_emits_a_pause(repo, monkeypatch):
-    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00"))
+    write_pointer(
+        repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00"
+    )
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00")
+    )
 
     events.record_activity(repo)
 
@@ -160,8 +176,12 @@ def test_activity_one_second_past_the_threshold_emits_a_pause(repo, monkeypatch)
 
 
 def test_activity_never_changes_the_pointers_story_id(repo, monkeypatch):
-    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T10:00:00+00:00"))
+    write_pointer(
+        repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00"
+    )
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T10:00:00+00:00")
+    )
 
     events.record_activity(repo)
 

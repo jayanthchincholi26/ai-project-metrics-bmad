@@ -168,7 +168,13 @@ def test_branch_checkout_closes_the_outgoing_slice_when_story_changes(repo):
     pointer = json.loads((repo / ".active-story").read_text(encoding="utf-8"))
     assert pointer["story_id"] == "story-other"
     types = [event["type"] for event in read_events(repo)]
-    assert types == ["git.checkout", "time.slice_opened", "git.checkout", "time.slice_closed", "time.slice_opened"]
+    assert types == [
+        "git.checkout",
+        "time.slice_opened",
+        "git.checkout",
+        "time.slice_closed",
+        "time.slice_opened",
+    ]
 
 
 def test_file_checkout_does_not_touch_the_active_story_pointer(repo):

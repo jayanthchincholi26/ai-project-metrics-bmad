@@ -111,9 +111,13 @@ def test_session_start_is_a_no_op_on_the_pointer_when_story_is_unchanged(repo, m
 
 def test_post_tool_use_records_activity_within_threshold_without_pausing(repo, monkeypatch):
     feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Bash"})
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00"))
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
     session_start.main([])
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:05:00+00:00"))
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:05:00+00:00")
+    )
 
     post_tool_use.main([])
 
@@ -125,9 +129,13 @@ def test_post_tool_use_records_activity_within_threshold_without_pausing(repo, m
 
 def test_post_tool_use_emits_a_pause_after_an_idle_gap(repo, monkeypatch):
     feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Bash"})
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00"))
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
     session_start.main([])
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00"))
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00")
+    )
 
     post_tool_use.main([])
 
@@ -139,9 +147,13 @@ def test_post_tool_use_emits_a_pause_after_an_idle_gap(repo, monkeypatch):
 
 def test_user_prompt_submit_emits_a_pause_after_an_idle_gap(repo, monkeypatch):
     feed_stdin(monkeypatch, {"session_id": "s-1", "prompt": "hi"})
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00"))
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
     session_start.main([])
-    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00"))
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00")
+    )
 
     user_prompt_submit.main([])
 
