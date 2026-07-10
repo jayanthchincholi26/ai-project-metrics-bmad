@@ -65,13 +65,14 @@ No UX design contract exists for this project; this section is not applicable.
 | NFR4 | Epic 1 |
 | NFR5 | Epic 3 |
 
-*(Updated 2026-07-10: this table originally referenced "Epic 4"/"Epic 5" from an earlier planning draft; the actual build folded FR2 and FR3 into Epics 2 and 3 respectively — there is no Epic 4 or 5. Only Epics 1–3 exist, and all are complete.)*
+*(Updated 2026-07-10: this table originally referenced "Epic 4"/"Epic 5" from an earlier planning draft; the actual build folded FR2 and FR3 into Epics 2 and 3 respectively — those Epic 4/5 references were stale and have been superseded. Epics 1–3 cover the original SPEC capabilities (CAP-1..7) and are complete. Epic 4 below is a genuinely new addition, opened 2026-07-10 during pre-deploy smoke testing — it covers a distribution gap the original SPEC never addressed, not a resurrection of the old draft's Epic 4.)*
 
 ## Epic List
 
 1. Epic 1: Start a Story With Zero Manual PM Setup
 2. Epic 2: Metrics Appear Automatically When You Close a Story
 3. Epic 3: Time Tracked Without Logging Hours
+4. Epic 4: Package and Distribute the Capture Tooling to a Target Repo
 
 ### Epic 1: Start a Story With Zero Manual PM Setup
 A developer can kick off a story without re-typing PM data, whatever tool (or lack of one) the project uses.
@@ -98,6 +99,8 @@ A developer can kick off a story without re-typing PM data, whatever tool (or la
 > ✅ **Epic complete** — 2026-07-09, all 5 stories done (PRs #1, #4, #6, #8, #9).
 >
 > **Retro note (§13):** *What worked* — fetch-only adapters composed with one manifest writer kept NFR4 trivially provable; test-first + manual E2E caught what green suites missed (the UTF-8 BOM bug); external-LLM review found one real defect per early story, then zero by 1.5 as its lessons (URL encoding, format-over-membership validation, resilient parsing) got pre-applied; duration fell 60→13 min/story as patterns stabilized. *What to adjust* — squash-merge discipline slipped once (PR #1, merge commit); LLM review produced one hallucinated finding (nonexistent `import math`) — keep grep-verifying before acting; the duplicated flat-YAML parser (2 copies) is fine for now, but revisit at spine level if Epic 2's hooks need it too (Issue #7).
+>
+> 🔓 **Reopened 2026-07-10** — real-world pilot deployment surfaced that individual developers on an existing JIRA-backed project will not realistically have (or want to manage) a personal `JIRA_API_TOKEN`. Story 1.3's direct-REST-with-token adapter is superseded by **Story 1.6**, which fetches via the already-configured Atlassian Remote MCP Server instead. Story 1.3 is left below for history; do not delete it or its PR.
 
 ### Story 1.1: Create the Story Manifest via Docs-Only Kickoff
 
@@ -132,6 +135,8 @@ So that I'm never asked which tool applies on every single story.
 
 ### Story 1.3: JIRA Adapter Auto-Fills Kickoff
 
+> ⚠️ **Superseded by Story 1.6** (2026-07-10) — the token-based `urllib` fetch below still exists in `tools/adapters/jira/main.py` and works, but real-world pilot rollout means developers won't have a personal `JIRA_API_TOKEN` to put in their environment. Kept here for history; do not delete.
+>
 > ✅ **Complete** — 2026-07-09 · [PR #6](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/6)
 
 As a developer on a JIRA-backed project,
@@ -175,6 +180,36 @@ So that the capture side knows which adapter to activate without asking me on ev
 **Then** it writes the `ai_tool` field into `.story.yaml` the same way Story 1.2 writes `source_of_truth` — declared once per project by default, or per-story only if a team genuinely mixes tools
 **And** AI-session capture producers (Story 2.3) read this field to know which adapter's event namespace to emit under
 **And** an unset `ai_tool` config defaults to `claude-code`
+
+### Story 1.6: JIRA Adapter Fetches via the Atlassian Remote MCP Server
+
+> ⏳ **Not started** — supersedes Story 1.3 (2026-07-10)
+
+As a developer on a JIRA-backed project,
+I want kickoff to fetch my story's points/goal/sprint through the team's already-configured JIRA connection,
+So that I don't need a personal `JIRA_API_TOKEN` just to run kickoff — auth is handled the same way it already is for every other JIRA action I take as a developer.
+
+**Context (why this replaces Story 1.3):** the original design assumed a developer would export `JIRA_BASE_URL` / `JIRA_EMAIL` / `JIRA_API_TOKEN` into their shell. In a real pilot rollout, developers joining an existing JIRA-backed project don't provision personal API tokens for one-off tooling — and shouldn't have to. The Atlassian Remote MCP Server (`https://mcp.atlassian.com/v1/mcp/authv2`) is the standard way Claude Code (and other AI tools) already connect to JIRA/Confluence/Bitbucket/Compass, authenticated via OAuth 2.1 under the developer's own existing access controls — no manual token. [Atlassian: Extend Atlassian into any AI assistant using MCP](https://www.atlassian.com/platform/remote-mcp-server); [GitHub: atlassian/atlassian-mcp-server](https://github.com/atlassian/atlassian-mcp-server); [Atlassian Support: Getting started with the Atlassian Remote MCP Server](https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/).
+
+**Architecturally, this is not a subprocess adapter script** — an MCP tool is only callable by the agent itself (Claude Code) inside a live conversation, never by a standalone `uv run` script. So unlike Story 1.3's `tools/adapters/jira/main.py`, this story changes the **`story-kickoff` skill's step 4a** to call the MCP tool directly, then hand the already-fetched `{points, goal, sprint, description}` to the existing, unchanged manifest writer (`tools/adapters/docs-only/main.py --source-of-truth jira`). `tools/adapters/jira/main.py` (Story 1.3) is left in place, unused by the skill, as a fallback path for a project that genuinely has no MCP server configured — resolved by Story 1.2's existing config, not a new field.
+
+**Acceptance Criteria (draft):**
+
+**Given** `source_of_truth: jira` and the Atlassian Remote MCP Server already configured for this Claude Code session (org-level or project-level `.mcp.json`)
+**When** the developer enters a JIRA issue key at kickoff (e.g. `jira-task-1234`)
+**Then** the `story-kickoff` skill calls the MCP server's issue-fetch tool (`getJiraIssue`, per Atlassian's documented toolset) directly — no `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` env vars are read or required
+**And** the fetched fields are normalized into the same `{points, goal, sprint, description}` shape Story 1.3 produced, then passed to `docs-only/main.py --source-of-truth jira` unchanged
+**And** points confirmation stays human either way (CAP-1) — MCP-fetched points are a suggestion, never auto-written without developer confirmation
+**And** a field the MCP tool doesn't return is `null`, elicited via the existing step-4 re-prompt rule — never invented
+**And** if no JIRA MCP server is reachable/configured for this session, the skill tells the developer plainly and falls back to Story 1.3's token-based script *only if* `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` happen to be set, otherwise falls back to the plain docs-only ask — it never blocks kickoff (FR5)
+**And** NFR4 is satisfied more simply than before: no JIRA credential of any kind is ever read, held, or written by this tooling — auth lives entirely in the MCP server's own OAuth session
+
+**Testing strategy (decided 2026-07-10 — this story is skill-flow work, not script work):** Story 1.3 was a subprocess script, fully unit-testable with pytest; Story 1.6 changes the `story-kickoff` skill's conversational step 4a, which pytest cannot reach. Manual E2E against a real Atlassian test site (available — confirmed 2026-07-10) is therefore the *primary* verification, not the backstop. The story's Definition of Done must include a scripted E2E pass covering at minimum: (a) happy path — issue key → MCP fetch → confirm → `.story.yaml` written with `source_of_truth: jira`; (b) issue key not found; (c) MCP server not connected → graceful fallback message, kickoff still completable via plain ask (FR5); (d) points absent from the MCP response → null elicited via re-prompt rule, never invented. Any *new or changed* subprocess code (e.g. normalization helpers, if extracted) still gets pytest coverage per the repo standard; invocation remains natural-language ("kick off this story"), not a formal command (decided 2026-07-10).
+
+**Open questions to resolve before implementation:**
+- Confirm the exact MCP tool name and its response shape as exposed inside this project's Claude Code session (`getJiraIssue` per Atlassian's docs, but the effective tool name Claude Code sees is prefixed, e.g. `mcp__atlassian__getJiraIssue` — verify via `ToolSearch`/`.mcp.json` once the server is actually connected). An Atlassian test site is available for this (confirmed 2026-07-10); needs `.mcp.json` configured + one OAuth login before the schema can be inspected empirically.
+- Confirm whether story points live on a custom field visible to the MCP tool's response the same way Story 1.3 read `customfield_10016`, or whether the MCP tool's normalized response omits it (in which case points would come back `null` more often and rely on Phase-1 estimate + human confirmation).
+- Decide whether the API-token path (Story 1.3) stays as a documented fallback long-term, or is deprecated/removed once MCP is proven out in the pilot.
 
 ---
 
@@ -334,3 +369,52 @@ So that my time attribution stays accurate even when I context-switch quickly.
 **When** a `git checkout` happens mid-session
 **Then** the live session's `SessionStart`/`SessionEnd` boundaries govern time-slice accounting
 **And** the checkout re-points which story current activity counts toward, without itself opening or closing a session-level slice (AD-7 precedence rule)
+
+---
+
+## Epic 4: Package and Distribute the Capture Tooling to a Target Repo
+
+> 🆕 **Opened 2026-07-10** — surfaced during pre-deploy smoke testing (see `docs/testing/pre-deploy-smoke-checklist.md`). AD-8 assumed `tools/` already lives inside a target project's own repo, but no story ever designed how it gets there. Cloning this planning repo wholesale (specs, BMad artifacts, prompts, `_bmad-output/`) is not a viable install path for a pilot team's own project.
+
+A developer on a target project can get the capture tooling (`tools/`, its tests, and its minimal dependency footprint) into their own repo without also importing this repo's planning artifacts, specs, or history.
+
+**Not covered by the original SPEC.md** (CAP-1..7) — this is an operational/deployment gap identified after the fact, not a reconciled capability. Revisit `SPEC.md` and the architecture spine (AD-8) once the distribution mechanism is chosen, so the constraint is captured canonically rather than living only here.
+
+### Story 4.1: Choose and Implement a Distribution Mechanism for the Capture Tooling
+
+> ⏳ **Not started**
+
+As a developer on a target project,
+I want a documented, repeatable way to bring only the capture tooling into my project,
+So that adopting metrics capture doesn't require cloning or vendoring this planning repo's specs, prompts, and BMad artifacts.
+
+**Acceptance Criteria (draft — pending a decision on mechanism):**
+
+**Given** a target project that wants to adopt the capture pipeline
+**When** a developer follows the documented install path
+**Then** only `tools/`, `tests/` (or an equivalent minimal test footprint), and the dependency declarations needed to run them land in their repo — not `_bmad-output/`, `prompts/`, `openspec/`, or this repo's own specs
+**And** `tools/setup-hooks.py` (Story 2.1) still works unmodified against the vendored copy
+**And** the mechanism is a single documented command/step, not a manual file-by-file copy
+**And** picking up an update to `tools/` later (e.g. a new hook or a bugfix) has a defined, repeatable path — not just a one-time copy
+**And** the documented install path states every prerequisite up front (below), so a developer isn't discovering a missing piece mid-install
+
+**Prerequisites to document (confirmed by inspecting `tools/`; every hook/adapter script is stdlib-only — `urllib`, `json`, `subprocess`, `argparse`, no third-party runtime imports anywhere under `tools/`):**
+
+| Prerequisite | Why | Notes |
+| --- | --- | --- |
+| **Git** | Hooks are git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`); branch-per-story convention (NFR5) | Any reasonably current version; no special git features used |
+| **Python 3.8+** | `requires-python = ">=3.8"` in `pyproject.toml`; every hook/adapter script targets this floor | Matches `ruff`'s `target-version = "py38"` too |
+| **uv** | Every script is invoked via `uv run` (PEP 723 inline script headers); git hooks are thin shell/batch shims that call `uv run <script>.py` (per epics.md build convention) | Must be on `PATH` — this is exactly what broke in initial testing when `uv run pytest` failed to spawn on a fresh clone |
+| **Claude Code** | Only required if `ai_tool: claude-code` (default) — the `.claude/settings.json` hook entries and `tools/hooks/claude/*.py` producers need it running | Not required for git-only capture if a project declares no AI tool |
+| **Atlassian Remote MCP Server access** (only if `source_of_truth: jira`, pending Story 1.6) | The JIRA fetch is moving from a personal API token to the org's already-configured Atlassian Remote MCP Server (`https://mcp.atlassian.com/v1/mcp/authv2`), OAuth 2.1-authenticated under the developer's existing JIRA access — no token to provision | Requires the MCP server to already be configured in the developer's Claude Code setup (`.mcp.json` or org-level); `JIRA_API_TOKEN` (Story 1.3) remains only as a documented fallback, not the primary path |
+| **Confluence API token** (only if `source_of_truth: confluence`, until an MCP equivalent is decided) | Adapter (`tools/adapters/confluence/main.py`) is currently a plain `urllib` REST call — **no MCP server yet** | Env vars: `CONFLUENCE_BASE_URL` (include `/wiki` for Cloud), `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`. Same personal-token concern as JIRA's original design applies here too — revisit once Story 1.6 (JIRA→MCP) is proven out, since the Atlassian Remote MCP Server also covers Confluence |
+| **No third-party Python packages at runtime** | `pytest`/`ruff` (`pyproject.toml` `dependency-groups.dev`) are dev-only, needed to run this repo's own test suite — **not** needed by a target repo just running the installed hooks | Worth calling out explicitly so target teams don't assume they need `uv sync` with the dev group just to use the tooling |
+
+**Correcting a likely misconception before this ships as install docs:** `source_of_truth: docs-only` does not read, parse, or ingest any shared document — it's a plain conversational elicitation where the developer types points/goal/sprint directly into the `story-kickoff` skill, which then writes `.story.yaml`. There is no supported document format for docs-only. For JIRA, Story 1.6 (see Epic 1) moves the fetch to the Atlassian Remote MCP Server instead of a personal API token — Confluence still uses a plain `urllib` REST call with a personal token for now (same gap Story 1.6 is fixing for JIRA), pending a decision on whether to extend the MCP approach to Confluence too, since the same Atlassian Remote MCP Server also exposes Confluence tools.
+
+**Decision status (2026-07-10): recommendation is the release artifact — pending final confirmation before implementation.**
+- **Release artifact (recommended)**: tag a release here; CI zips `tools/` + `.claude/skills/story-kickoff/` + a small install script; target team downloads from the GitHub Releases page (which doubles as the public prerequisite/download URL for install docs) and runs one command inside their own repo. Fits this codebase's stdlib-only, no-build-step design; updates = download next tag, re-run install.
+- **Git subtree/submodule (rejected)**: submodules impose clone/update friction on teams that didn't opt in; subtree pulls this planning repo's history (specs, prompts, BMad artifacts) into the client's project — the exact wholesale-clone problem this epic exists to fix.
+- **Template repo (rejected)**: permanent two-repo sync burden with inevitable drift, and only helps at project-creation time — useless for existing projects adopting the tooling.
+
+**Held for later (not in this story):** automatic update/sync tooling beyond the initial install path; versioning/compatibility policy between the tooling's version and a target repo's pinned copy.
