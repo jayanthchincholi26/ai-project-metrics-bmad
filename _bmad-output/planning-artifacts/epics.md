@@ -182,6 +182,8 @@ A developer works normally and, on closing the story, a trustworthy metrics snap
 
 ### Story 2.1: Hook Installation Is a Single Repeatable Setup Step
 
+> ✅ **Complete** — 2026-07-10 · [PR #10](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/10)
+
 As a developer joining the project,
 I want one command to install all capture hooks,
 So that my activity is captured identically to everyone else's on the team.
