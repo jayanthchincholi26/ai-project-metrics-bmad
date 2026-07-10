@@ -4,7 +4,7 @@ baseline_commit: 337b9aad860db5aabc249ce870f710098f98c28b
 
 # Story 2.2: Git Activity Captured Silently While You Work
 
-Status: review
+Status: done
 
 ## Story
 
@@ -99,6 +99,7 @@ claude-fable-5 (create-story context engineering)
 
 - 2026-07-10: Story 2.2 implemented — shared emitter (AD-1/1a/1b/9), four real git producers, event files git-ignored. 17 new tests (115 total) + real-git E2E. Status → review.
 - 2026-07-10: Gemini review of PR #11 — zero defects; parse_scalar duplication acknowledged (Issue #7, third copy) with the extraction decision escalated to Story 2.3 where the emitter itself goes cross-family. No code changes.
+- 2026-07-10: PR #11 squash-merged to `develop` (ab6b424). Status → done.
 
 ### File List
 
