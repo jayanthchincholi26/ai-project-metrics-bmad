@@ -4,7 +4,7 @@ baseline_commit: 16843980f24395b0648810062335cf8669bbd6fb
 
 # Story 3.1: Active-Story Pointer Tracks Time Automatically
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

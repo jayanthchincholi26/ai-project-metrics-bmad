@@ -286,6 +286,8 @@ Switching between stories never corrupts time attribution, and nobody manually s
 
 ### Story 3.1: Active-Story Pointer Tracks Time Automatically
 
+> ✅ **Complete** — 2026-07-10 · [PR #16](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/16)
+
 As a developer,
 I want the system to know which story I'm actively working on without me telling it,
 So that my time-on-task is attributed correctly without logging hours.

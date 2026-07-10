@@ -64,7 +64,7 @@ development_status:
   2-6-story-points-are-reconciled-against-what-actually-happened: done
   epic-2-retrospective: optional
   epic-3: in-progress
-  3-1-active-story-pointer-tracks-time-automatically: review
+  3-1-active-story-pointer-tracks-time-automatically: done
   3-2-idle-time-doesnt-inflate-a-storys-active-time: backlog
   3-3-mid-session-checkout-doesnt-double-count-time: backlog
   epic-3-retrospective: optional
