@@ -50,6 +50,7 @@ from typing import Any, Optional
 EVENTS_FILE = ".story-events.jsonl"
 PENDING_FILE = ".story-events.pending.jsonl"
 MANIFEST = ".story.yaml"
+ACTIVE_STORY_FILE = ".active-story"
 ATTEMPTS = 4  # 1 initial + 3 retries (AD-9)
 RETRY_DELAY_SECONDS = 0.1
 
@@ -154,9 +155,11 @@ def append_line(path: Path, line: str) -> None:
         os.close(fd)
 
 
-def emit(source: str, event_type: str, payload: dict[str, Any]) -> int:
+def emit(
+    source: str, event_type: str, payload: dict[str, Any], story_override: Optional[str] = None
+) -> int:
     root = repo_root()
-    story = story_id(root)
+    story = story_override if story_override is not None else story_id(root)
     target = root / (EVENTS_FILE if story else PENDING_FILE)
     line = json.dumps(envelope(story, source, event_type, payload)) + "\n"
     last_error: Optional[BaseException] = None
@@ -173,3 +176,72 @@ def emit(source: str, event_type: str, payload: dict[str, Any]) -> int:
         file=sys.stderr,
     )
     return 1
+
+
+def write_atomic_json(path: Path, data: dict[str, Any]) -> None:
+    """Temp file -> flush -> fsync -> os.replace (project-context.md §2); never an in-place write."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(data, fh)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+
+
+def read_active_story(root: Path) -> Optional[dict[str, Any]]:
+    path = root / ACTIVE_STORY_FILE
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def update_active_story(root: Path, incoming_story_id: Optional[str]) -> None:
+    """AD-7: one pointer tracks the currently active story.
+
+    Changing the pointer closes the outgoing story's time slice
+    (`time.slice_closed`, with `duration_seconds`) and opens a new one for the
+    incoming story (`time.slice_opened`). A story-id of None (nothing to
+    attribute time to) or a story-id matching the current pointer is a no-op —
+    mirrors AD-1b's "buffer/skip rather than corrupt" philosophy rather than
+    writing a meaningless or duplicate slice.
+    """
+    if incoming_story_id is None:
+        return
+
+    current = read_active_story(root)
+    if current is not None and current.get("story_id") == incoming_story_id:
+        return
+
+    now = datetime.now().astimezone()
+    if current is not None:
+        opened_at = current.get("opened_at")
+        duration_seconds = None
+        if opened_at:
+            try:
+                duration_seconds = (now - datetime.fromisoformat(opened_at)).total_seconds()
+            except ValueError:
+                duration_seconds = None
+        emit(
+            "time",
+            "time.slice_closed",
+            {
+                "opened_at": opened_at,
+                "closed_at": now.isoformat(timespec="seconds"),
+                "duration_seconds": duration_seconds,
+            },
+            story_override=current.get("story_id"),
+        )
+
+    write_atomic_json(
+        root / ACTIVE_STORY_FILE,
+        {"story_id": incoming_story_id, "opened_at": now.isoformat(timespec="seconds")},
+    )
+    emit(
+        "time",
+        "time.slice_opened",
+        {"opened_at": now.isoformat(timespec="seconds")},
+        story_override=incoming_story_id,
+    )

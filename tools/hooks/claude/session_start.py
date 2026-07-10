@@ -23,6 +23,8 @@ import _events
 def main(argv: list[str] | None = None) -> int:
     data = _events.read_stdin_json()
     _events.emit("ai", "ai.claude-code.session_start", {"session_id": data.get("session_id")})
+    root = _events.repo_root()
+    _events.update_active_story(root, _events.story_id(root))
     return 0
 
 
