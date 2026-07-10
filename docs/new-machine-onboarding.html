@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding a New Developer Machine</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#111927; --panel2:#151f30; --line:#22304a;
+    --text:#dbe4f3; --dim:#8fa2c2; --dim2:#5f7396;
+    --accent:#3ddc97; --accent2:#5eb6ff; --warn:#ffb15e; --hidden:#ff9f6b;
+    --mono:'Consolas','SFMono-Regular',Menlo,Monaco,monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f6f8fb; --panel:#ffffff; --panel2:#f1f4f9; --line:#dde3ee;
+      --text:#1b2434; --dim:#4d5b74; --dim2:#7d89ba;
+      --accent:#0b8f57; --accent2:#1f6fd1; --warn:#a8620c; --hidden:#b85a24;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0a0e14; --panel:#111927; --panel2:#151f30; --line:#22304a;
+    --text:#dbe4f3; --dim:#8fa2c2; --dim2:#5f7396;
+    --accent:#3ddc97; --accent2:#5eb6ff; --warn:#ffb15e; --hidden:#ff9f6b;
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f8fb; --panel:#ffffff; --panel2:#f1f4f9; --line:#dde3ee;
+    --text:#1b2434; --dim:#4d5b74; --dim2:#7d89ba;
+    --accent:#0b8f57; --accent2:#1f6fd1; --warn:#a8620c; --hidden:#b85a24;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    padding:56px 6vw 72px;
+  }
+  .wrap{max-width:1080px; margin:0 auto;}
+  .eyebrow{
+    font-family:var(--mono); font-size:0.78rem; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:'//'; color:var(--dim2);}
+  h1{font-size:2.2rem; margin:0 0 14px; letter-spacing:-0.01em; text-wrap:balance;}
+  .lede{color:var(--dim); font-size:1.08rem; line-height:1.6; max-width:780px; margin:0 0 40px;}
+
+  .phase{margin-bottom:14px;}
+  .phase-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .phase-tag{
+    font-family:var(--mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+    padding:4px 10px; border-radius:5px; font-weight:700; white-space:nowrap;
+  }
+  .phase-tag.once{background:var(--accent2); color:#04121f;}
+  .phase-tag.loop{background:var(--accent); color:#04120b;}
+  .phase-head h2{font-size:1.25rem; margin:0;}
+  .phase-sub{font-size:0.86rem; color:var(--dim); margin:2px 0 0;}
+
+  .steps{display:flex; flex-direction:column; gap:0; position:relative; padding-left:38px;}
+  .steps::before{content:''; position:absolute; left:14px; top:6px; bottom:6px; width:2px; background:var(--line);}
+  .step{position:relative; padding:0 0 26px 0;}
+  .step:last-child{padding-bottom:0;}
+  .step .dot{
+    position:absolute; left:-38px; top:2px; width:30px; height:30px; border-radius:50%;
+    background:var(--panel); border:2px solid var(--accent2); color:var(--accent2);
+    font-family:var(--mono); font-size:0.82rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .phase.loop .step .dot{border-color:var(--accent); color:var(--accent);}
+  .step .body{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 18px;
+  }
+  .step h3{margin:0 0 6px; font-size:0.98rem;}
+  .step p{margin:0; font-size:0.86rem; color:var(--dim); line-height:1.5;}
+  .step code{font-family:var(--mono); font-size:0.85em; background:var(--panel2); padding:1px 6px; border-radius:4px; color:var(--accent2);}
+  .step .silent{
+    display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:0.78rem;
+    color:var(--hidden); font-family:var(--mono);
+  }
+  .step .silent::before{content:'●'; font-size:0.6rem;}
+
+  .divider{
+    display:flex; align-items:center; gap:14px; margin:34px 0; color:var(--dim2);
+    font-family:var(--mono); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.1em;
+  }
+  .divider::before, .divider::after{content:''; flex:1; height:1px; background:var(--line);}
+
+  .loopback{
+    margin-left:38px; margin-top:-8px; padding:10px 16px; border-radius:8px;
+    background:var(--panel2); border:1px dashed var(--dim2); font-size:0.82rem; color:var(--dim);
+    display:flex; align-items:center; gap:8px;
+  }
+  .loopback b{color:var(--accent);}
+
+  .takeaway{
+    margin-top:36px; padding:16px 20px; border-radius:8px; background:var(--panel2);
+    border-left:3px solid var(--accent2); font-size:0.95rem; color:var(--dim);
+  }
+  .takeaway b{color:var(--text); font-family:var(--mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; margin-right:10px;}
+  .foot{margin-top:36px; font-size:0.8rem; color:var(--dim2); font-family:var(--mono);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="eyebrow">Onboarding a New Machine</div>
+    <h1>What Happens When a Developer Sets This Up</h1>
+    <p class="lede">Two different rhythms: a <b style="color:var(--text)">one-time</b> install per machine, and a <b style="color:var(--text)">repeating</b> loop per story afterward. The install is the only manual step a developer ever performs on purpose.</p>
+
+    <div class="phase once">
+      <div class="phase-head">
+        <span class="phase-tag once">Once per machine</span>
+        <div>
+          <h2>Getting Set Up</h2>
+          <p class="phase-sub">A few minutes, the first time this developer touches the project.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="dot">1</div>
+          <div class="body">
+            <h3>Clone the repository</h3>
+            <p>Same as joining any project — no new tool to install separately, no account to create.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="dot">2</div>
+          <div class="body">
+            <h3>Run <code>tools/setup-hooks</code> once</h3>
+            <p>A single committed script installs the capture hooks into this developer's local git and Claude Code configuration. It's the same script every developer runs — nobody hand-configures their own machine.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="dot">3</div>
+          <div class="body">
+            <h3>Done — capture is now live on this machine</h3>
+            <p>From this point on, every commit and every AI coding session this developer makes is captured automatically. Nothing else to remember.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider">then, for every story</div>
+
+    <div class="phase loop">
+      <div class="phase-head">
+        <span class="phase-tag loop">Repeats every story</span>
+        <div>
+          <h2>Working Normally</h2>
+          <p class="phase-sub">Confirm at the start, work as usual, close at the end.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="dot">1</div>
+          <div class="body">
+            <h3>Start the story</h3>
+            <p>A short check-in confirms points, goal, and sprint — auto-filled already if the project uses JIRA or Confluence.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="dot">2</div>
+          <div class="body">
+            <h3>Code normally, with AI</h3>
+            <p>Commits happen. AI coding sessions happen. Nothing extra to type or track.</p>
+            <div class="silent">captured silently in the background — invisible to the developer</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="dot">3</div>
+          <div class="body">
+            <h3>Close the story</h3>
+            <p>One command, plus a one-line "what actually happened" note.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="dot">4</div>
+          <div class="body">
+            <h3>A metrics snapshot appears — automatically</h3>
+            <p>Points estimated vs. actual, time on task, AI cost — assembled the moment the story closes, with nothing the developer had to compile by hand.</p>
+          </div>
+        </div>
+      </div>
+      <div class="loopback">&#8635; <b>Every new story</b> repeats this loop — setup from Phase 1 never has to happen again on this machine.</div>
+    </div>
+
+    <div class="takeaway"><b>Bottom line</b>One short setup command, once, per developer machine. Everything after that is the developer's normal workflow — the metrics are a side effect, not a separate task.</div>
+
+    <div class="foot">explore-jira-ai-metrics · onboarding flow, derived from AD-8 (hook installation) and the story kickoff/close bookends</div>
+  </div>
+</body>
+</html>

@@ -53,8 +53,8 @@ No UX design contract exists for this project; this section is not applicable.
 | Requirement | Epic |
 | --- | --- |
 | FR1 (CAP-1) | Epic 2, Epic 3 |
-| FR2 (CAP-2) | Epic 4 |
-| FR3 (CAP-3) | Epic 5 |
+| FR2 (CAP-2) | Epic 2 (Stories 2.5, 2.6) |
+| FR3 (CAP-3) | Epic 3 |
 | FR4 (CAP-4) | Epic 1 |
 | FR5 (CAP-5) | Epic 1 |
 | FR6 (CAP-6) | Epic 2 |
@@ -64,6 +64,8 @@ No UX design contract exists for this project; this section is not applicable.
 | NFR3 | Epic 2 |
 | NFR4 | Epic 1 |
 | NFR5 | Epic 3 |
+
+*(Updated 2026-07-10: this table originally referenced "Epic 4"/"Epic 5" from an earlier planning draft; the actual build folded FR2 and FR3 into Epics 2 and 3 respectively — there is no Epic 4 or 5. Only Epics 1–3 exist, and all are complete.)*
 
 ## Epic List
 
