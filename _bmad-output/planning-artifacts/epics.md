@@ -180,6 +180,10 @@ So that the capture side knows which adapter to activate without asking me on ev
 
 A developer works normally and, on closing the story, a trustworthy metrics snapshot exists — no manual reporting, no placeholder numbers.
 
+> ✅ **Epic complete (pending PR #15 merge)** — all 6 stories done.
+>
+> **Retro note (§13), preliminary:** *What worked* — extending existing components (assembler, docs-only writer) rather than creating parallel ones kept drift low; reusing `_events.git_out()` for the assembler's git queries instead of re-deriving subprocess safety; E2E discipline caught two real defects (cwd-addressing, latent null-parsing) that a much larger unit suite alone missed — both now fixed at the root, benefiting future callers, not just this story. *What to watch* — this epic surfaced a genuine cross-story gap (AD-6a's manifest-persistence requirement wasn't in Story 2.5's scope as originally written) that had to be closed retroactively in 2.6; worth double-checking during future create-story passes whether an epic's stories jointly satisfy every architecture invariant, not just their own stated ACs.
+
 ### Story 2.1: Hook Installation Is a Single Repeatable Setup Step
 
 > ✅ **Complete** — 2026-07-10 · [PR #10](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/10)
@@ -258,6 +262,8 @@ So that I don't have to guess a number myself.
 **And** the resulting complexity classification feeds only this point estimate, never a capture on/off decision (FR5)
 
 ### Story 2.6: Story Points Are Reconciled Against What Actually Happened
+
+> ✅ **Complete** — 2026-07-10 · [PR #15](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/15)
 
 As a developer,
 I want my estimate compared against what actually happened when I close the story,
