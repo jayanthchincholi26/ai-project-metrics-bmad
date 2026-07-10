@@ -197,6 +197,8 @@ So that my activity is captured identically to everyone else's on the team.
 
 ### Story 2.2: Git Activity Captured Silently While You Work
 
+> ✅ **Complete** — 2026-07-10 · [PR #11](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/11)
+
 As a developer,
 I want my commits/checkouts/merges captured automatically,
 So that my metrics build up without extra effort.

@@ -3,6 +3,8 @@ _bmad/config.user.toml
 _bmad/custom/*.user.toml
 .venv/
 __pycache__/
+.story-events.jsonl
+.story-events.pending.jsonl
 *.log
 .DS_Store
 Thumbs.db
