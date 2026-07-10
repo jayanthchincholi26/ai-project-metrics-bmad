@@ -43,6 +43,13 @@ so that my activity is captured identically to everyone else's on the team.
   - [x] Placeholder hooks: each of the 10 scripts' `main()` returns 0
 - [x] Task 5: Full regression + lint (all ACs)
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #10) triaged per project-context §9 — 2026-07-10:
+
+- [x] [AI-Review][Low] Conflict scan could crash on a directory named like a hook (`.exists()` + `.read_text()`) — applied a **stronger variant** than suggested: `.is_file()` alone would have skipped the directory in detection and crashed later at `os.replace`; instead, any non-file target is itself a conflict (refused with exit 2). Regression test added (`test_directory_named_like_a_hook_is_a_conflict_not_a_crash`).
+- Zero defects reported; reviewer highlighted atomic writes, the `newline="\n"` CRLF-proofing of sh shebangs, and foreign-hook refusal.
+
 ## Dev Notes
 
 - **Scope:** installation infrastructure only. NO event emission, NO `.story-events.jsonl` writes, NO retry logic (AD-9 binds emission, Story 2.2/2.3), NO `.gitignore` changes yet (event-log ignores land with 2.2 when the file first gets written).
@@ -83,6 +90,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 ### Change Log
 
 - 2026-07-10: Story 2.1 implemented — setup-hooks installer (marker safety, additive settings merge, atomic writes), 14 tracked hook files, CI workflow. 11 new tests (98 total). Status → review.
+- 2026-07-10: Addressed Gemini review of PR #10 — 1 applied with a stronger variant (directory-as-conflict instead of bare `.is_file()`, which would have deferred the crash to write time). 99 tests passing.
 
 ### File List
 

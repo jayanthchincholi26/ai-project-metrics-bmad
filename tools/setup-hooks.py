@@ -87,12 +87,17 @@ def main(argv: list[str] | None = None) -> int:
 
     hooks_dir = root / ".git" / "hooks"
     hooks_dir.mkdir(parents=True, exist_ok=True)
-    conflicts = [
-        name
-        for name in GIT_HOOKS
-        if (hooks_dir / name).exists()
-        and MARKER not in (hooks_dir / name).read_text(encoding="utf-8", errors="replace")
-    ]
+
+    def is_conflict(target: Path) -> bool:
+        """Anything we can't prove is ours: a non-file (e.g. a directory) or a
+        file without our marker."""
+        if not target.exists():
+            return False
+        if not target.is_file():
+            return True
+        return MARKER not in target.read_text(encoding="utf-8", errors="replace")
+
+    conflicts = [name for name in GIT_HOOKS if is_conflict(hooks_dir / name)]
     if conflicts:
         return fail(
             f"existing hook(s) not installed by this tool: {', '.join(conflicts)} — "

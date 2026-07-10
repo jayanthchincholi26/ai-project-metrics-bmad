@@ -108,6 +108,17 @@ def test_foreign_hook_is_refused_and_untouched(fake_repo, capsys):
     assert not (fake_repo / ".claude" / "settings.json").exists()
 
 
+def test_directory_named_like_a_hook_is_a_conflict_not_a_crash(fake_repo, capsys):
+    (fake_repo / ".git" / "hooks" / "post-commit").mkdir()
+
+    exit_code = run(fake_repo)
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "post-commit" in captured.err
+    assert (fake_repo / ".git" / "hooks" / "post-commit").is_dir()
+
+
 def test_our_marked_hook_is_upgraded_in_place(fake_repo, capsys):
     stale = fake_repo / ".git" / "hooks" / "post-commit"
     stale.write_text(f"#!/bin/sh\n# {setup_hooks.MARKER}\nold content\n", encoding="utf-8")
