@@ -12,7 +12,11 @@ post-hook exit codes) but honest.
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1])
+)  # bridge to the shared emitter (spine-sanctioned, Story 2.3)
 import _events
 
 
@@ -22,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
         "branch": _events.git_out("rev-parse", "--abbrev-ref", "HEAD"),
         "message_subject": _events.git_out("log", "-1", "--format=%s"),
     }
-    return _events.emit("git.commit", payload)
+    return _events.emit("git", "git.commit", payload)
 
 
 if __name__ == "__main__":

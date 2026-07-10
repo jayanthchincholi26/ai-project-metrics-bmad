@@ -7,7 +7,7 @@ paradigm: 'event-sourced pipes-and-filters'
 scope: 'Capturing PM, engineering, story-point-cost, and token-cost metrics as a byproduct of the AI-accelerated engineering flow (openspec/speckit), without manual double-entry, rolled up to a leadership dashboard.'
 status: final
 created: '2026-07-02'
-updated: '2026-07-09'
+updated: '2026-07-10'
 binds: []
 sources: ['_bmad-output/brainstorming/brainstorm-pm-metrics-ai-engineering-flow-2026-07-01/brainstorm-intent.md']
 companions: []
@@ -132,7 +132,7 @@ Layer → directory mapping:
 
 | Name | Version |
 | --- | --- |
-| Python | 3.8+, run via `uv run` (no venv management) — ratifies the existing convention used by `_bmad/scripts/*.py` in this repo. All hook logic, the CLI wrapper, and the snapshot assembler are single-file Python scripts. |
+| Python | 3.8+, run via `uv run` (no venv management) — ratifies the existing convention used by `_bmad/scripts/*.py` in this repo. All hook logic, the CLI wrapper, and the snapshot assembler are single-file Python scripts. One sanctioned exception (amended Story 2.3): hook scripts share a single event emitter (`tools/hooks/_events.py`) reached via a one-line documented `sys.path` bridge, so the AD-1/AD-1b/AD-9 mechanics exist exactly once across producer families. |
 | git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`) | native git, no added dependency; verified stable, no staleness risk. Each is a thin shell/batch shim (git requires a directly executable file) that calls `uv run tools/hooks/git/<name>.py` |
 | Claude Code hooks — wired via `hooks` entries in `.claude/settings.json` (event → matcher → command), **not** auto-discovered by folder/filename | this spine uses six of the available events: `SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`; more events exist (e.g. `SubagentStop`, `PreCompact`, `Notification`) and are out of scope here. Each configured command invokes `uv run tools/hooks/claude/<name>.py` |
 | openspec ([Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec)) / speckit ([github/spec-kit](https://github.com/github/spec-kit)) CLI | existing project tooling, wrapped not modified; verified current and maintained |
@@ -151,6 +151,7 @@ Layer → directory mapping:
       story-close/          # human bookend: actual-vs-blockers note
   tools/
     hooks/
+      _events.py             # shared event emitter (AD-1/AD-1b/AD-9), source-parameterized; hooks reach it via a one-line documented sys.path bridge (amended Story 2.3)
       git/                  # post-commit.sh etc. — thin shims calling `uv run tools/hooks/git/*.py` (AD-8)
         post-commit.sh
         post-commit.py
