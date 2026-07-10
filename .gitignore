@@ -5,6 +5,7 @@ _bmad/custom/*.user.toml
 __pycache__/
 .story-events.jsonl
 .story-events.pending.jsonl
+.active-story
 *.log
 .DS_Store
 Thumbs.db

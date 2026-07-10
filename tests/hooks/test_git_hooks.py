@@ -139,11 +139,46 @@ def test_checkout_args_are_parsed_and_branch_flag_true(repo):
 
     post_checkout.main(["oldhead", "newhead", "1"])
 
-    (event,) = read_events(repo)
+    all_events = read_events(repo)
+    event = all_events[0]
     assert event["type"] == "git.checkout"
     assert event["payload"]["previous_head"] == "oldhead"
     assert event["payload"]["new_head"] == "newhead"
     assert event["payload"]["branch_checkout"] is True
+
+
+def test_branch_checkout_updates_the_active_story_pointer(repo):
+    write_manifest(repo)
+
+    post_checkout.main(["oldhead", "newhead", "1"])
+
+    pointer = json.loads((repo / ".active-story").read_text(encoding="utf-8"))
+    assert pointer["story_id"] == STORY_ID
+    types = [event["type"] for event in read_events(repo)]
+    assert types == ["git.checkout", "time.slice_opened"]
+
+
+def test_branch_checkout_closes_the_outgoing_slice_when_story_changes(repo):
+    write_manifest(repo)
+    post_checkout.main(["oldhead", "newhead", "1"])  # opens a slice for STORY_ID
+
+    (repo / ".story.yaml").write_text('story_id: "story-other"\n', encoding="utf-8")
+    post_checkout.main(["newhead", "thirdhead", "1"])
+
+    pointer = json.loads((repo / ".active-story").read_text(encoding="utf-8"))
+    assert pointer["story_id"] == "story-other"
+    types = [event["type"] for event in read_events(repo)]
+    assert types == ["git.checkout", "time.slice_opened", "git.checkout", "time.slice_closed", "time.slice_opened"]
+
+
+def test_file_checkout_does_not_touch_the_active_story_pointer(repo):
+    write_manifest(repo)
+
+    post_checkout.main(["a", "b", "0"])
+
+    assert not (repo / ".active-story").exists()
+    types = [event["type"] for event in read_events(repo)]
+    assert types == ["git.checkout"]
 
 
 def test_checkout_file_flag_is_false_and_missing_args_are_null(repo):
