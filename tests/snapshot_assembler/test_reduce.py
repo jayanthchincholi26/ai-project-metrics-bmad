@@ -269,6 +269,25 @@ def test_git_show_is_run_with_cwd_pinned_to_repo_root(tmp_path, monkeypatch, cap
     assert seen_cwd == [tmp_path]
 
 
+def test_binary_file_stat_lines_are_counted_as_context_files(tmp_path, monkeypatch, capsys):
+    write_manifest(tmp_path, points_estimated=0)
+    write_events(tmp_path, [event("git.commit", hash="abc123")])
+    stat_output = (
+        " assets/logo.png | Bin 0 -> 4521 bytes\n 1 file changed, 0 insertions(+), 0 deletions(-)\n"
+    )
+    monkeypatch.setattr(
+        events,
+        "git_out",
+        lambda *args, **kwargs: stat_output if "abc123" in args else None,
+    )
+
+    run(tmp_path)
+
+    cost = read_snapshot(tmp_path)["story_point_cost"]
+    # 1 context file (binary, no "test" in path) * 0.2 -> round(0.2) -> 0
+    assert cost["phase2_points"] == round(1 * 0.2)
+
+
 def test_unresolvable_commit_hash_is_skipped_not_fatal(tmp_path, monkeypatch, capsys):
     write_manifest(tmp_path, points_estimated=0)
     write_events(tmp_path, [event("git.commit", hash="deadbeef")])

@@ -60,7 +60,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Optional
@@ -78,7 +77,6 @@ SCHEMA_VERSION = 1
 DECISION_EVENTS_REASON = (
     "no decision-narration producer implemented (out of scope through Story 2.6)"
 )
-STAT_LINE = re.compile(r"^\s*(.+?)\s+\|\s+\d+")
 
 
 def parse_scalar(raw: str) -> str:
@@ -190,6 +188,10 @@ def touched_files(root: Path, hash_: str) -> "list[str]":
     cwd=root is required (not the default None) — the assembler is explicitly
     addressed by --repo-root, which may differ from the ambient process cwd
     (§3); without pinning cwd, `git show` would run against the wrong repo.
+
+    Splitting on the first "|" (rather than requiring a digit immediately
+    after it) also captures binary-file lines, e.g. `image.png | Bin 0 -> 4521
+    bytes` — those would otherwise silently vanish from the touched-file set.
     """
     output = _events.git_out("show", "--stat", "--format=", hash_, cwd=root)
     if not output:
@@ -198,9 +200,7 @@ def touched_files(root: Path, hash_: str) -> "list[str]":
     for line in output.splitlines():
         if "|" not in line or "changed" in line:
             continue
-        match = STAT_LINE.match(line)
-        if match:
-            paths.append(match.group(1).strip())
+        paths.append(line.split("|", 1)[0].strip())
     return paths
 
 

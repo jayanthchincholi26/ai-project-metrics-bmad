@@ -39,6 +39,13 @@ so that leadership sees real variance instead of a static guess.
 - [x] Task 3: Full regression + lint + real E2E (all ACs)
   - [x] Extend the established full-arc recipe (2.4's scratch-repo test) one more step: kickoff **with** `--points-estimated` supplied → real commits touching a test file and a non-test file → close → inspect the snapshot's `story_point_cost` for real, non-null `phase1_points`/`phase2_points`/`variance` and a sane `reduced_confidence` reason — this is the first time this project's own metrics-by-hand exercise (the day's `docs/metrics.md` entries) could in principle be replaced by a real snapshot
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #15) triaged per project-context §9 — 2026-07-10:
+
+- [x] [AI-Review][Low] Binary-file stat lines (e.g. `image.png | Bin 0 -> 4521 bytes`) failed the regex (required a digit immediately after `|`), silently vanishing from the touched-file union — I had actually observed this exact effect during my own E2E (`.pyc` files disappearing) but hadn't traced the cause since it didn't change that test's arithmetic. Applied Gemini's suggested fix: split on the first `|` instead of requiring a digit, which naturally captures binary lines too. Regression test added.
+- Zero other findings; reviewer highlighted the git_out reuse, cwd-pinning fix, null-parsing fix, and reduced_confidence modeling.
+
 ## Dev Notes
 
 - **Scope:** Phase-2 computation + variance only, plus the Task 0 prerequisite fix. NOT here: any UI/reporting on variance, any feedback loop that *acts* on variance to retune AD-6's weights (spine § Deferred explicitly defers this), a real decision-narration producer (would be its own future story), sub-type test classification beyond the documented uniform weight.
@@ -83,6 +90,7 @@ claude-sonnet-5 (create-story context engineering)
 ### Change Log
 
 - 2026-07-10: Story 2.6 implemented — AD-6a manifest fix (Task 0), Phase-2 reconciliation extending the snapshot assembler (Task 1). 17 new tests (177 total). Two real defects found and fixed: a latent manifest null-parsing bug (caught by the unit suite itself) and a git cwd-addressing bug (caught only by the full-arc E2E). Status → review. Epic 2 complete pending merge.
+- 2026-07-10: Addressed Gemini review of PR #15 — 1 applied (binary-file stat-line regex fix, an effect I'd already seen in my own E2E but hadn't traced to its cause). 178 tests passing.
 
 ### File List
 
