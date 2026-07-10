@@ -101,3 +101,78 @@ def test_none_incoming_story_id_does_not_disturb_an_existing_pointer(repo):
 
     assert read_pointer(repo)["story_id"] == "story-a"
     assert len(read_events(repo)) == 1
+
+
+# --- record_activity() (Story 3.2) ---
+
+
+def write_pointer(repo_root: Path, story_id: str, opened_at: str, last_activity_at: str | None = None) -> None:
+    data = {"story_id": story_id, "opened_at": opened_at}
+    if last_activity_at is not None:
+        data["last_activity_at"] = last_activity_at
+    (repo_root / ACTIVE_STORY_FILE).write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_first_activity_stamps_last_activity_at_with_no_pause_event(repo, monkeypatch):
+    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00")
+    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:05:00+00:00"))
+
+    events.record_activity(repo)
+
+    pointer = read_pointer(repo)
+    assert pointer["last_activity_at"] == "2026-07-10T09:05:00+00:00"
+    assert read_events(repo) == []
+
+
+def test_activity_within_threshold_is_a_no_op_beyond_the_stamp(repo, monkeypatch):
+    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
+    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:19:59+00:00"))
+
+    events.record_activity(repo)
+
+    assert read_events(repo) == []
+    assert read_pointer(repo)["last_activity_at"] == "2026-07-10T09:19:59+00:00"
+
+
+def test_activity_at_exactly_the_threshold_does_not_pause(repo, monkeypatch):
+    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
+    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:00+00:00"))
+
+    events.record_activity(repo)
+
+    assert read_events(repo) == []
+
+
+def test_activity_one_second_past_the_threshold_emits_a_pause(repo, monkeypatch):
+    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
+    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00"))
+
+    events.record_activity(repo)
+
+    (event,) = read_events(repo)
+    assert event["type"] == "time.slice_paused"
+    assert event["story_id"] == "story-a"
+    assert event["payload"]["quiet_since"] == "2026-07-10T09:05:00+00:00"
+    assert event["payload"]["resumed_at"] == "2026-07-10T09:20:01+00:00"
+    assert event["payload"]["idle_seconds"] == 901.0
+    assert read_pointer(repo)["last_activity_at"] == "2026-07-10T09:20:01+00:00"
+    assert read_pointer(repo)["story_id"] == "story-a"
+
+
+def test_activity_never_changes_the_pointers_story_id(repo, monkeypatch):
+    write_pointer(repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00+00:00")
+    monkeypatch.setattr(events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T10:00:00+00:00"))
+
+    events.record_activity(repo)
+
+    assert read_pointer(repo)["story_id"] == "story-a"
+    types = [event["type"] for event in read_events(repo)]
+    assert "time.slice_closed" not in types
+    assert "time.slice_opened" not in types
+
+
+def test_activity_with_no_active_pointer_is_a_no_op(repo):
+    events.record_activity(repo)
+
+    assert not (repo / ACTIVE_STORY_FILE).exists()
+    assert read_events(repo) == []
