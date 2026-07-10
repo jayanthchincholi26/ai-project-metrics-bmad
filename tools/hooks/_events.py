@@ -55,6 +55,23 @@ ATTEMPTS = 4  # 1 initial + 3 retries (AD-9)
 RETRY_DELAY_SECONDS = 0.1
 
 
+def _idle_threshold_seconds() -> int:
+    """A malformed override must never break import - every hook (incl. commit-msg,
+    which must always exit 0) imports this module, so a bad env var falls back
+    to the default rather than raising at module scope."""
+    try:
+        return int(os.environ.get("STORY_IDLE_THRESHOLD_SECONDS", "900"))
+    except ValueError:
+        return 900
+
+
+IDLE_THRESHOLD_SECONDS = _idle_threshold_seconds()  # 15 min default (AD-7)
+
+
+def _now() -> datetime:
+    return datetime.now().astimezone()
+
+
 def git_out(*args: str, cwd: Optional[Path] = None) -> Optional[str]:
     """Run a git query (argument list, never shell=True); any failure degrades to None.
 
@@ -215,7 +232,7 @@ def update_active_story(root: Path, incoming_story_id: Optional[str]) -> None:
     if current is not None and current.get("story_id") == incoming_story_id:
         return
 
-    now = datetime.now().astimezone()
+    now = _now()
     if current is not None:
         opened_at = current.get("opened_at")
         duration_seconds = None
@@ -245,3 +262,41 @@ def update_active_story(root: Path, incoming_story_id: Optional[str]) -> None:
         {"opened_at": now.isoformat(timespec="seconds")},
         story_override=incoming_story_id,
     )
+
+
+def record_activity(root: Path) -> None:
+    """AD-7: a `PostToolUse`/prompt signal stamps the active slice's `last_activity_at`.
+
+    Idle detection is retrospective, not a running timer (this architecture has
+    no background service, AD-2): a gap exceeding `IDLE_THRESHOLD_SECONDS` since
+    the previous activity signal is only discovered the next time an activity
+    signal fires, and is recorded as `time.slice_paused` — the story stays
+    active (no story_id change, no slice_closed/opened) since only Story 3.1's
+    `update_active_story()` owns switching stories. No pointer means nothing to
+    attribute time to, so this is a no-op.
+    """
+    current = read_active_story(root)
+    if current is None:
+        return
+
+    now = _now()
+    last_activity_raw = current.get("last_activity_at") or current.get("opened_at")
+    if last_activity_raw:
+        try:
+            gap_seconds = (now - datetime.fromisoformat(last_activity_raw)).total_seconds()
+        except ValueError:
+            gap_seconds = None
+        if gap_seconds is not None and gap_seconds > IDLE_THRESHOLD_SECONDS:
+            emit(
+                "time",
+                "time.slice_paused",
+                {
+                    "quiet_since": last_activity_raw,
+                    "resumed_at": now.isoformat(timespec="seconds"),
+                    "idle_seconds": gap_seconds,
+                },
+                story_override=current.get("story_id"),
+            )
+
+    current["last_activity_at"] = now.isoformat(timespec="seconds")
+    write_atomic_json(root / ACTIVE_STORY_FILE, current)

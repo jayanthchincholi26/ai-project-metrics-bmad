@@ -9,7 +9,11 @@ tool call or disrupt the session, and metrics capture must never do that
 (the commit-msg precedent, extended). AD-9 visibility comes from the
 emitter's stderr surfacing.
 
-Privacy guard: only the prompt LENGTH is emitted, never its content."""
+Privacy guard: only the prompt LENGTH is emitted, never its content.
+
+Also records activity for AD-7's idle-detection (Story 3.2): this is one of
+the two signals (with `post_tool_use`) that can reveal - in arrears - that
+the active slice has been idle past the threshold."""
 
 from __future__ import annotations
 
@@ -32,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
             "prompt_chars": len(data["prompt"]) if isinstance(data.get("prompt"), str) else None,
         },
     )
+    _events.record_activity(_events.repo_root())
     return 0
 
 

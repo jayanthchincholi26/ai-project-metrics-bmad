@@ -9,7 +9,11 @@ tool call or disrupt the session, and metrics capture must never do that
 (the commit-msg precedent, extended). AD-9 visibility comes from the
 emitter's stderr surfacing.
 
-Privacy guard: tool_input is NEVER emitted - tool arguments can carry secrets."""
+Privacy guard: tool_input is NEVER emitted - tool arguments can carry secrets.
+
+Also records activity for AD-7's idle-detection (Story 3.2): this is one of
+the two signals (with `user_prompt_submit`) that can reveal - in arrears -
+that the active slice has been idle past the threshold."""
 
 from __future__ import annotations
 
@@ -29,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
         "ai.claude-code.tool_use",
         {"session_id": data.get("session_id"), "tool_name": data.get("tool_name")},
     )
+    _events.record_activity(_events.repo_root())
     return 0
 
 

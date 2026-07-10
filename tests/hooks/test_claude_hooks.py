@@ -106,6 +106,72 @@ def test_session_start_is_a_no_op_on_the_pointer_when_story_is_unchanged(repo, m
     assert types.count("time.slice_opened") == 1
 
 
+# --- idle detection wiring (Story 3.2) ---
+
+
+def test_post_tool_use_records_activity_within_threshold_without_pausing(repo, monkeypatch):
+    feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Bash"})
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    session_start.main([])
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:05:00+00:00")
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "time.slice_paused" not in types
+    pointer = json.loads((repo / ".active-story").read_text(encoding="utf-8"))
+    assert pointer["last_activity_at"] == "2026-07-10T09:05:00+00:00"
+
+
+def test_post_tool_use_emits_a_pause_after_an_idle_gap(repo, monkeypatch):
+    feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Bash"})
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    session_start.main([])
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00")
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "time.slice_paused" in types
+    pointer = json.loads((repo / ".active-story").read_text(encoding="utf-8"))
+    assert pointer["story_id"] == STORY_ID  # activity never switches the active story
+
+
+def test_user_prompt_submit_emits_a_pause_after_an_idle_gap(repo, monkeypatch):
+    feed_stdin(monkeypatch, {"session_id": "s-1", "prompt": "hi"})
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    session_start.main([])
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00")
+    )
+
+    user_prompt_submit.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "time.slice_paused" in types
+
+
+def test_activity_hooks_are_a_no_op_on_the_pointer_without_a_prior_session(repo, monkeypatch):
+    feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Bash", "prompt": "hi"})
+
+    assert post_tool_use.main([]) == 0
+    assert user_prompt_submit.main([]) == 0
+
+    assert not (repo / ".active-story").exists()
+    types = [event["type"] for event in read_events(repo)]
+    assert "time.slice_paused" not in types
+
+
 def test_session_end_token_cost_is_null_with_reason(repo, monkeypatch):
     feed_stdin(monkeypatch, {"session_id": "s-1"})
 
