@@ -50,6 +50,13 @@ so that my metrics build up without extra effort.
   - [x] `uv run pytest -q` (all suites), ruff clean
   - [x] Scratch E2E in a real throwaway git repo (allowed OUTSIDE unit tests): `git init`, run setup-hooks, write a `.story.yaml`, make a commit → assert one `git.commit_msg` + one `git.commit` line in `.story-events.jsonl`; delete manifest, commit again → lines land in pending spool
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #11) triaged per project-context §9 — 2026-07-10:
+
+- Zero functional defects; reviewer highlighted the O_APPEND single-write mechanics, degrading `git_out`, the commit-msg trade-off, and the retry ladder.
+- Declined (tracked) — `parse_scalar` duplicated a third time (`resolve.py`, `jira/main.py`, `_events.py`): still the single-file-script convention (Issue #7), no new issue. **Escalation note:** the third-copy threshold named in #7 is now met, and Story 2.3 needs the *whole emitter* cross-family (claude hooks) — the extraction decision (spine-level, e.g. a sanctioned shared module with a documented import bridge, parameterized `source` field) is now due at 2.3 create-story, not later.
+
 ## Dev Notes
 
 - **Scope:** git-side producers only. NOT here: Claude Code hooks (2.3), assembler/backfill (2.4 — the pending spool is write-only for us), `.active-story`/time slices (Epic 3 — post-checkout only *emits*; pointer updates are Story 3.1), event-log rotation/cleanup (deferred).
@@ -91,6 +98,7 @@ claude-fable-5 (create-story context engineering)
 ### Change Log
 
 - 2026-07-10: Story 2.2 implemented — shared emitter (AD-1/1a/1b/9), four real git producers, event files git-ignored. 17 new tests (115 total) + real-git E2E. Status → review.
+- 2026-07-10: Gemini review of PR #11 — zero defects; parse_scalar duplication acknowledged (Issue #7, third copy) with the extraction decision escalated to Story 2.3 where the emitter itself goes cross-family. No code changes.
 
 ### File List
 
