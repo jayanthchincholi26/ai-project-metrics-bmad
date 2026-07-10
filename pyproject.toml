@@ -18,5 +18,10 @@ line-length = 100
 target-version = "py38"
 extend-exclude = ["_bmad", ".claude"]
 
+[tool.ruff.lint.per-file-ignores]
+# Hook scripts use the spine-sanctioned one-line sys.path bridge to the shared
+# emitter (Story 2.3), which necessarily precedes `import _events`.
+"tools/hooks/**" = ["E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

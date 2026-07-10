@@ -2,18 +2,33 @@
 # /// script
 # requires-python = ">=3.8"
 # ///
-"""post_tool_use capture hook - Claude Code-side producer.
+"""post_tool_use capture hook - emits `ai.claude-code.tool_use` (AD-1a/AD-10) via the shared emitter.
 
-Placeholder: event emission (ai.<tool> post-tool activity, AD-1a/AD-10) lands in Story 2.3. Until then this
-hook exits 0 so installed wiring never breaks a developer's flow.
-"""
+Returns 0 unconditionally: a non-zero Claude Code hook exit can block the
+tool call or disrupt the session, and metrics capture must never do that
+(the commit-msg precedent, extended). AD-9 visibility comes from the
+emitter's stderr surfacing.
+
+Privacy guard: tool_input is NEVER emitted - tool arguments can carry secrets."""
 
 from __future__ import annotations
 
 import sys
+from pathlib import Path
+
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1])
+)  # bridge to the shared emitter (spine-sanctioned, Story 2.3)
+import _events
 
 
 def main(argv: list[str] | None = None) -> int:
+    data = _events.read_stdin_json()
+    _events.emit(
+        "ai",
+        "ai.claude-code.tool_use",
+        {"session_id": data.get("session_id"), "tool_name": data.get("tool_name")},
+    )
     return 0
 
 

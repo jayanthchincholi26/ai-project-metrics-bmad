@@ -10,23 +10,25 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
-HOOKS_DIR = REPO / "tools" / "hooks" / "git"
+HOOKS_ROOT = REPO / "tools" / "hooks"
+HOOKS_DIR = HOOKS_ROOT / "git"
 
 
-def load(module_name: str, filename: str):
-    spec = importlib.util.spec_from_file_location(module_name, HOOKS_DIR / filename)
+def load(module_name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
 
-# _events must be registered in sys.modules before the hooks' `import _events` runs.
-events = load("_events", "_events.py")
-post_commit = load("hook_post_commit", "post-commit.py")
-post_checkout = load("hook_post_checkout", "post-checkout.py")
-post_merge = load("hook_post_merge", "post-merge.py")
-commit_msg = load("hook_commit_msg", "commit-msg.py")
+# _events (now shared at tools/hooks/, Story 2.3) must be registered in
+# sys.modules before the hooks' `import _events` runs.
+events = load("_events", HOOKS_ROOT / "_events.py")
+post_commit = load("hook_post_commit", HOOKS_DIR / "post-commit.py")
+post_checkout = load("hook_post_checkout", HOOKS_DIR / "post-checkout.py")
+post_merge = load("hook_post_merge", HOOKS_DIR / "post-merge.py")
+commit_msg = load("hook_commit_msg", HOOKS_DIR / "commit-msg.py")
 
 STORY_ID = "story-20260710-abc123"
 GIT_ANSWERS = {

@@ -12,7 +12,11 @@ checkout, "0" a file checkout. The producer emits unconditionally — filtering
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1])
+)  # bridge to the shared emitter (spine-sanctioned, Story 2.3)
 import _events
 
 
@@ -24,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
         "branch_checkout": (args[2] == "1") if len(args) > 2 else False,
         "branch": _events.git_out("rev-parse", "--abbrev-ref", "HEAD"),
     }
-    return _events.emit("git.checkout", payload)
+    return _events.emit("git", "git.checkout", payload)
 
 
 if __name__ == "__main__":

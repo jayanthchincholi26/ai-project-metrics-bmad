@@ -20,6 +20,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1])
+)  # bridge to the shared emitter (spine-sanctioned, Story 2.3)
 import _events
 
 
@@ -37,7 +40,7 @@ def subject_of(message_file: str) -> Optional[str]:
 def main(argv: list[str] | None = None) -> int:
     args = list(argv) if argv is not None else sys.argv[1:]
     subject = subject_of(args[0]) if args else None
-    _events.emit("git.commit_msg", {"message_subject": subject})
+    _events.emit("git", "git.commit_msg", {"message_subject": subject})
     return 0
 
 

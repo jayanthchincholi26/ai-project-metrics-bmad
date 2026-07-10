@@ -10,7 +10,11 @@ git passes a single `<squash_flag>` argument ("1" for --squash merges).
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1])
+)  # bridge to the shared emitter (spine-sanctioned, Story 2.3)
 import _events
 
 
@@ -20,7 +24,7 @@ def main(argv: list[str] | None = None) -> int:
         "squash": (args[0] == "1") if args else False,
         "branch": _events.git_out("rev-parse", "--abbrev-ref", "HEAD"),
     }
-    return _events.emit("git.merge", payload)
+    return _events.emit("git", "git.merge", payload)
 
 
 if __name__ == "__main__":

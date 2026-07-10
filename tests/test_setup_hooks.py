@@ -178,13 +178,9 @@ def test_missing_hook_sources_exit_2(tmp_path, capsys):
     assert exit_code == 2
 
 
-def test_all_claude_placeholder_hooks_exit_0():
-    # The four git hooks became real producers in Story 2.2 (covered by
-    # tests/hooks/test_git_hooks.py); only the claude placeholders remain inert.
-    hook_files = sorted((REPO / "tools" / "hooks" / "claude").rglob("*.py"))
-    assert len(hook_files) == 6
-    for path in hook_files:
-        spec = importlib.util.spec_from_file_location(path.stem.replace("-", "_"), path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        assert module.main([]) == 0, path.name
+def test_all_ten_hook_scripts_exist():
+    # Placeholder-behavior tests are superseded: git hooks became producers in
+    # 2.2, claude hooks in 2.3 (tests/hooks/). The installer contract only
+    # needs the tracked scripts to exist.
+    assert len(sorted((REPO / "tools" / "hooks" / "git").glob("*.py"))) == 4
+    assert len(sorted((REPO / "tools" / "hooks" / "claude").glob("*.py"))) == 6

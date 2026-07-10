@@ -2,18 +2,38 @@
 # /// script
 # requires-python = ">=3.8"
 # ///
-"""session_end capture hook - Claude Code-side producer.
+"""session_end capture hook - emits `ai.claude-code.session_end` (AD-1a/AD-10) via the shared emitter.
 
-Placeholder: event emission (ai.<tool>.session_end, AD-1a/AD-10) lands in Story 2.3. Until then this
-hook exits 0 so installed wiring never breaks a developer's flow.
-"""
+Returns 0 unconditionally: a non-zero Claude Code hook exit can block the
+tool call or disrupt the session, and metrics capture must never do that
+(the commit-msg precedent, extended). AD-9 visibility comes from the
+emitter's stderr surfacing.
+
+AD-10 showcase: hooks expose no per-session token usage, so token_cost is
+emitted null-with-reason - a real null a dashboard must never read as zero."""
 
 from __future__ import annotations
 
 import sys
+from pathlib import Path
+
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1])
+)  # bridge to the shared emitter (spine-sanctioned, Story 2.3)
+import _events
 
 
 def main(argv: list[str] | None = None) -> int:
+    data = _events.read_stdin_json()
+    _events.emit(
+        "ai",
+        "ai.claude-code.session_end",
+        {
+            "session_id": data.get("session_id"),
+            "token_cost": None,
+            "token_cost_reason": "claude-code hooks do not report token usage",
+        },
+    )
     return 0
 
 
