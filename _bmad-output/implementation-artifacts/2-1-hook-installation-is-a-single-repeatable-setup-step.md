@@ -4,7 +4,7 @@ baseline_commit: 15b23cb2034e12def039d79b2e99263078d15222
 
 # Story 2.1: Hook Installation Is a Single Repeatable Setup Step
 
-Status: review
+Status: done
 
 ## Story
 
@@ -91,6 +91,7 @@ claude-fable-5 (create-story context engineering + dev-story implementation)
 
 - 2026-07-10: Story 2.1 implemented — setup-hooks installer (marker safety, additive settings merge, atomic writes), 14 tracked hook files, CI workflow. 11 new tests (98 total). Status → review.
 - 2026-07-10: Addressed Gemini review of PR #10 — 1 applied with a stronger variant (directory-as-conflict instead of bare `.is_file()`, which would have deferred the crash to write time). 99 tests passing.
+- 2026-07-10: PR #10 squash-merged to `develop` (1984950), CI green on all runs. Status → done.
 
 ### File List
 
