@@ -60,7 +60,7 @@ development_status:
   2-2-git-activity-captured-silently-while-you-work: done
   2-3-ai-session-activity-captured-silently: done
   2-4-story-closes-and-a-snapshot-is-created-automatically: done
-  2-5-story-points-are-estimated-automatically-at-kickoff: backlog
+  2-5-story-points-are-estimated-automatically-at-kickoff: review
   2-6-story-points-are-reconciled-against-what-actually-happened: backlog
   epic-2-retrospective: optional
   epic-3: backlog

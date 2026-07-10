@@ -244,6 +244,8 @@ So that I never manually compile a report.
 
 ### Story 2.5: Story Points Are Estimated Automatically at Kickoff
 
+> ✅ **Complete** — 2026-07-10 · [PR #14](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/14)
+
 As a developer,
 I want my story's points estimated automatically from its scope and complexity,
 So that I don't have to guess a number myself.
