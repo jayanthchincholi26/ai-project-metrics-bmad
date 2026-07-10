@@ -402,7 +402,7 @@ So that adopting metrics capture doesn't require cloning or vendoring this plann
 
 | Prerequisite | Why | Notes |
 | --- | --- | --- |
-| **Git** | Hooks are git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`); branch-per-story convention (NFR5) | Any reasonably current version; no special git features used |
+| **Git** | Hooks are git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`); branch-per-story convention (NFR5) | Any reasonably current version. On Windows, cloning **this planning repo** additionally needs `git config core.longpaths true` (its `_bmad-output/` paths exceed the 260-char limit from deep clone destinations — hit in real testing 2026-07-10); the release artifact won't carry those paths, making this a non-issue for target repos |
 | **Python 3.8+** | `requires-python = ">=3.8"` in `pyproject.toml`; every hook/adapter script targets this floor | Matches `ruff`'s `target-version = "py38"` too |
 | **uv** | Every script is invoked via `uv run` (PEP 723 inline script headers); git hooks are thin shell/batch shims that call `uv run <script>.py` (per epics.md build convention) | Must be on `PATH` — this is exactly what broke in initial testing when `uv run pytest` failed to spawn on a fresh clone |
 | **Claude Code** | Only required if `ai_tool: claude-code` (default) — the `.claude/settings.json` hook entries and `tools/hooks/claude/*.py` producers need it running | Not required for git-only capture if a project declares no AI tool |
@@ -418,3 +418,23 @@ So that adopting metrics capture doesn't require cloning or vendoring this plann
 - **Template repo (rejected)**: permanent two-repo sync burden with inevitable drift, and only helps at project-creation time — useless for existing projects adopting the tooling.
 
 **Held for later (not in this story):** automatic update/sync tooling beyond the initial install path; versioning/compatibility policy between the tooling's version and a target repo's pinned copy.
+
+### Story 4.2: `develop` Promotes to `main` on a Defined Release Cadence
+
+> ⏳ **Not started** — opened 2026-07-10 from a live smoke-test failure
+
+As a pilot developer cloning this repository,
+I want the default branch a fresh clone lands on to actually contain the shipped tooling,
+So that the documented install steps work on first contact instead of failing with "program not found."
+
+**What happened (2026-07-10):** the first real fresh-clone smoke test failed at `uv run pytest` → `Failed to spawn: pytest — program not found`. Root cause: `git clone` checks out `main` (the default branch), and `main` is **33 commits behind `develop`** — no `pyproject.toml`, no `uv.lock`, no `tools/`, no `tests/`. All 18 story PRs (Epics 1–3) merged to `develop`; nothing was ever promoted to `main`. A pilot rollout at that moment would have shipped an empty tool. Reproduced independently on a second fresh clone the same day.
+
+**Acceptance Criteria (draft):**
+
+**Given** all three implementation epics are complete on `develop` and CI is green
+**When** a release is cut
+**Then** `develop` merges to `main` via a reviewed PR (per project-context.md conventions), so a fresh clone's default checkout contains the complete tooling
+**And** the release rule is written down in `project-context.md`: what triggers a promotion (e.g. an epic completing, or a tagged release for Epic 4's artifact), and that `main` must never sit behind `develop` across a rollout boundary
+**And** once Story 4.1's release-artifact flow exists, tagging `main` is what produces the distributable — making "main is current" a hard precondition of every release rather than a convention
+
+**Relationship to Story 4.1:** independent and unblocking — this story is worth doing immediately (it's one PR plus a documented rule) even before the distribution mechanism is built, since anyone cloning the repo today gets a broken default branch.
