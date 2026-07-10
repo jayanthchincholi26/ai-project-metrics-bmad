@@ -2,19 +2,25 @@
 # /// script
 # requires-python = ">=3.8"
 # ///
-"""post-merge capture hook - git-side producer.
+"""post-merge capture hook — emits `git.merge` (AD-1a) via the shared emitter.
 
-Placeholder: event emission (git.merge -> .story-events.jsonl, AD-1/AD-1a) lands in Story 2.2. Until then this
-hook exits 0 so installed wiring never breaks a developer's flow.
+git passes a single `<squash_flag>` argument ("1" for --squash merges).
 """
 
 from __future__ import annotations
 
 import sys
 
+import _events
+
 
 def main(argv: list[str] | None = None) -> int:
-    return 0
+    args = list(argv) if argv is not None else sys.argv[1:]
+    payload = {
+        "squash": (args[0] == "1") if args else False,
+        "branch": _events.git_out("rev-parse", "--abbrev-ref", "HEAD"),
+    }
+    return _events.emit("git.merge", payload)
 
 
 if __name__ == "__main__":

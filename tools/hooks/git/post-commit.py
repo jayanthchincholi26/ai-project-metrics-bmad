@@ -2,19 +2,27 @@
 # /// script
 # requires-python = ">=3.8"
 # ///
-"""post-commit capture hook - git-side producer.
+"""post-commit capture hook — emits `git.commit` (AD-1a) via the shared emitter.
 
-Placeholder: event emission (git.commit -> .story-events.jsonl, AD-1/AD-1a) lands in Story 2.2. Until then this
-hook exits 0 so installed wiring never breaks a developer's flow.
+Payload fields degrade to honest nulls when git can't answer; the event is
+emitted regardless. Exit 1 on final append failure is harmless (git ignores
+post-hook exit codes) but honest.
 """
 
 from __future__ import annotations
 
 import sys
 
+import _events
+
 
 def main(argv: list[str] | None = None) -> int:
-    return 0
+    payload = {
+        "hash": _events.git_out("rev-parse", "HEAD"),
+        "branch": _events.git_out("rev-parse", "--abbrev-ref", "HEAD"),
+        "message_subject": _events.git_out("log", "-1", "--format=%s"),
+    }
+    return _events.emit("git.commit", payload)
 
 
 if __name__ == "__main__":

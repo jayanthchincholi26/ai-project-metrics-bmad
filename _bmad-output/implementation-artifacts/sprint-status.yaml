@@ -1,5 +1,5 @@
 # generated: 2026-07-09
-# last_updated: 2026-07-09
+# last_updated: 2026-07-10
 # project: explore-jira-ai-metrics
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-09
+last_updated: 2026-07-10
 project: explore-jira-ai-metrics
 project_key: NOKEY
 tracking_system: file-system
@@ -57,7 +57,7 @@ development_status:
   epic-1-retrospective: optional
   epic-2: in-progress
   2-1-hook-installation-is-a-single-repeatable-setup-step: done
-  2-2-git-activity-captured-silently-while-you-work: backlog
+  2-2-git-activity-captured-silently-while-you-work: review
   2-3-ai-session-activity-captured-silently: backlog
   2-4-story-closes-and-a-snapshot-is-created-automatically: backlog
   2-5-story-points-are-estimated-automatically-at-kickoff: backlog
