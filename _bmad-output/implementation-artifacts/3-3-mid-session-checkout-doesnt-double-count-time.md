@@ -4,7 +4,7 @@ baseline_commit: e8ecd48506b247b6cd51a04df5435a21b93fc4fb
 
 # Story 3.3: Mid-Session Checkout Doesn't Double-Count Time
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

@@ -284,6 +284,12 @@ So that leadership sees real variance instead of a static guess.
 
 Switching between stories never corrupts time attribution, and nobody manually starts or stops a timer.
 
+> ✅ **Epic complete** — 2026-07-10, all 3 stories done (PRs #16, #17, #18).
+>
+> **Retro note (§13):** *What worked* — the same "shared, source-parameterized emitter" discipline from Epic 2 carried straight into Epic 3: every new mechanic (`update_active_story`, `record_activity`, `repoint_active_story`, `close_active_story_slice`) was built as a sibling function reusing `emit()`/`write_atomic_json()`/`read_active_story()`, never a parallel append or I/O path — zero new event-integrity code needed across 3 stories despite adding 2 new event types (`time.slice_opened/closed/paused`) and 2 new local state files (`.active-story`, `.active-claude-session`). Live E2E (real git repos, real hook invocations via `uv run --script`) caught nothing new this epic but continued to be the final confirmation step every story leaned on, consistent with Epic 2's finding that it's the strongest signal mocked unit suites alone miss. Story 3.3 completed a rule (session-level slices closing on `SessionEnd`) that had been written into `ARCHITECTURE-SPINE.md` before Epic 3 even started but was left half-wired by Story 3.1 — a good example of a story's own dev notes correctly flagging and closing a cross-story architecture gap before it became a silent one, the same lesson Epic 2's retro flagged as a process improvement.
+>
+> *What to watch* — the LLM review (Gemini) surfaced a genuinely valid Critical finding on PR #17 (a malformed `STORY_IDLE_THRESHOLD_SECONDS` env var crashing module import, which would have blocked every commit) but also produced a misattributed bullet on **both** PR #16 and PR #18 — content from a different story's actual diff, presented as if it were about the PR under review. Caught both times by grep-verifying the claim against the actual changed files before acting; this is now the second epic in a row where this reviewer has produced at least one hallucinated/misattributed finding (Epic 1's retro flagged the first). Keep grep-verifying every finding, every PR, rather than trusting the review's framing at face value. Separately: PR #17 also failed CI on `ruff format --check` even though local `ruff check` (lint) had passed — format and lint are separate CI gates in this repo and both must be run locally before pushing; this was corrected and held for the rest of the epic.
+
 ### Story 3.1: Active-Story Pointer Tracks Time Automatically
 
 > ✅ **Complete** — 2026-07-10 · [PR #16](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/16)
@@ -313,6 +319,8 @@ So that time-on-task reflects real work, not an open session.
 **Then** the active slice auto-pauses (AD-7)
 
 ### Story 3.3: Mid-Session Checkout Doesn't Double-Count Time
+
+> ✅ **Complete** — 2026-07-10 · [PR #18](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/18)
 
 As a developer,
 I want switching story branches mid-AI-session to not corrupt time totals,
