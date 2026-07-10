@@ -65,6 +65,6 @@ development_status:
   epic-2-retrospective: optional
   epic-3: in-progress
   3-1-active-story-pointer-tracks-time-automatically: done
-  3-2-idle-time-doesnt-inflate-a-storys-active-time: review
+  3-2-idle-time-doesnt-inflate-a-storys-active-time: done
   3-3-mid-session-checkout-doesnt-double-count-time: backlog
   epic-3-retrospective: optional

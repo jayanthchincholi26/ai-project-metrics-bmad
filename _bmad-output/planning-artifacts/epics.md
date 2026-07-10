@@ -300,6 +300,8 @@ So that my time-on-task is attributed correctly without logging hours.
 
 ### Story 3.2: Idle Time Doesn't Inflate a Story's Active Time
 
+> ✅ **Complete** — 2026-07-10 · [PR #17](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/17)
+
 As a developer,
 I want idle periods (meetings, breaks) excluded from my active time,
 So that time-on-task reflects real work, not an open session.

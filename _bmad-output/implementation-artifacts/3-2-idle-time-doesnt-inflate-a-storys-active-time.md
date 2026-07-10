@@ -4,7 +4,7 @@ baseline_commit: 59bd46a4eb82b9422ee2ce57247c5c973b19ebd5
 
 # Story 3.2: Idle Time Doesn't Inflate a Story's Active Time
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
