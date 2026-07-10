@@ -54,10 +54,17 @@ ATTEMPTS = 4  # 1 initial + 3 retries (AD-9)
 RETRY_DELAY_SECONDS = 0.1
 
 
-def git_out(*args: str) -> Optional[str]:
-    """Run a git query (argument list, never shell=True); any failure degrades to None."""
+def git_out(*args: str, cwd: Optional[Path] = None) -> Optional[str]:
+    """Run a git query (argument list, never shell=True); any failure degrades to None.
+
+    `cwd` defaults to the ambient process cwd (correct for git hooks, which git
+    itself invokes with cwd already at the repo — AD-8). A caller addressed by an
+    explicit --repo-root (e.g. the snapshot assembler) MUST pass cwd=<that root>,
+    or git runs against whatever directory the process happened to start in
+    instead of the repo being operated on (§3 explicit-addressing).
+    """
     try:
-        proc = subprocess.run(["git", *args], capture_output=True, text=True, timeout=10)
+        proc = subprocess.run(["git", *args], capture_output=True, text=True, timeout=10, cwd=cwd)
     except (OSError, subprocess.TimeoutExpired):
         return None
     if proc.returncode != 0:

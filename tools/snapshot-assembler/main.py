@@ -10,9 +10,40 @@ append-only; only the snapshot ever crosses to a central layer, never the raw
 log (NFR3).
 
 Envelope (AD-3a, fixed): {schema_version, story_id, revision, pm_metrics,
-engineering_metrics, story_point_cost, token_cost}. story_point_cost is the
-sole home of {phase1_points, phase2_points, variance} — null today (honest
-nulls, never zeros) until Stories 2.5/2.6 compute them.
+engineering_metrics, story_point_cost, token_cost}. story_point_cost holds
+{phase1_points, phase2_points, variance, reduced_confidence,
+reduced_confidence_reasons} (Stories 2.5/2.6).
+
+Phase-1 (Story 2.5) is read back from the manifest's `points_estimated`
+(AD-6a: always distinct from the developer-confirmed `points`, written by
+Story 2.5's kickoff-time estimator, never recomputed here).
+
+Phase-2 (Story 2.6), computed at close from the event log:
+- review_cycles = max(0, ai.*.prompt event count - 1) — AD-6's literal
+  "UserPromptSubmit follow-up count", a direct mapping onto our own prompt
+  events, no invention needed.
+- decision_events = 0, always, today: no producer in this pipeline emits an
+  "agent-narrated decision" event (Stories 2.2/2.3 fixed the full producer
+  set) — rather than faking this signal, story_point_cost.reduced_confidence
+  is set true with a stated reason (AD-10's vocabulary, applied here to a
+  same-tool gap rather than a cross-tool one).
+- verification/context files: for each git.commit event's hash, bridge-import
+  the shared git_out() helper from tools/hooks/_events.py (reused, not
+  reimplemented — subprocess argument-list safety, §4) and run
+  `git show --stat --format= <hash>`; a path containing "test" (case
+  insensitive) counts as a verification file, everything else as a context
+  file, deduped by path across all commits. AD-6 asks for sub-type weights
+  (unit/integration/manual/perf) this event schema cannot distinguish; a
+  uniform x1 (integration-equivalent) is applied instead — a documented
+  simplification, not a fabricated classifier. A commit whose hash git can't
+  resolve (no git, rewritten history, etc.) contributes 0 and is skipped
+  silently — it still counts in engineering_metrics.commits.
+- Combination (AD-6 lists these four inputs but gives no arithmetic — this
+  formula is this story's own documented invention, exactly like Phase-1's
+  volatility fill was): phase2_points = round(review_cycles*1.0 +
+  verification_files*1.0 + context_files*0.2). decision_events contributes 0.
+- variance = phase2_points - phase1_points, only when phase1_points is not
+  null (honest null otherwise — can't diff against nothing).
 
 Revisions (AD-3b): snapshots/{story_id}.v{schema}.rev{N}.json, N = max+1;
 files are created exclusively ("x" mode) — an existing revision is refused,
@@ -29,15 +60,25 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Optional
+
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / "hooks")
+)  # bridge to the shared git_out() helper (spine-sanctioned, reused not reimplemented)
+import _events
 
 EVENTS_FILE = ".story-events.jsonl"
 PENDING_FILE = ".story-events.pending.jsonl"
 MANIFEST = ".story.yaml"
 SNAPSHOTS_DIR = "snapshots"
 SCHEMA_VERSION = 1
+DECISION_EVENTS_REASON = (
+    "no decision-narration producer implemented (out of scope through Story 2.6)"
+)
+STAT_LINE = re.compile(r"^\s*(.+?)\s+\|\s+\d+")
 
 
 def parse_scalar(raw: str) -> str:
@@ -54,14 +95,21 @@ def parse_scalar(raw: str) -> str:
     return value
 
 
-def read_manifest(path: Path) -> dict[str, str]:
-    manifest: dict[str, str] = {}
+def read_manifest(path: Path) -> dict[str, Any]:
+    """Values are strings, except the bare (unquoted) YAML `null` token, which the
+    writer (docs-only/main.py's render()) uses to represent Python None — read back
+    as None here too, or any nullable numeric field (e.g. points_estimated) would
+    receive the literal string "null" instead."""
+    manifest: dict[str, Any] = {}
     for line in path.read_text(encoding="utf-8-sig").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or ":" not in stripped:
             continue
         key, raw = stripped.split(":", 1)
-        manifest[key.strip()] = parse_scalar(raw)
+        raw_value = raw.strip()
+        value = parse_scalar(raw)
+        is_bare_null = value == "null" and raw_value[:1] not in ("'", '"')
+        manifest[key.strip()] = None if is_bare_null else value
     return manifest
 
 
@@ -136,6 +184,73 @@ def token_cost_of(events: "list[dict]") -> dict[str, Any]:
     }
 
 
+def touched_files(root: Path, hash_: str) -> "list[str]":
+    """Files changed by one commit, via the shared git_out() helper; [] if unresolvable.
+
+    cwd=root is required (not the default None) — the assembler is explicitly
+    addressed by --repo-root, which may differ from the ambient process cwd
+    (§3); without pinning cwd, `git show` would run against the wrong repo.
+    """
+    output = _events.git_out("show", "--stat", "--format=", hash_, cwd=root)
+    if not output:
+        return []
+    paths = []
+    for line in output.splitlines():
+        if "|" not in line or "changed" in line:
+            continue
+        match = STAT_LINE.match(line)
+        if match:
+            paths.append(match.group(1).strip())
+    return paths
+
+
+def verification_and_context_counts(root: Path, events: "list[dict]") -> "tuple[int, int]":
+    """Union of files touched across all git.commit hashes, classified test vs. context."""
+    seen: set[str] = set()
+    for e in events:
+        if e.get("type") != "git.commit":
+            continue
+        hash_ = e.get("payload", {}).get("hash")
+        if not hash_:
+            continue
+        seen.update(touched_files(root, hash_))
+    verification = sum(1 for path in seen if "test" in path.lower())
+    context = len(seen) - verification
+    return verification, context
+
+
+def review_cycles_of(events: "list[dict]") -> int:
+    prompts = sum(
+        1
+        for e in events
+        if (e.get("type") or "").startswith("ai.") and e["type"].endswith(".prompt")
+    )
+    return max(0, prompts - 1)
+
+
+def story_point_cost_of(
+    root: Path, events: "list[dict]", manifest: dict[str, str]
+) -> dict[str, Any]:
+    phase1_points = as_number(manifest.get("points_estimated"))
+
+    review_cycles = review_cycles_of(events)
+    verification_files, context_files = verification_and_context_counts(root, events)
+    decision_events = 0  # always, today — see DECISION_EVENTS_REASON
+
+    phase2_points = round(
+        review_cycles * 1.0 + verification_files * 1.0 + context_files * 0.2 + decision_events
+    )
+    variance = (phase2_points - phase1_points) if phase1_points is not None else None
+
+    return {
+        "phase1_points": phase1_points,
+        "phase2_points": phase2_points,
+        "variance": variance,
+        "reduced_confidence": True,
+        "reduced_confidence_reasons": [DECISION_EVENTS_REASON],
+    }
+
+
 def next_revision(snapshots: Path, story_id: str) -> int:
     prefix = f"{story_id}.v{SCHEMA_VERSION}.rev"
     highest = 0
@@ -201,7 +316,7 @@ def main(argv: "list[str] | None" = None) -> int:
             "created": manifest.get("created"),
         },
         "engineering_metrics": reduce_events(ours),
-        "story_point_cost": {"phase1_points": None, "phase2_points": None, "variance": None},
+        "story_point_cost": story_point_cost_of(root, ours, manifest),
         "token_cost": token_cost_of(ours),
     }
 

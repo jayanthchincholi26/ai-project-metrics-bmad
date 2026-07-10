@@ -21,6 +21,7 @@ MANIFEST_KEYS = [
     "source_of_truth",
     "ai_tool",
     "points",
+    "points_estimated",
     "goal",
     "sprint",
     "description",
@@ -156,6 +157,24 @@ def test_invalid_ai_tool_format_exits_2_and_writes_nothing(tmp_path):
 
     assert exit_code == 2
     assert not manifest_path(tmp_path).exists()
+
+
+def test_points_estimated_is_recorded_when_given(tmp_path):
+    kickoff(tmp_path, **{"points-estimated": "7"})
+
+    assert parse_manifest(tmp_path)["points_estimated"] == 7
+
+
+def test_points_estimated_defaults_to_null_when_omitted(tmp_path):
+    kickoff(tmp_path)
+
+    assert parse_manifest(tmp_path)["points_estimated"] is None
+
+
+def test_points_estimated_accepts_fractional_values(tmp_path):
+    kickoff(tmp_path, **{"points-estimated": "6.5"})
+
+    assert parse_manifest(tmp_path)["points_estimated"] == 6.5
 
 
 def test_story_id_date_matches_created_date(tmp_path):

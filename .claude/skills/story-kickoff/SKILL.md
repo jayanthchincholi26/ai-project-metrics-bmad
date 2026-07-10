@@ -41,7 +41,7 @@ Run the AD-6 Phase-1 estimator before asking for points:
 uv run tools/estimate-phase1/main.py --repo-root <repo-root> --source-of-truth <resolved source_of_truth>
 ```
 
-- If `phase1_points` is **not null**: present it to the developer as a **suggested** value ("Phase-1 estimate: N points — accept this or tell me a different number?"). It is never written silently — whatever the developer confirms (accepted or overridden) is what step 5 uses.
+- If `phase1_points` is **not null**: present it to the developer as a **suggested** value ("Phase-1 estimate: N points — accept this or tell me a different number?"). It is never written silently — whatever the developer confirms (accepted or overridden) is what step 5's `--points` uses. **Remember the raw `phase1_points` number itself** (regardless of what the developer confirms) — step 5 passes it separately as `--points-estimated`, per AD-6a: the confirmed value and the raw estimate are always distinct, never substituted for each other, so Story 2.6's close-time reconciliation has a real Phase-1 number to compare against.
 - If `phase1_points` is **null**: tell the developer why (`phase1_points_reason`, e.g. no openspec change found) and fall back to a plain ask — exactly the step-4 elicitation below, unassisted.
 - If `must_split` is `true`: mention it as a heads-up (the scope looks large), but this **never blocks kickoff or changes any other behavior**.
 - **Hard rule (FR5):** nothing from this estimator — a null result, `must_split`, an error, any field — may ever skip, shorten, gate, or disable capture for this story. If the script fails to run at all, proceed straight to step 4's plain ask as if it had returned null.
@@ -90,10 +90,10 @@ Confluence pages have no native points/sprint fields; the adapter reads **page l
 Run from the repo root:
 
 ```
-uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --goal "<goal>" --sprint "<sprint>" [--description "<text>"] [--source-of-truth jira|confluence|docs-only] --ai-tool <resolved ai_tool>
+uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --goal "<goal>" --sprint "<sprint>" [--description "<text>"] [--source-of-truth jira|confluence|docs-only] --ai-tool <resolved ai_tool> [--points-estimated <raw Phase-1 estimate>]
 ```
 
-(`--source-of-truth` defaults to `docs-only`; the JIRA/Confluence flows pass their backend so the manifest records which one supplied the values. `--ai-tool` carries the step-1 resolved value — the manifest field AI-session capture producers read to pick their `ai.<tool>.*` event namespace.)
+(`--source-of-truth` defaults to `docs-only`; the JIRA/Confluence flows pass their backend so the manifest records which one supplied the values. `--ai-tool` carries the step-1 resolved value — the manifest field AI-session capture producers read to pick their `ai.<tool>.*` event namespace. `--points-estimated` carries step 3's raw `phase1_points`, if any was produced — omit it entirely when step 3 returned null; never pass the developer's confirmed `--points` value here, the two must stay distinct per AD-6a.)
 
 - **Exit 0:** the script prints a one-line JSON ack `{"ok": true, "story_yaml": ..., "story_id": ...}`. Relay the `story_id` and the manifest path to the developer — kickoff complete.
 - **Non-zero exit:** surface the script's stderr to the developer **verbatim**, then return to step 4 and re-elicit. Never retry silently with altered values.
