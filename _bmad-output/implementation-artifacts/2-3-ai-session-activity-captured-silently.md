@@ -4,7 +4,7 @@ baseline_commit: 43d93e9975be55af02f1a27d4fbfa504c7eb92db
 
 # Story 2.3: AI Session Activity Captured Silently
 
-Status: review
+Status: done
 
 ## Story
 
@@ -91,6 +91,8 @@ claude-fable-5 (create-story context engineering)
 ### Change Log
 
 - 2026-07-10: Story 2.3 implemented — shared emitter (user-approved spine amendment), six Claude producers with privacy guards, stdin cp1252/BOM fix. 12 new tests (127 total). Status → review.
+- 2026-07-10: Gemini review of PR #12 — zero findings (second clean §9 pass; the one that closes the DRY thread). Reviewer highlighted privacy enforcement, emitter consolidation, BOM handling, fail-safe exits.
+- 2026-07-10: PR #12 squash-merged to `develop` (8c8a0c6). Status → done.
 
 ### File List
 
