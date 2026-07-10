@@ -80,6 +80,7 @@ def test_event_types_are_namespaced_per_hook(repo, monkeypatch):
         "ai.claude-code.session_start",
         "time.slice_opened",
         "ai.claude-code.session_end",
+        "time.slice_closed",
         "ai.claude-code.tool_start",
         "ai.claude-code.tool_use",
         "ai.claude-code.prompt",
@@ -104,6 +105,44 @@ def test_session_start_is_a_no_op_on_the_pointer_when_story_is_unchanged(repo, m
 
     types = [event["type"] for event in read_events(repo)]
     assert types.count("time.slice_opened") == 1
+
+
+# --- mid-session checkout precedence (Story 3.3) ---
+
+
+def test_session_start_marks_the_session_active(repo, monkeypatch):
+    feed_stdin(monkeypatch, {"session_id": "s-1"})
+
+    session_start.main([])
+
+    assert events.is_session_active(repo) is True
+
+
+def test_session_end_closes_the_slice_and_marks_the_session_inactive(repo, monkeypatch):
+    feed_stdin(monkeypatch, {"session_id": "s-1"})
+    session_start.main([])
+
+    session_end.main([])
+
+    assert not (repo / ".active-story").exists()
+    assert events.is_session_active(repo) is False
+    types = [event["type"] for event in read_events(repo)]
+    assert types == [
+        "ai.claude-code.session_start",
+        "time.slice_opened",
+        "ai.claude-code.session_end",
+        "time.slice_closed",
+    ]
+
+
+def test_session_end_without_a_prior_pointer_is_a_clean_no_op_on_the_slice(repo, monkeypatch):
+    feed_stdin(monkeypatch, {"session_id": "s-1"})
+
+    exit_code = session_end.main([])
+
+    assert exit_code == 0
+    types = [event["type"] for event in read_events(repo)]
+    assert "time.slice_closed" not in types
 
 
 # --- idle detection wiring (Story 3.2) ---
@@ -278,5 +317,6 @@ def test_every_claude_hook_returns_0_even_on_total_append_failure(repo, monkeypa
         assert hook.main([]) == 0, hook.__name__
 
     err = capsys.readouterr().err
-    # +1: session_start also emits a time.slice_opened event via update_active_story (Story 3.1)
-    assert err.count("METRICS CAPTURE FAILED") == len(ALL_HOOKS) + 1
+    # +1: session_start also emits time.slice_opened via update_active_story (Story 3.1)
+    # +1: session_end also emits time.slice_closed via close_active_story_slice (Story 3.3)
+    assert err.count("METRICS CAPTURE FAILED") == len(ALL_HOOKS) + 2

@@ -6,6 +6,7 @@ __pycache__/
 .story-events.jsonl
 .story-events.pending.jsonl
 .active-story
+.active-claude-session
 *.log
 .DS_Store
 Thumbs.db

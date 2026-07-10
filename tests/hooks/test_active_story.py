@@ -13,6 +13,7 @@ REPO = Path(__file__).resolve().parents[2]
 HOOKS_ROOT = REPO / "tools" / "hooks"
 
 ACTIVE_STORY_FILE = ".active-story"
+ACTIVE_SESSION_FILE = ".active-claude-session"
 
 
 def load(module_name: str, path: Path):
@@ -208,3 +209,112 @@ def test_missing_idle_threshold_env_var_falls_back_to_default(monkeypatch):
     monkeypatch.delenv("STORY_IDLE_THRESHOLD_SECONDS", raising=False)
 
     assert events._idle_threshold_seconds() == 900
+
+
+# --- live-session marker + mid-session precedence (Story 3.3) ---
+
+
+def test_session_marked_active_is_detected(repo):
+    assert events.is_session_active(repo) is False
+
+    events.mark_session_active(repo, "s-1")
+
+    assert events.is_session_active(repo) is True
+
+
+def test_marking_session_inactive_clears_the_marker(repo):
+    events.mark_session_active(repo, "s-1")
+
+    events.mark_session_inactive(repo)
+
+    assert events.is_session_active(repo) is False
+    assert not (repo / ACTIVE_SESSION_FILE).exists()
+
+
+def test_marking_session_inactive_without_a_marker_is_a_no_op(repo):
+    events.mark_session_inactive(repo)
+
+    assert events.is_session_active(repo) is False
+
+
+def test_repoint_changes_only_story_id_with_no_events(repo, monkeypatch):
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    events.update_active_story(repo, "story-a")
+
+    events.repoint_active_story(repo, "story-b")
+
+    pointer = read_pointer(repo)
+    assert pointer["story_id"] == "story-b"
+    assert pointer["opened_at"] == "2026-07-10T09:00:00+00:00"
+    types = [event["type"] for event in read_events(repo)]
+    assert "time.slice_closed" not in types
+    assert types.count("time.slice_opened") == 1  # only from the initial update_active_story call
+
+
+def test_repoint_preserves_last_activity_at(repo, monkeypatch):
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    events.update_active_story(repo, "story-a")
+    events.record_activity(repo)
+
+    events.repoint_active_story(repo, "story-b")
+
+    pointer = read_pointer(repo)
+    assert pointer["last_activity_at"] == "2026-07-10T09:00:00+00:00"
+
+
+def test_repoint_is_a_no_op_when_story_is_unchanged(repo, monkeypatch):
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    events.update_active_story(repo, "story-a")
+
+    events.repoint_active_story(repo, "story-a")
+
+    assert len(read_events(repo)) == 1  # only the initial time.slice_opened
+
+
+def test_repoint_with_no_incoming_story_is_a_no_op(repo, monkeypatch):
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    events.update_active_story(repo, "story-a")
+
+    events.repoint_active_story(repo, None)
+
+    assert read_pointer(repo)["story_id"] == "story-a"
+
+
+def test_repoint_without_a_pointer_is_a_no_op(repo):
+    events.repoint_active_story(repo, "story-a")
+
+    assert not (repo / ACTIVE_STORY_FILE).exists()
+    assert read_events(repo) == []
+
+
+def test_close_active_story_slice_emits_time_slice_closed_and_clears_the_pointer(repo, monkeypatch):
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:00:00+00:00")
+    )
+    events.update_active_story(repo, "story-a")
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:30:00+00:00")
+    )
+
+    events.close_active_story_slice(repo)
+
+    assert not (repo / ACTIVE_STORY_FILE).exists()
+    _, closed = read_events(repo)
+    assert closed["type"] == "time.slice_closed"
+    assert closed["story_id"] == "story-a"
+    assert closed["payload"]["duration_seconds"] == 1800.0
+
+
+def test_close_active_story_slice_without_a_pointer_is_a_no_op(repo):
+    events.close_active_story_slice(repo)
+
+    assert not (repo / ACTIVE_STORY_FILE).exists()
+    assert read_events(repo) == []

@@ -33,7 +33,15 @@ def main(argv: list[str] | None = None) -> int:
     if branch_checkout:
         # git has already updated the working tree by the time post-checkout
         # fires, so .story.yaml here already reflects the incoming branch (AD-7).
-        _events.update_active_story(_events.repo_root(), _events.story_id(_events.repo_root()))
+        root = _events.repo_root()
+        incoming = _events.story_id(root)
+        if _events.is_session_active(root):
+            # AD-7 precedence: a live Claude Code session's SessionStart/SessionEnd
+            # boundaries govern time-slice accounting - a mid-session checkout only
+            # re-points which story counts, it never opens/closes a slice itself.
+            _events.repoint_active_story(root, incoming)
+        else:
+            _events.update_active_story(root, incoming)
     return exit_code
 
 
