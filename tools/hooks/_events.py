@@ -53,7 +53,17 @@ MANIFEST = ".story.yaml"
 ACTIVE_STORY_FILE = ".active-story"
 ATTEMPTS = 4  # 1 initial + 3 retries (AD-9)
 RETRY_DELAY_SECONDS = 0.1
-IDLE_THRESHOLD_SECONDS = int(os.environ.get("STORY_IDLE_THRESHOLD_SECONDS", 900))  # 15 min (AD-7)
+def _idle_threshold_seconds() -> int:
+    """A malformed override must never break import - every hook (incl. commit-msg,
+    which must always exit 0) imports this module, so a bad env var falls back
+    to the default rather than raising at module scope."""
+    try:
+        return int(os.environ.get("STORY_IDLE_THRESHOLD_SECONDS", "900"))
+    except ValueError:
+        return 900
+
+
+IDLE_THRESHOLD_SECONDS = _idle_threshold_seconds()  # 15 min default (AD-7)
 
 
 def _now() -> datetime:

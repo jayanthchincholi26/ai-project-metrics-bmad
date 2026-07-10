@@ -176,3 +176,15 @@ def test_activity_with_no_active_pointer_is_a_no_op(repo):
 
     assert not (repo / ACTIVE_STORY_FILE).exists()
     assert read_events(repo) == []
+
+
+def test_malformed_idle_threshold_env_var_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("STORY_IDLE_THRESHOLD_SECONDS", "not-a-number")
+
+    assert events._idle_threshold_seconds() == 900
+
+
+def test_missing_idle_threshold_env_var_falls_back_to_default(monkeypatch):
+    monkeypatch.delenv("STORY_IDLE_THRESHOLD_SECONDS", raising=False)
+
+    assert events._idle_threshold_seconds() == 900
