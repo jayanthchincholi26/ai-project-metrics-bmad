@@ -18,6 +18,11 @@ would change story identity mid-story.
 story_id format: `story-{YYYYMMDD}-{6 hex of uuid4}` — unique and date-sortable
 with no PII; the format is a Story 1.1 decision (the architecture spine leaves
 it open).
+
+AD-6a (Story 2.6): `points_estimated` (the raw AD-6 Phase-1 estimate) is
+always a distinct field from `points` (the developer-confirmed value) — never
+substituted, never merged. `points_estimated` is null when no Phase-1
+estimate was available at kickoff.
 """
 
 from __future__ import annotations
@@ -81,6 +86,11 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="confirmed story points (number > 0; fractional allowed for teams that use them)",
     )
+    p.add_argument(
+        "--points-estimated",
+        help="the raw AD-6 Phase-1 estimate (Story 2.5), distinct from --points and never "
+        "substituted for it (AD-6a); omitted/null when no estimate was available",
+    )
     p.add_argument("--goal", required=True, help="story goal (one line)")
     p.add_argument("--sprint", required=True, help="sprint the story belongs to")
     p.add_argument("--description", help="optional longer description")
@@ -109,6 +119,16 @@ def main(argv: list[str] | None = None) -> int:
         return fail(f"--points must be a finite number > 0, got {args.points}")
     if points.is_integer():
         points = int(points)
+
+    points_estimated: Any = None
+    if args.points_estimated is not None:
+        try:
+            points_estimated = float(args.points_estimated)
+        except ValueError:
+            return fail(f"--points-estimated must be a number, got {args.points_estimated!r}")
+        if points_estimated.is_integer():
+            points_estimated = int(points_estimated)
+
     goal = clean(args.goal)
     if not goal:
         return fail("--goal must not be empty")
@@ -134,6 +154,7 @@ def main(argv: list[str] | None = None) -> int:
                 "source_of_truth": args.source_of_truth,
                 "ai_tool": args.ai_tool,
                 "points": points,
+                "points_estimated": points_estimated,
                 "goal": goal,
                 "sprint": sprint,
                 "description": description or None,
