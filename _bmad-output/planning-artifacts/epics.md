@@ -213,6 +213,8 @@ So that my metrics build up without extra effort.
 
 ### Story 2.3: AI Session Activity Captured Silently
 
+> ✅ **Complete** — 2026-07-10 · [PR #12](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/12)
+
 As a developer using Claude Code,
 I want my AI session activity (tool use, prompts, token usage) captured automatically,
 So that cost and phase metrics exist without manual reporting.
