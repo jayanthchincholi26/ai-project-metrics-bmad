@@ -187,6 +187,43 @@ def test_file_checkout_does_not_touch_the_active_story_pointer(repo):
     assert types == ["git.checkout"]
 
 
+def test_branch_checkout_repoints_without_slice_events_when_a_session_is_live(repo):
+    write_manifest(repo)
+    post_checkout.main(["oldhead", "newhead", "1"])  # opens a slice for STORY_ID
+    opened_at_before = json.loads((repo / ".active-story").read_text(encoding="utf-8"))["opened_at"]
+    events.mark_session_active(repo, "s-1")
+
+    (repo / ".story.yaml").write_text('story_id: "story-other"\n', encoding="utf-8")
+    post_checkout.main(["newhead", "thirdhead", "1"])
+
+    pointer = json.loads((repo / ".active-story").read_text(encoding="utf-8"))
+    assert pointer["story_id"] == "story-other"
+    assert pointer["opened_at"] == opened_at_before  # preserved, not reopened
+    types = [event["type"] for event in read_events(repo)]
+    assert types == [
+        "git.checkout",
+        "time.slice_opened",
+        "git.checkout",
+    ]  # no close/open for the repoint
+
+
+def test_branch_checkout_still_switches_slices_when_no_session_is_live(repo):
+    write_manifest(repo)
+    post_checkout.main(["oldhead", "newhead", "1"])  # opens a slice for STORY_ID, no session marker
+
+    (repo / ".story.yaml").write_text('story_id: "story-other"\n', encoding="utf-8")
+    post_checkout.main(["newhead", "thirdhead", "1"])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert types == [
+        "git.checkout",
+        "time.slice_opened",
+        "git.checkout",
+        "time.slice_closed",
+        "time.slice_opened",
+    ]
+
+
 def test_checkout_file_flag_is_false_and_missing_args_are_null(repo):
     write_manifest(repo)
 

@@ -51,6 +51,7 @@ EVENTS_FILE = ".story-events.jsonl"
 PENDING_FILE = ".story-events.pending.jsonl"
 MANIFEST = ".story.yaml"
 ACTIVE_STORY_FILE = ".active-story"
+ACTIVE_SESSION_FILE = ".active-claude-session"
 ATTEMPTS = 4  # 1 initial + 3 retries (AD-9)
 RETRY_DELAY_SECONDS = 0.1
 
@@ -300,3 +301,72 @@ def record_activity(root: Path) -> None:
 
     current["last_activity_at"] = now.isoformat(timespec="seconds")
     write_atomic_json(root / ACTIVE_STORY_FILE, current)
+
+
+def is_session_active(root: Path) -> bool:
+    return (root / ACTIVE_SESSION_FILE).is_file()
+
+
+def mark_session_active(root: Path, session_id: Optional[str]) -> None:
+    write_atomic_json(root / ACTIVE_SESSION_FILE, {"session_id": session_id})
+
+
+def mark_session_inactive(root: Path) -> None:
+    path = root / ACTIVE_SESSION_FILE
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def repoint_active_story(root: Path, incoming_story_id: Optional[str]) -> None:
+    """AD-7 precedence rule: a mid-session checkout re-points which story activity
+    counts toward, without opening or closing a session-level slice - that stays
+    exclusively `SessionStart`/`SessionEnd`'s job (`update_active_story()` /
+    `close_active_story_slice()`). Only `story_id` changes; `opened_at` and any
+    `last_activity_at` idle-tracking (Story 3.2) are preserved untouched, and no
+    `time.*` event is emitted."""
+    if incoming_story_id is None:
+        return
+
+    current = read_active_story(root)
+    if current is None or current.get("story_id") == incoming_story_id:
+        return
+
+    current["story_id"] = incoming_story_id
+    write_atomic_json(root / ACTIVE_STORY_FILE, current)
+
+
+def close_active_story_slice(root: Path) -> None:
+    """AD-7: a session-level slice only closes on `SessionEnd`. Emits
+    `time.slice_closed` for whatever story the pointer currently names, then
+    clears the pointer entirely - nothing should silently keep accruing time
+    once the session that owned it has ended."""
+    current = read_active_story(root)
+    if current is None:
+        return
+
+    now = _now()
+    opened_at = current.get("opened_at")
+    duration_seconds = None
+    if opened_at:
+        try:
+            duration_seconds = (now - datetime.fromisoformat(opened_at)).total_seconds()
+        except ValueError:
+            duration_seconds = None
+
+    emit(
+        "time",
+        "time.slice_closed",
+        {
+            "opened_at": opened_at,
+            "closed_at": now.isoformat(timespec="seconds"),
+            "duration_seconds": duration_seconds,
+        },
+        story_override=current.get("story_id"),
+    )
+
+    try:
+        (root / ACTIVE_STORY_FILE).unlink()
+    except FileNotFoundError:
+        pass
