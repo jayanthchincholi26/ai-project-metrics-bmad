@@ -229,6 +229,8 @@ So that cost and phase metrics exist without manual reporting.
 
 ### Story 2.4: Story Closes and a Snapshot Is Created Automatically
 
+> ✅ **Complete** — 2026-07-10 · [PR #13](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/13)
+
 As a developer,
 I want closing my story to automatically produce a metrics snapshot,
 So that I never manually compile a report.
