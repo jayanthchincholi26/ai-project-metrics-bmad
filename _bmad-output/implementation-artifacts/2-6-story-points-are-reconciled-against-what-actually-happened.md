@@ -4,7 +4,7 @@ baseline_commit: ede225b693181dbed391694ba205e25b1cdf41e4
 
 # Story 2.6: Story Points Are Reconciled Against What Actually Happened
 
-Status: review
+Status: done
 
 ## Story
 
@@ -91,6 +91,7 @@ claude-sonnet-5 (create-story context engineering)
 
 - 2026-07-10: Story 2.6 implemented — AD-6a manifest fix (Task 0), Phase-2 reconciliation extending the snapshot assembler (Task 1). 17 new tests (177 total). Two real defects found and fixed: a latent manifest null-parsing bug (caught by the unit suite itself) and a git cwd-addressing bug (caught only by the full-arc E2E). Status → review. Epic 2 complete pending merge.
 - 2026-07-10: Addressed Gemini review of PR #15 — 1 applied (binary-file stat-line regex fix, an effect I'd already seen in my own E2E but hadn't traced to its cause). 178 tests passing.
+- 2026-07-10: PR #15 squash-merged to `develop` (b42e1ec). Status → done. **Epic 2 complete (6/6).**
 
 ### File List
 
