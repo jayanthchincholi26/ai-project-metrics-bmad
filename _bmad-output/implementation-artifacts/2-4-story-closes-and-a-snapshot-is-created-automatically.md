@@ -4,7 +4,7 @@ baseline_commit: 2dab9f0ead36f2450eafa4ac2e69d6985d0ed372
 
 # Story 2.4: Story Closes and a Snapshot Is Created Automatically
 
-Status: review
+Status: done
 
 ## Story
 
@@ -80,6 +80,8 @@ claude-fable-5 (create-story context engineering)
 ### Change Log
 
 - 2026-07-10: Story 2.4 implemented — snapshot assembler (reducer, backfill, immutable revisions) + opsx wrapper (passthrough, success-gated capture). 20 new tests (147 total) + full-arc E2E producing the pipeline's first real snapshot. Status → review.
+- 2026-07-10: Gemini review of PR #13 — zero defects; the assembler's parse_scalar copy acknowledged (reviewer-conceded, covered by #7's resolution language for standalone pipeline steps). No code changes.
+- 2026-07-10: PR #13 squash-merged to `develop` (636c612). Status → done.
 
 ### File List
 
