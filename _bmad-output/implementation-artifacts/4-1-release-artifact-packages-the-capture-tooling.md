@@ -4,13 +4,14 @@ baseline_commit: 29cf16bac2ca06c55441199f7849c452c7572b61
 
 # Story 4.1: Release Artifact Packages the Capture Tooling for Target Repos
 
-Status: review
+Status: done
 
 > **Backfilled record (2026-07-11).** Designed and implemented directly in a working session
-> without the create-story/dev-story workflow; this file was written while
-> [PR #20](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/20) is in
-> review, so the implementation-artifacts trail stays complete. Decision history (mechanism
-> choice, rejected alternatives) lives in `epics.md` (Epic 4 / Story 4.1).
+> without the create-story/dev-story workflow; this file was written to keep the
+> implementation-artifacts trail complete. Decision history (mechanism choice, rejected
+> alternatives) lives in `epics.md` (Epic 4 / Story 4.1).
+>
+> ✅ **Complete** — 2026-07-11 · [PR #20](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/20) (squash-merged to `enhancements`, 7b621ff). Gemini review: first fully clean, correctly-attributed pass in 5 PRs — zero defects, one harmless mischaracterization (called packaging exclusions "ignoring" `tests/`/`_bmad`/`prompts` when they're simply never walked).
 
 ## Story
 

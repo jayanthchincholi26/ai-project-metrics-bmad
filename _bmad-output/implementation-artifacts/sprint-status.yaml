@@ -70,6 +70,6 @@ development_status:
   3-3-mid-session-checkout-doesnt-double-count-time: done
   epic-3-retrospective: optional
   epic-4: in-progress
-  4-1-release-artifact-packages-the-capture-tooling: review  # PR #20
+  4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff
   4-2-develop-promotes-to-main-on-a-defined-release-cadence: backlog  # gated on QA pass
   epic-4-retrospective: optional

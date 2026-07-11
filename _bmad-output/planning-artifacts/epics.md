@@ -391,7 +391,7 @@ A developer on a target project can get the capture tooling (`tools/`, its tests
 
 ### Story 4.1: Choose and Implement a Distribution Mechanism for the Capture Tooling
 
-> ⏳ **Not started**
+> ✅ **Complete** — 2026-07-11 · [PR #20](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/20) (squash-merged to `enhancements`, 7b621ff). Verified live: built the artifact, extracted into a virgin git repo, hooks installed, a real commit captured to the pending spool with zero planning-repo files present.
 
 As a developer on a target project,
 I want a documented, repeatable way to bring only the capture tooling into my project,
