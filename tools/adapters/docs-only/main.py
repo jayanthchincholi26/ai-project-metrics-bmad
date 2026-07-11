@@ -23,6 +23,12 @@ AD-6a (Story 2.6): `points_estimated` (the raw AD-6 Phase-1 estimate) is
 always a distinct field from `points` (the developer-confirmed value) — never
 substituted, never merged. `points_estimated` is null when no Phase-1
 estimate was available at kickoff.
+
+Story 1.7: `--sprint` is required for `jira`/`confluence` (unchanged), but
+optional for `docs-only` — an ad hoc team with no sprint/milestone concept
+gets `sprint: null` rather than being forced to invent one. The manifest's
+`sprint` field stays named `sprint` regardless of backend (AD-4 shape
+unchanged); only its requiredness is backend-conditional.
 """
 
 from __future__ import annotations
@@ -91,8 +97,17 @@ def main(argv: list[str] | None = None) -> int:
         help="the raw AD-6 Phase-1 estimate (Story 2.5), distinct from --points and never "
         "substituted for it (AD-6a); omitted/null when no estimate was available",
     )
+    p.add_argument(
+        "--name",
+        help="short human-readable story name (e.g. 'Auth Module Implementation'); "
+        "docs-only only (Story 1.7) — null when omitted",
+    )
     p.add_argument("--goal", required=True, help="story goal (one line)")
-    p.add_argument("--sprint", required=True, help="sprint the story belongs to")
+    p.add_argument(
+        "--sprint",
+        help="sprint the story belongs to; required for jira/confluence, optional for "
+        "docs-only (an omitted/blank value writes sprint: null for ad hoc teams)",
+    )
     p.add_argument("--description", help="optional longer description")
     p.add_argument(
         "--source-of-truth",
@@ -129,12 +144,16 @@ def main(argv: list[str] | None = None) -> int:
         if points_estimated.is_integer():
             points_estimated = int(points_estimated)
 
+    name = clean(args.name) if args.name else ""
+
     goal = clean(args.goal)
     if not goal:
         return fail("--goal must not be empty")
-    sprint = clean(args.sprint)
+    sprint = clean(args.sprint) if args.sprint else ""
     if not sprint:
-        return fail("--sprint must not be empty")
+        if args.source_of_truth in ("jira", "confluence"):
+            return fail("--sprint must not be empty")
+        sprint = None  # docs-only: no sprint/milestone concept is a valid answer
     description = clean(args.description) if args.description else ""
 
     root = Path(args.repo_root)
@@ -151,6 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         render(
             {
                 "story_id": story_id,
+                "name": name or None,
                 "source_of_truth": args.source_of_truth,
                 "ai_tool": args.ai_tool,
                 "points": points,
