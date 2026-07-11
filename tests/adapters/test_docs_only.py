@@ -18,6 +18,7 @@ _spec.loader.exec_module(docs_only)
 
 MANIFEST_KEYS = [
     "story_id",
+    "name",
     "source_of_truth",
     "ai_tool",
     "points",
@@ -98,6 +99,30 @@ def test_two_kickoffs_generate_distinct_story_ids(tmp_path):
     kickoff(second)
 
     assert parse_manifest(first)["story_id"] != parse_manifest(second)["story_id"]
+
+
+def test_name_defaults_to_null(tmp_path):
+    kickoff(tmp_path)
+
+    assert parse_manifest(tmp_path)["name"] is None
+
+
+def test_name_recorded_when_provided(tmp_path):
+    kickoff(tmp_path, name="Auth Module Implementation")
+
+    assert parse_manifest(tmp_path)["name"] == "Auth Module Implementation"
+
+
+def test_multiline_name_collapses_to_one_line(tmp_path):
+    kickoff(tmp_path, name="Auth Module\nImplementation")
+
+    assert parse_manifest(tmp_path)["name"] == "Auth Module Implementation"
+
+
+def test_name_is_null_for_jira_calls_that_do_not_pass_it(tmp_path):
+    kickoff(tmp_path, sprint="Sprint 3", **{"source-of-truth": "jira"})
+
+    assert parse_manifest(tmp_path)["name"] is None
 
 
 def test_description_defaults_to_null(tmp_path):
@@ -248,19 +273,50 @@ def test_blank_goal_exits_2_and_writes_nothing(tmp_path):
     assert not manifest_path(tmp_path).exists()
 
 
-def test_blank_sprint_exits_2_and_writes_nothing(tmp_path):
-    exit_code = kickoff(tmp_path, sprint=" \n ")
+def test_blank_sprint_exits_2_and_writes_nothing_for_jira(tmp_path):
+    exit_code = kickoff(tmp_path, sprint=" \n ", **{"source-of-truth": "jira"})
 
     assert exit_code == 2
     assert not manifest_path(tmp_path).exists()
 
 
-def test_missing_sprint_argument_exits_2_and_writes_nothing(tmp_path):
-    with pytest.raises(SystemExit) as excinfo:
-        kickoff(tmp_path, sprint=None)
+def test_missing_sprint_exits_2_and_writes_nothing_for_jira(tmp_path):
+    # Story 1.7: --sprint is no longer argparse-required, so a missing value is now
+    # detected by application code (a plain exit_code == 2), not argparse's own
+    # SystemExit — this replaces the previous pytest.raises(SystemExit) assertion.
+    exit_code = kickoff(tmp_path, sprint=None, **{"source-of-truth": "jira"})
 
-    assert excinfo.value.code == 2
+    assert exit_code == 2
     assert not manifest_path(tmp_path).exists()
+
+
+def test_blank_sprint_exits_2_and_writes_nothing_for_confluence(tmp_path):
+    exit_code = kickoff(tmp_path, sprint=" \n ", **{"source-of-truth": "confluence"})
+
+    assert exit_code == 2
+    assert not manifest_path(tmp_path).exists()
+
+
+def test_blank_sprint_is_null_for_docs_only(tmp_path):
+    # docs-only is the kickoff() default source_of_truth.
+    exit_code = kickoff(tmp_path, sprint=" \n ")
+
+    assert exit_code == 0
+    manifest = parse_manifest(tmp_path)
+    assert manifest["sprint"] is None
+    keys = [
+        line.split(":", 1)[0]
+        for line in manifest_path(tmp_path).read_text(encoding="utf-8").splitlines()
+    ]
+    assert keys == MANIFEST_KEYS
+
+
+def test_missing_sprint_is_null_for_docs_only(tmp_path):
+    exit_code = kickoff(tmp_path, sprint=None)
+
+    assert exit_code == 0
+    manifest = parse_manifest(tmp_path)
+    assert manifest["sprint"] is None
 
 
 def test_existing_manifest_is_refused_and_left_unchanged(tmp_path, capsys):

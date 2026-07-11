@@ -4,7 +4,7 @@ baseline_commit: ffc694efa49bb565b3e8b0d5caef38fc8895a515
 
 # Story 1.7: Docs-Only Kickoff Reads a Requirements Doc and Relaxes Sprint for Ad Hoc Teams
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -50,39 +50,39 @@ so that docs-only kickoff is genuinely adapted to "no PM tool," not just "no JIR
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Make `sprint` optional in the docs-only writer, backend-conditionally (AC: 4)
-  - [ ] Subtask 1.1 (RED): **two existing tests test the wrong thing after this change and must be rewritten, not just extended** — `test_blank_sprint_exits_2_and_writes_nothing` (line 251) and `test_missing_sprint_argument_exits_2_and_writes_nothing` (line 258) both call the `kickoff()` helper without overriding `source_of_truth`, so they exercise the **default backend (docs-only)** — after Task 1.2's change these exact calls will *succeed* (not fail), so left as-is they will fail for the wrong reason (a real regression the dev agent must not miss). Rewrite both to explicitly pass `source_of_truth="jira"` (proving sprint is still required there), and add two new docs-only-specific tests: blank/whitespace-only `--sprint` and omitted `--sprint`, both with `source_of_truth` left at its docs-only default, both asserting exit 0 and `manifest["sprint"] is None` (JSON `null`), with manifest key order otherwise unchanged. Also add one `--source-of-truth confluence` variant of the still-required case, for parity with jira
-  - [ ] Subtask 1.2 (GREEN): in `tools/adapters/docs-only/main.py`, change `--sprint` from `required=True` to optional (default `None`). Validate conditionally: if `args.source_of_truth in ("jira", "confluence")`, an empty/missing sprint is still `fail("--sprint must not be empty")` (unchanged *behavior*, but now via the application-level `fail()` return path, not argparse's own enforcement — see the test-assertion-style note in 1.1); if `docs-only`, `clean(args.sprint)` empty or `args.sprint is None` writes `sprint: null` in the manifest rather than failing. **Nuance:** with `required=True` removed, argparse no longer raises `SystemExit` for a missing `--sprint` — `args.sprint` is simply `None` and application code decides. The rewritten jira/confluence "missing sprint" test must switch from `pytest.raises(SystemExit)` to the plain `exit_code = kickoff(...); assert exit_code == 2` style already used by every other validation-failure test in this file
-  - [ ] Subtask 1.3: update the module docstring's AD-4 contract note to mention sprint's docs-only nullability; this is the **only** production code file this story updates (the change is small and precise) — do not touch `--points`/`--goal` validation, which are unaffected
+- [x] Task 1: Make `sprint` optional in the docs-only writer, backend-conditionally (AC: 4)
+  - [x] Subtask 1.1 (RED): rewrote `test_blank_sprint_exits_2_and_writes_nothing` → `test_blank_sprint_exits_2_and_writes_nothing_for_jira`, `test_missing_sprint_argument_exits_2_and_writes_nothing` → `test_missing_sprint_exits_2_and_writes_nothing_for_jira` (both now pass `source-of-truth="jira"`, and the missing-sprint one now asserts `exit_code == 2` directly instead of `pytest.raises(SystemExit)`); added `test_blank_sprint_exits_2_and_writes_nothing_for_confluence`, `test_blank_sprint_is_null_for_docs_only`, `test_missing_sprint_is_null_for_docs_only`
+  - [x] Subtask 1.2 (GREEN): `--sprint` is no longer `required=True` in `tools/adapters/docs-only/main.py`; validation is backend-conditional — `jira`/`confluence` still `fail()` on empty/missing, `docs-only` writes `sprint: None`
+  - [x] Subtask 1.3: module docstring updated with the Story 1.7 sprint-nullability note
 
-- [ ] Task 2: PRD-read capability in the kickoff skill's docs-only path (AC: 1, 2)
-  - [ ] Subtask 2.1: extend `.claude/skills/story-kickoff/SKILL.md` step 4 (the plain docs-only elicitation) — before asking points/goal/sprint, ask once: "Do you have a requirements document (PRD) for this story? If so, give me its path." A "no" or no path given skips straight to today's behavior (steps 3-4 below), unmodified
-  - [ ] Subtask 2.2: if a path is given, read it with the Read tool. Supported: `.md`, `.txt`, `.pdf`, `.docx`. A legacy binary `.doc`, a missing file, or an unreadable file is **not fatal** — tell the developer plainly ("couldn't read that file — want to paste the text instead, or skip?") and fall back to the plain ask; never block kickoff on a bad path (FR5, same principle as the Phase-1-estimator-failure fallback already in step 3)
-  - [ ] Subtask 2.3: summarize the document's relevant content (scope/objective, any hints toward complexity) — never paste the raw document text into chat or into `.story.yaml`. This is a purely conversational/skill-level capability; no new Python script or library is introduced (no PDF/DOCX parsing library needed — the Read tool already handles these formats; a genuinely stdlib-only script-level parser would be redundant and against the no-premature-abstraction standard for a one-consumer need)
-  - [ ] Subtask 2.4: derive a candidate points value and a candidate one-line goal from the summary. Present both to the developer as **suggestions**, clearly labeled as document-derived and distinct from any Phase-1 estimate (step 3) — if both a Phase-1 estimate and a document-derived suggestion exist, show both and let the developer pick or override; neither is ever written without confirmation (AC 2, CAP-1)
+- [x] Task 2: PRD-read capability in the kickoff skill's docs-only path (AC: 1, 2)
+  - [x] Subtask 2.1: SKILL.md step 4.1 asks once for a PRD path; "no"/no path skips to 4.2 unmodified
+  - [x] Subtask 2.2: Read tool for `.md`/`.txt`/`.pdf`/`.docx`; unreadable/missing/legacy `.doc` falls back to 4.2, never fatal (FR5)
+  - [x] Subtask 2.3: summarize only, never paste raw content into chat or `.story.yaml`; no new script/library (Read tool suffices)
+  - [x] Subtask 2.4: document-derived points/goal suggestions, distinct from Phase-1, never silently written (CAP-1)
 
-- [ ] Task 3: Restructure points/sprint elicitation onto `AskUserQuestion`; reword goal and sprint (AC: 3, 4)
-  - [ ] Subtask 3.1: rewrite SKILL.md step 4's elicitation to use the `AskUserQuestion` tool for **points** and **sprint** (2-4 concrete options each + the tool's built-in "Other" free-text path), and plain free-text chat for **goal** (pre-filled with the document-derived candidate from Task 2 when one exists, otherwise an open ask)
-  - [ ] Subtask 3.2: points question options: include any Phase-1/document-derived suggestion(s) first, then common story-point values (e.g. 1, 2, 3, 5, 8) as additional options — "Other" always covers a value outside the preset list
-  - [ ] Subtask 3.3: sprint question — reword away from "Sprint" to a backend-neutral phrasing (e.g. "Milestone, release, or time period this belongs to"). Options must include an explicit "None — this project doesn't track sprints/milestones" choice alongside 1-2 generic examples; selecting it, or answering "none"/"n/a" via "Other", means step 5 omits `--sprint` entirely (do not pass the literal string "none" — omit the flag so Task 1's writer change produces a true `null`, not a fake sprint name)
-  - [ ] Subtask 3.4: goal question wording: replace the bare "**Goal** — one line describing what done looks like" with plain language, e.g. "What does done look like for this story?" — the underlying manifest field and the `--goal` CLI flag stay named exactly as today (AD-4 shape); only the developer-facing question wording changes
-  - [ ] Subtask 3.5: the re-prompt rule (Story 1.1 AC 3) still applies to points and goal exactly as today; it applies to sprint **only for jira/confluence** — for docs-only, "none" is now itself a valid, complete answer, not a trigger for re-prompting
+- [x] Task 3: Restructure points/sprint elicitation onto `AskUserQuestion`; reword goal and sprint (AC: 3, 4)
+  - [x] Subtask 3.1: step 4.2 (points) and 4.4 (sprint) use `AskUserQuestion`; step 4.3 (goal) stays free text
+  - [x] Subtask 3.2: points options = Phase-1/doc suggestion(s) + {1,2,3,5,8} + Other
+  - [x] Subtask 3.3: sprint reworded to "Milestone, release, or time period"; explicit "None" option; selecting it omits `--sprint` (never passes literal "none")
+  - [x] Subtask 3.4: goal reworded to "What does done look like for this story?"; manifest field/CLI flag name unchanged
+  - [x] Subtask 3.5: re-prompt rule unchanged for points/goal; sprint's "none" is a valid complete answer for docs-only, never re-prompted
 
-- [ ] Task 4: Full regression, live E2E, and documentation parity (AC: 1-4)
-  - [ ] Subtask 4.1: run `uv run pytest`, `uv run ruff check .`, and `uv run ruff format --check tools tests` — all three, per the standing Story 3.2 PR #17 CI lesson (format is a separate gate from lint)
-  - [ ] Subtask 4.2: manual E2E in a real Claude Code session (skill-flow change; pytest cannot reach conversational steps) — extend `docs/testing/story-1.6-e2e.md`-style coverage with a new scenario file or section: (a) docs-only kickoff with a real `.md` PRD path → suggestions presented, confirmed, `.story.yaml` correct; (b) docs-only kickoff, developer says "none" for sprint → `.story.yaml` has `sprint: null`, no re-prompt loop; (c) docs-only kickoff, bad/missing doc path → graceful fallback to plain ask, kickoff still completes; (d) JIRA kickoff (source_of_truth: jira) with no sprint on the issue → confirm sprint is **still required** and re-prompted exactly as before this story (regression check across the backend boundary)
-  - [ ] Subtask 4.3: update `.claude/skills/story-kickoff/SKILL.md`'s "Boundaries" section if the PRD-read capability introduces any new boundary worth stating (e.g. "the skill never writes the document's own content into any tracked file")
-  - [ ] Subtask 4.4: `INSTALL.md` **does** need updating this time (Task 6 below covers exactly what) — the earlier assumption that this story never touches install docs no longer holds now that AC 6 is in scope
+- [x] Task 4: Full regression, live E2E, and documentation parity (AC: 1-4)
+  - [x] Subtask 4.1: `uv run pytest` (228 passed), `uv run ruff check .` (clean), `uv run ruff format --check tools tests` (clean)
+  - [ ] Subtask 4.2: manual E2E in a real Claude Code session — **deferred to the user's own testing pass per their explicit request** (see Dev Agent Record); scenarios (a)-(d) are specified and ready to run
+  - [x] Subtask 4.3: Boundaries section gained a line: PRD content is summarized only, never written to any tracked file
+  - [x] Subtask 4.4: INSTALL.md updated (Task 6)
 
-- [ ] Task 5: Add an optional `name` field to the docs-only writer and its kickoff elicitation (AC: 5)
-  - [ ] Subtask 5.1 (RED): extend `tests/adapters/test_docs_only.py` — kickoff with `--name "Auth Module Implementation"` writes `name` into the manifest, cleaned the same way `goal` is (collapse internal whitespace/newlines to one line), positioned immediately after `story_id`; kickoff without `--name` writes `name: null`. **`MANIFEST_KEYS` and every test asserting fixed key order must be updated for the new key** — this is a manifest *shape* change (unlike Task 1's value-only change), so re-check every existing key-order/full-manifest assertion in the file, not just the ones obviously about `name`
-  - [ ] Subtask 5.2 (GREEN): add `--name` as an optional argparse argument (default `None`) to `tools/adapters/docs-only/main.py`; `clean()` it if provided, write `null` if absent; insert it into the manifest dict immediately after `story_id` (both in the `render()` call's dict literal and in any place that enumerates the fixed key order)
-  - [ ] Subtask 5.3: update `.claude/skills/story-kickoff/SKILL.md` step 4 — ask "What should we call this story? (a short name, e.g. 'Auth Module Implementation')" as free text, as the **first** question in the docs-only elicitation sequence, before goal/points/sprint; pass the answer via the new `--name` flag in step 5's write command. JIRA/Confluence variants (4a/4b) are **not** changed — they do not ask for or pass `--name` in this story (AC 5's explicit docs-only-only scope)
-  - [ ] Subtask 5.4: update SKILL.md's kickoff-complete relay message to show `Name: <value>` immediately after `Story ID: <value>` — this directly fixes the "story_id alone doesn't make sense in the summary" problem
+- [x] Task 5: Add an optional `name` field to the docs-only writer and its kickoff elicitation (AC: 5)
+  - [x] Subtask 5.1 (RED): added `test_name_defaults_to_null`, `test_name_recorded_when_provided`, `test_multiline_name_collapses_to_one_line`, `test_name_is_null_for_jira_calls_that_do_not_pass_it`; updated `MANIFEST_KEYS` to insert `"name"` after `"story_id"` (both key-order assertions in the file use this one constant, so both are covered)
+  - [x] Subtask 5.2 (GREEN): added optional `--name` argparse argument to `tools/adapters/docs-only/main.py`, cleaned like `goal`, inserted into the manifest dict immediately after `story_id`
+  - [x] Subtask 5.3: SKILL.md step 4.0 asks for Story Name first, free text; passed via `--name`; 4a/4b (JIRA/Confluence) unchanged
+  - [x] Subtask 5.4: step 5's completion relay now shows Name immediately after Story ID
 
-- [ ] Task 6: Document the kickoff → openspec/opsx sequencing (AC: 6)
-  - [ ] Subtask 6.1: add a concrete worked example to `tools/build-release/INSTALL.md`'s "Daily use" section: propose (`/opsx:propose add-user-auth`) → artifacts created → kick off the story (real Phase-1 estimate now available) → work normally → `/opsx:apply` → `/opsx:archive`. State explicitly that the change name is developer-chosen and unrelated to `story_id` — this was a real point of confusion in testing (2026-07-11) and is worth calling out by name, not just implying it through the example
-  - [ ] Subtask 6.2: in `.claude/skills/story-kickoff/SKILL.md` step 3 (Phase-1 estimator), when `phase1_points` is null specifically because `phase1_points_reason` indicates no openspec change was found, add the one-line nudge from AC 6 to what's told to the developer — additive to the existing "tell the developer why and fall back to a plain ask" instruction, never a new blocking behavior (FR5)
+- [x] Task 6: Document the kickoff → openspec/opsx sequencing (AC: 6)
+  - [x] Subtask 6.1: `INSTALL.md` "Daily use" gained a concrete worked example (propose → kickoff → work → apply → archive → snapshot), explicit that the change name and `story_id` are unrelated
+  - [x] Subtask 6.2: step 3's null-estimate message now includes the one-line `/opsx:propose` nudge
 
 ## Dev Notes
 
@@ -162,8 +162,30 @@ No other files are touched. `tools/adapters/jira/main.py`, `tools/adapters/confl
 
 ### Agent Model Used
 
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
+
 ### Debug Log References
+
+- RED (Task 1): rewrote `test_blank_sprint_exits_2_and_writes_nothing` / `test_missing_sprint_argument_exits_2_and_writes_nothing` to target `source-of-truth=jira` explicitly; added `..._for_confluence` and two docs-only-null variants — confirmed failing against pre-change `main.py` (sprint still unconditionally required)
+- GREEN (Task 1): `--sprint` required=False + backend-conditional validation → `uv run pytest tests/adapters/test_docs_only.py -q` → 34/34 passed
+- RED (Task 5): added 4 `name`-field tests, updated `MANIFEST_KEYS` — confirmed failing (no `--name` arg existed yet)
+- GREEN (Task 5): `--name` optional arg + manifest insertion after `story_id` → 38/38 passed
+- Full suite after both: `uv run pytest -q` → 228 passed in 3.75s; `uv run ruff check .` clean; `uv run ruff format --check tools tests` clean (32 files)
+- Tasks 2/3/5.3/5.4/6 are skill-flow (`.claude/skills/story-kickoff/SKILL.md`, `tools/build-release/INSTALL.md`) — not pytest-reachable; verified by careful re-read against every AC and cross-checked line-by-line against Story 1.6's equivalent skill-flow sections for consistency of pattern (FR5 fallback wording, AD-4 shape notes, CAP-1 human-confirmation language)
 
 ### Completion Notes List
 
+- Task 1: `--sprint` is now `required=False` in `tools/adapters/docs-only/main.py`; validation is conditional on `--source-of-truth` (still required + `fail()` for jira/confluence, `null` for docs-only). Confirmed the two pre-existing tests were silently exercising the wrong backend (both omitted `source_of_truth`, defaulting to docs-only) and would have passed for the wrong reason if left unmodified — rewritten to explicitly target jira, per the story's own regression warning.
+- Task 5: new optional `--name` field, backend-agnostic in the writer (any backend *could* pass it; only docs-only's skill path actually does, per the story's docs-only-only scope decision) — `null` when absent, positioned right after `story_id` in the fixed key order.
+- Tasks 2/3/6: `SKILL.md` step 4 restructured into 4.0 (name) → 4.1 (optional PRD read) → 4.2 (points, `AskUserQuestion`) → 4.3 (goal, free text, reworded) → 4.4 (milestone/sprint, `AskUserQuestion`, "None" option). Step 3 gained the `/opsx:propose` nudge on a null Phase-1 estimate. Step 5's manifest-write command and completion-relay message both updated for `--name`/omittable `--sprint`. `INSTALL.md` gained a full worked propose→kickoff→apply→archive example, explicit that the change name and `story_id` are unrelated identifiers (verified against the real `.claude/commands/opsx/propose.md`/`archive.md` contracts, not assumed).
+- **Deferred, by explicit user instruction:** Subtask 4.2 (manual E2E of the skill-flow scenarios) is intentionally left unchecked. The user's own stated plan for this story is: merge → tag a release → verify release docs → then personally re-run docs-only kickoff end-to-end in a fresh VS Code window as part of a broader "new developer experience" test pass (mirrors exactly how Story 1.6's E2E scenario A was verified live by the user post-implementation, not pre-emptively by the agent). The four scenarios from the story's Task 4.2 are fully specified in this file and ready to execute in that pass; nothing about them changed during implementation. Everything unit-testable (Tasks 1 and 5) is fully tested and green.
+- No new dependencies. No architecture deviations from the story file — the sprint-optionality design (true `null`, not literal `"none"`) was implemented exactly as specified, no reason found to prefer the rejected alternative.
+
 ### File List
+
+- tools/adapters/docs-only/main.py (modified — `--sprint` conditionally optional, new optional `--name`, docstring update)
+- tests/adapters/test_docs_only.py (modified — sprint-optionality tests rewritten/added, name-field tests added, `MANIFEST_KEYS` updated)
+- .claude/skills/story-kickoff/SKILL.md (modified — step 3 nudge, step 4 restructured with name/PRD-read/AskUserQuestion/rewording, step 5 command + relay message, Boundaries addition)
+- tools/build-release/INSTALL.md (modified — Daily use section: openspec/opsx worked example)
+- _bmad-output/implementation-artifacts/1-7-docs-only-kickoff-reads-a-requirements-doc-and-relaxes-sprint-for-ad-hoc-teams.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)

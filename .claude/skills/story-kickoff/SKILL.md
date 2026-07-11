@@ -42,21 +42,31 @@ uv run tools/estimate-phase1/main.py --repo-root <repo-root> --source-of-truth <
 ```
 
 - If `phase1_points` is **not null**: present it to the developer as a **suggested** value ("Phase-1 estimate: N points — accept this or tell me a different number?"). It is never written silently — whatever the developer confirms (accepted or overridden) is what step 5's `--points` uses. **Remember the raw `phase1_points` number itself** (regardless of what the developer confirms) — step 5 passes it separately as `--points-estimated`, per AD-6a: the confirmed value and the raw estimate are always distinct, never substituted for each other, so Story 2.6's close-time reconciliation has a real Phase-1 number to compare against.
-- If `phase1_points` is **null**: tell the developer why (`phase1_points_reason`, e.g. no openspec change found) and fall back to a plain ask — exactly the step-4 elicitation below, unassisted.
+- If `phase1_points` is **null**: tell the developer why (`phase1_points_reason`, e.g. no openspec change found) and fall back to a plain ask — exactly the step-4 elicitation below, unassisted. If the reason specifically indicates no openspec change was found, add a one-line, non-blocking nudge: something like "if this project uses openspec SDD, running `/opsx:propose <change-name>` before kickoff next time gives this estimator a real number to work from" (`<change-name>` is a developer-chosen kebab-case name, never the `story_id` — these are unrelated identifiers). Informational only — never gates or delays this kickoff (FR5).
 - If `must_split` is `true`: mention it as a heads-up (the scope looks large), but this **never blocks kickoff or changes any other behavior**.
 - **Hard rule (FR5):** nothing from this estimator — a null result, `must_split`, an error, any field — may ever skip, shorten, gate, or disable capture for this story. If the script fails to run at all, proceed straight to step 4's plain ask as if it had returned null.
 
-### 4. Elicit the three fields
+### 4. Elicit the docs-only fields
 
-Ask the developer to confirm, in one exchange if possible:
+This step is docs-only-specific (Story 1.7). The JIRA/Confluence variants (4a/4b) are unaffected — no story name, no document read, and their `sprint` stays required exactly as before.
 
-1. **Story points** — a whole number greater than 0 (pre-filled with the Phase-1 suggestion from step 3, if any)
-2. **Goal** — one line describing what done looks like
-3. **Sprint** — the sprint this story belongs to (e.g. "Sprint 12")
+**4.0 — Story Name (first, free text):** ask "What should we call this story? (a short name, e.g. 'Auth Module Implementation')." One short phrase, not a sentence. This becomes the manifest's `name` field — distinct from `goal`, which describes what done looks like rather than naming the story. Not required to re-prompt aggressively if skipped, but ask for it before moving on.
+
+**4.1 — Requirements document (optional):** ask "Do you have a requirements document (PRD) for this story? If so, give me its path." A "no" or no path given skips straight to 4.2, unmodified from today's behavior.
+
+If a path is given, read it with the Read tool. Supported: `.md`, `.txt`, `.pdf`, `.docx`. A legacy binary `.doc`, a missing file, or an unreadable file is **not fatal** — say so plainly ("couldn't read that file — want to paste the text instead, or skip?") and fall back to 4.2 unassisted; never block kickoff on a bad path (FR5, same principle as step 3's estimator-failure fallback).
+
+If read successfully, summarize the relevant content (scope/objective, any complexity hints) — never paste the raw document text into chat or into `.story.yaml`. From the summary, derive a candidate one-line goal and a candidate points value. These are **suggestions only**, clearly labeled as document-derived and kept distinct from any Phase-1 estimate (step 3) — if both exist, show both and let the developer pick or override. Neither is ever written without confirmation (CAP-1).
+
+**4.2 — Points:** use the `AskUserQuestion` tool. Options: any Phase-1 estimate (step 3) and/or document-derived suggestion (step 4.1) first, then common story-point values (1, 2, 3, 5, 8) as additional options — the tool's built-in "Other" always covers a value outside the preset list.
+
+**4.3 — Goal:** plain free-text chat, not `AskUserQuestion` (a one-line objective doesn't decompose into a small option set). Ask "What does done look like for this story?" — never the bare word "Goal." Pre-fill with the document-derived candidate from 4.1 when one exists, otherwise an open ask.
+
+**4.4 — Milestone/sprint:** use `AskUserQuestion`, reworded away from "Sprint" to backend-neutral phrasing: "Milestone, release, or time period this belongs to." Options must include an explicit "None — this project doesn't track sprints/milestones" choice alongside 1-2 generic examples; "Other" covers anything else. Selecting "None" (or answering "none"/"n/a" via "Other") means step 5 **omits** `--sprint` entirely — never pass the literal string "none," omit the flag so the writer produces a true `null` (Story 1.7).
 
 An optional **description** may also be offered, but never block on it.
 
-**Re-prompt rule (Story 1.1 AC 3):** if any of the three required fields is missing, blank, or invalid (e.g. points not a positive whole number), re-ask for the missing/invalid field(s) specifically — do not proceed, do not substitute defaults, and never invoke the writer with incomplete input.
+**Re-prompt rule (Story 1.1 AC 3):** if **points** or **goal** is missing, blank, or invalid (e.g. points not a positive whole number), re-ask specifically — do not proceed, do not substitute defaults, never invoke the writer with incomplete input. **Sprint is the one exception (Story 1.7, docs-only only):** "none" is itself a valid, complete answer — do not re-prompt when the developer has genuinely said they don't track this.
 
 ### 4a. JIRA variant: fetch via MCP, then confirm
 
@@ -94,12 +104,12 @@ Confluence pages have no native points/sprint fields; the adapter reads **page l
 Run from the repo root:
 
 ```
-uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --goal "<goal>" --sprint "<sprint>" [--description "<text>"] [--source-of-truth jira|confluence|docs-only] --ai-tool <resolved ai_tool> [--points-estimated <raw Phase-1 estimate>]
+uv run tools/adapters/docs-only/main.py --repo-root <repo-root> [--name "<name>"] --points <N> --goal "<goal>" [--sprint "<sprint>"] [--description "<text>"] [--source-of-truth jira|confluence|docs-only] --ai-tool <resolved ai_tool> [--points-estimated <raw Phase-1 estimate>]
 ```
 
-(`--source-of-truth` defaults to `docs-only`; the JIRA/Confluence flows pass their backend so the manifest records which one supplied the values. `--ai-tool` carries the step-1 resolved value — the manifest field AI-session capture producers read to pick their `ai.<tool>.*` event namespace. `--points-estimated` carries step 3's raw `phase1_points`, if any was produced — omit it entirely when step 3 returned null; never pass the developer's confirmed `--points` value here, the two must stay distinct per AD-6a.)
+(`--source-of-truth` defaults to `docs-only`; the JIRA/Confluence flows pass their backend so the manifest records which one supplied the values. `--ai-tool` carries the step-1 resolved value — the manifest field AI-session capture producers read to pick their `ai.<tool>.*` event namespace. `--points-estimated` carries step 3's raw `phase1_points`, if any was produced — omit it entirely when step 3 returned null; never pass the developer's confirmed `--points` value here, the two must stay distinct per AD-6a. `--name` carries step 4.0's answer — **docs-only only** (Story 1.7); the JIRA/Confluence variants never pass it, and the writer defaults it to `null`. `--sprint` is omitted entirely when step 4.4 resolved to "none" — **docs-only only**; the JIRA/Confluence variants always pass a confirmed non-empty value, exactly as before Story 1.7.)
 
-- **Exit 0:** the script prints a one-line JSON ack `{"ok": true, "story_yaml": ..., "story_id": ...}`. Relay the `story_id` and the manifest path to the developer — kickoff complete.
+- **Exit 0:** the script prints a one-line JSON ack `{"ok": true, "story_yaml": ..., "story_id": ...}`. Relay to the developer, in order: **Story ID**, then **Name** (if one was given), then **Points**, **Goal**, **Sprint** ("Not applicable" when null), **Source of truth** — kickoff complete. Leading with Name (when present) rather than the opaque generated `story_id` alone makes the summary human-legible.
 - **Non-zero exit:** surface the script's stderr to the developer **verbatim**, then return to step 4 and re-elicit. Never retry silently with altered values.
 
 ## Boundaries
@@ -109,3 +119,4 @@ uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --g
 - Do not create `.story-events.jsonl`, `.active-story`, or any event/spool file — those belong to later capture stories (Epic 2/3).
 - `.story.yaml` and `.story-config.yaml` are meant to be committed; neither ever contains credentials.
 - The Phase-1 estimate is advisory only — it never gates, skips, or shortens capture, and the developer's confirmed points value always wins (FR5).
+- A requirements document read at step 4.1 is summarized only — its raw content is never written into `.story.yaml`, `.story-config.yaml`, chat history it persists to, or any other tracked file. A summary informs the developer's own point/goal decision; it is never itself a manifest field.
