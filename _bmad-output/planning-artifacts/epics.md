@@ -267,6 +267,8 @@ A developer works normally and, on closing the story, a trustworthy metrics snap
 
 > ✅ **Epic complete** — 2026-07-10, all 6 stories done (PRs #10, #11, #12, #13, #14, #15).
 >
+> 🔓 **Reopened 2026-07-11** — real pilot-simulation testing of v0.2.0 surfaced a severe (S1) bug in Story 2.1's hook installer: Claude hook commands are written as relative paths, which break permanently for the rest of a session the moment the developer `cd`s anywhere (e.g. into a subproject to build/test) — every subsequent tool call and `Stop` then fails to spawn, in an unrecoverable loop requiring a session restart. Superseded by **Story 2.7**.
+>
 > **Retro note (§13):** *What worked* — the shared-emitter spine amendment (Story 2.3) paid for itself immediately: extending it to a third producer family (the opsx wrapper, Story 2.4) and reusing its `git_out()` helper for the assembler's git queries (Story 2.6) both required zero new subprocess-safety code. Extending existing components (the assembler, the docs-only writer) rather than creating parallel ones kept drift low across six stories touching the same files repeatedly. E2E discipline was decisive, not decorative: real-git/real-pipe testing caught 5 of this epic's defects outright (3 BOM-family bugs in 2.2/2.3, a cwd-addressing bug and a latent null-parsing bug in 2.6) that mocked unit suites alone did not surface — several as plausible-looking wrong answers, not crashes, the hardest failure mode to catch any other way. The LLM review loop (Gemini) converged to zero findings on 3 of 6 stories by the epic's end, visibly benefiting from earlier rounds' feedback (URL encoding, resilient parsing, format-over-membership validation) being pre-applied rather than re-caught.
 >
 > *What to watch* — Story 2.5 shipped without persisting its own output (the Phase-1 estimate), a gap only surfaced when Story 2.6 needed to read it back; the fix (AD-6a) was correct but retroactive. Future create-story passes should explicitly check whether a story's stated ACs, taken alone, satisfy every architecture invariant that later stories in the same epic will depend on — not just the epic document's per-story AC list. Also: this epic's `git_out()` reuse discipline (Issue #7's resolution) held up well through a second consumer; worth revisiting if a fourth producer family ever needs it, to confirm the shared module still earns its keep at that scale.
@@ -363,9 +365,44 @@ So that leadership sees real variance instead of a static guess.
 **Then** the Phase-2 formula computes actual points from review cycles, agent-narrated decision events, and testing-type weights (AD-6)
 **And** the variance between the Phase-1 estimate and Phase-2 actual is logged, with neither number overwritten
 
----
+### Story 2.7: Hook Commands Are Cwd-Independent (Absolute Paths)
 
-## Epic 3: Time Tracked Without Logging Hours
+> ⏳ **Not started** — opened 2026-07-11, S1 severity, found during live v0.2.0 pilot-simulation testing
+
+As a developer,
+I want the capture hooks to keep working no matter which directory I `cd` into during a session,
+so that a normal workflow (building/testing a subproject) never permanently breaks metrics capture — or my whole session.
+
+**What happened (verbatim from testing):** kickoff (Story 1.7) worked perfectly — name, PRD read, points/milestone via `AskUserQuestion`, all correct. The developer then did realistic work: used `/opsx:propose`/`/opsx:apply` to actually implement the proposed auth feature in `demo/user-auth-service/`, `cd`-ing into that subdirectory to run its own test suite. From that point on, **every** tool call failed with:
+```
+PreToolUse hook error: [uv run tools/hooks/claude/pre_tool_use.py]: error: Failed to spawn: `tools/hooks/claude/pre_tool_use.py`
+Caused by: The system cannot find the path specified. (os error 3)
+```
+`Stop` failed identically on every turn boundary, producing an infinite loop with no recovery path inside the session — required killing and restarting entirely.
+
+**Root cause (confirmed in code):** `tools/setup-hooks.py`'s `command_for()` writes a **relative** path into every Claude hook entry in `.claude/settings.json`:
+```python
+def command_for(script: str) -> str:
+    return f"uv run tools/hooks/claude/{script}"
+```
+This only resolves correctly if the hook is invoked with the repo root as cwd. Claude Code's hook-invocation mechanism appears to reuse whatever working-directory state the session has drifted to (via the model's own `cd`s in Bash tool calls) rather than always using the workspace root — so the moment a session `cd`s into a subdirectory, every subsequent hook invocation looks for the script relative to the wrong location and fails to spawn entirely.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** a repo where `tools/setup-hooks.py --repo-root <path>` has been run
+   **When** `.claude/settings.json` is inspected
+   **Then** every one of the six Claude hook commands (`SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`) is an **absolute path** to its script (resolved from `--repo-root` at install time), never a bare relative path
+2. **Given** a live Claude Code session with hooks installed this way
+   **When** the developer `cd`s into any subdirectory (or a subproject entirely) and continues working
+   **Then** every hook continues to spawn and fire correctly — no `Failed to spawn` error, regardless of the session's current working directory at the moment a hook fires
+3. **Given** an existing installation from before this fix (relative paths already in `.claude/settings.json`)
+   **When** the developer re-runs `uv run tools/setup-hooks.py --repo-root .`
+   **Then** the installer detects and upgrades the stale relative-path entries to absolute paths in place (the installer's existing idempotent-upgrade behavior, extended to cover this migration — not just a fresh install)
+4. **Given** the git hook shims (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`)
+   **When** this story is implemented
+   **Then** confirm whether they have the same relative-path fragility or are protected by git's own guarantee that hooks always run with cwd at the repo root (per the existing comment in `tools/hooks/_events.py`) — fix only if actually vulnerable; don't fix what isn't broken
+
+**Held for later:** whether Claude Code itself should be more resilient to a hook failing to spawn (e.g. degrade to a warning rather than blocking every subsequent tool call) is an Anthropic-side concern, not something this codebase can fix — worth a `/feedback` report separately, but out of scope for this story's fix.
 
 Switching between stories never corrupts time attribution, and nobody manually starts or stops a timer.
 

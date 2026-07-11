@@ -57,13 +57,14 @@ development_status:
   1-6-jira-adapter-fetches-via-the-atlassian-remote-mcp-server: done  # supersedes 1-3; PR #19
   1-7-docs-only-kickoff-reads-a-requirements-doc-and-relaxes-sprint-for-ad-hoc-teams: done  # PR #21, merged da3b593
   epic-1-retrospective: optional
-  epic-2: done
+  epic-2: in-progress  # reopened 2026-07-11 for Story 2.7 (S1 hook bug)
   2-1-hook-installation-is-a-single-repeatable-setup-step: done
   2-2-git-activity-captured-silently-while-you-work: done
   2-3-ai-session-activity-captured-silently: done
   2-4-story-closes-and-a-snapshot-is-created-automatically: done
   2-5-story-points-are-estimated-automatically-at-kickoff: done
   2-6-story-points-are-reconciled-against-what-actually-happened: done
+  2-7-hook-commands-are-cwd-independent-absolute-paths: backlog
   epic-2-retrospective: optional
   epic-3: done
   3-1-active-story-pointer-tracks-time-automatically: done
