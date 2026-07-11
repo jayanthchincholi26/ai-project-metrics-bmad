@@ -183,7 +183,7 @@ So that the capture side knows which adapter to activate without asking me on ev
 
 ### Story 1.6: JIRA Adapter Fetches via the Atlassian Remote MCP Server
 
-> ⏳ **Not started** — supersedes Story 1.3 (2026-07-10)
+> ✅ **Complete** — 2026-07-11 · [PR #19](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/19) (squash-merged to `enhancements`, 9eddf90) — supersedes Story 1.3. E2E scenario A verified live pre-merge; scenarios B/C/D pending a convenient test window (tracked in `docs/testing/story-1.6-e2e.md`). Review note: 4th consecutive PR with a misattributed/hallucinated reviewer finding (this time crediting base-branch commits and an untouched `APPROACH.md` to the PR) — grep-verify discipline held.
 
 As a developer on a JIRA-backed project,
 I want kickoff to fetch my story's points/goal/sprint through the team's already-configured JIRA connection,
