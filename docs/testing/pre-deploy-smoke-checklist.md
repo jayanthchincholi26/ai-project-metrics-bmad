@@ -10,7 +10,7 @@ replacement for it. It exists because several real defects in this project (the 
 bug, the AD-7 mid-session-checkout precedence bug) were only caught by live E2E testing with a
 real git repo and real hook invocations, not mocked unit tests.
 
-## Before you start (findings from the first real run, 2026-07-10)
+## Before you start (findings from the first real run, 2026-07-10/11)
 
 - **`cd` into the cloned folder** — `git clone <url>` creates a subfolder; running `uv` from the
   parent gives `No pyproject.toml found`.
@@ -20,30 +20,60 @@ real git repo and real hook invocations, not mocked unit tests.
 - **Windows: `git config core.longpaths true` before cloning** (or clone to a short path like
   `C:\w\`) — this repo's `_bmad-output/` paths exceed the 260-char limit from deep destinations
   and the clone fails with `Filename too long`.
+- **Open the repo folder itself as the VS Code workspace root** (File → Open Folder →
+  `ai-project-metrics-bmad`, not its parent). With the parent as root, Claude Code sees only
+  global skills — `.claude/skills/` (including `story-kickoff`) is silently invisible, and the
+  failure looks confusingly like a skills/hooks bug. Cost ~1 hour of misdiagnosis on the first
+  run. Terminal `Get-Content` checks against `.active-story`/`.story-events.jsonl` fail the same
+  way — run `Get-Location` first, always.
+- **Hooks require the setup script to run before the session starts** — `SessionStart` fires
+  once, at session start; installing hooks into a live session does nothing until the next one.
+- **Check any Get-Content path failure against your cwd before suspecting the pipeline** — every
+  "missing file" during the first run (3 separate times) was the parent-folder cwd, not a bug.
 
 ## Checklist
 
-- [ ] `uv run pytest` passes clean on this machine/OS before manual testing starts
-- [ ] Fresh scratch repo: `python tools/setup-hooks.py` installs hooks into `.git/hooks/` and
-      merges Claude entries into `.claude/settings.json`; re-running it is a no-op (idempotent)
-- [ ] Run story-kickoff (docs-only): `.story.yaml` written with `story_id`, points, goal,
-      sprint, `ai_tool`
-- [ ] Commit a change: a `git.*` event is appended to `.story-events.jsonl`
-- [ ] Create a second story branch, `git checkout` into it (no live AI session): `.active-story`
-      switches, and a `time.slice_closed` / `time.slice_opened` pair is appended
-- [ ] Start a Claude Code session: `.active-claude-session` marker appears, `ai.claude-code.*`
-      events log
-- [ ] **While that session is live**, `git checkout` to a third story branch: `.active-story`
-      re-points `story_id` only — confirm **no** `time.slice_*` event fires (Story 3.3 / AD-7
-      precedence — the highest-risk regression in this pipeline)
-- [ ] End the session: `time.slice_closed` fires, `.active-claude-session` is removed
-- [ ] Simulate 15+ minutes idle, then trigger one tool-use event: `time.slice_paused` is
-      recorded, story stays active
-- [ ] Run `opsx archive`: snapshot produced with the fixed envelope shape (`schema_version,
-      story_id, revision, pm_metrics, engineering_metrics, story_point_cost, token_cost`),
-      including both the Phase-1 estimate and Phase-2 actual with a variance
-- [ ] Run `opsx archive` again on the same story: a new `revision` is appended, the prior
-      revision is untouched
+- [x] `uv run pytest` passes clean on this machine/OS before manual testing starts
+      *(2026-07-10: 215/215 passed in 2.08s, Win11 + Python 3.14.6)*
+- [x] Fresh scratch repo: `uv run tools/setup-hooks.py --repo-root .` installs hooks into
+      `.git/hooks/` and merges Claude entries into `.claude/settings.json`
+      *(2026-07-10: JSON ack, 4 git hooks + 6 Claude events wired. Note: `--repo-root` is
+      required — the bare command errors)*
+- [x] Run story-kickoff (docs-only): `.story.yaml` written with `story_id`, points, goal,
+      sprint, `ai_tool` *(2026-07-10: `story-20260710-a145ba`; AD-4 no-ask, Phase-1 null
+      fallback, and re-prompt behavior all correct. Transient `AskUserQuestion`
+      InputValidationError on first attempt, self-recovered on retry)*
+- [x] Commit a change: a `git.*` event is appended to `.story-events.jsonl`
+      *(2026-07-10: `git.commit_msg` + `git.commit` with correct hash/branch/story_id)*
+- [x] Start a Claude Code session: `.active-claude-session` marker appears, `ai.claude-code.*`
+      events log *(2026-07-10: session_start/prompt/stop/session_end all captured across 5
+      sessions; `token_cost` null-with-reason per AD-10)*
+- [x] **While that session is live**, `git checkout` to another story branch: `.active-story`
+      re-points `story_id` only — **no** `time.slice_*` event fires (Story 3.3 / AD-7)
+      *(2026-07-11: verified both directions; `opened_at` preserved untouched)*
+- [x] End the session: `time.slice_closed` fires, `.active-claude-session` is removed
+      *(2026-07-10: multiple clean close pairs with correct `duration_seconds`)*
+- [x] Idle-activity stamping: `last_activity_at` updates on prompt/tool-use activity
+      *(2026-07-10 — full 15-min `time.slice_paused` simulation still outstanding)*
+- [x] Snapshot: fixed envelope shape produced with honest nulls (`phase1_points: null`,
+      `variance: null` + `reduced_confidence_reasons`, `token_cost` null-with-reason)
+      *(2026-07-11: `story-20260710-ef967d.v1.rev1.json`, 31 events reduced, 21 pending
+      backfilled per AD-1b. Run via the assembler directly — see caveat below)*
+- [x] Re-run archive on the same story: a new `revision` is appended, prior untouched
+      *(2026-07-11: rev2 alongside rev1, rev1 byte-identical; backfill idempotent, 0 on rerun)*
+
+**Caveats from the first full run:**
+- The `opsx archive` **wrapper path** was not fully exercised: the real `openspec` CLI was
+  installed and correctly failed ("no changes directory") because the clone had no initialized
+  openspec change — the wrapper correctly mirrored the failure with no event/no snapshot. The
+  snapshot steps above ran the assembler directly (`uv run tools/snapshot-assembler/main.py
+  --repo-root .`, the identical call the wrapper makes). Full wrapper E2E needs a project with a
+  real openspec change — plan it as part of the pilot's first real story.
+- Root cause of the openspec failure was a packaging bug, now fixed on `enhancements`:
+  `openspec/changes|specs|archive` were empty dirs, invisible to git, so fresh clones lost them
+  (`.gitkeep` added).
+- Stale `.active-claude-session` observed after an abrupt VS Code close (SessionEnd never
+  fired) — self-heals at next SessionStart; logged as an assembler reduced-confidence follow-up.
 
 ## OS-specific re-runs
 
@@ -57,4 +87,4 @@ real git repo and real hook invocations, not mocked unit tests.
 
 | Machine / OS | Tester | Date | Result |
 |---|---|---|---|
-| | | | |
+| Windows 11 Pro, Python 3.14.6, uv 0.11.24 | Jayanth | 2026-07-10/11 | **PASS** (all core steps; wrapper E2E + 15-min idle simulation deferred — see caveats) |
