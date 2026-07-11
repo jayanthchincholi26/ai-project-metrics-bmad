@@ -181,6 +181,38 @@ So that the capture side knows which adapter to activate without asking me on ev
 **And** AI-session capture producers (Story 2.3) read this field to know which adapter's event namespace to emit under
 **And** an unset `ai_tool` config defaults to `claude-code`
 
+### Story 1.7: Docs-Only Kickoff Reads a Requirements Doc and Relaxes Sprint for Ad Hoc Teams
+
+> ⏳ **Not started** — opened 2026-07-11, design discussion in `epics.md` history / session notes
+
+As a developer on a project with no PM tool,
+I want kickoff to optionally read a requirements document I point it to, and to not force a fake sprint number on a team that doesn't run sprints,
+So that docs-only kickoff is genuinely adapted to "no PM tool," not just "no JIRA/Confluence," and points/goal aren't guessed blind when a PRD already describes the work.
+
+**Context:** raised during live testing of the release artifact (2026-07-11). Docs-only kickoff currently never reads any document — it's a pure conversational ask, and `sprint` is a required field for every backend including docs-only, forcing ad hoc teams to invent a sprint number they don't have. Both are real gaps in CAP-4's "adapts to whatever tool or lack of tool" premise, not implementation bugs.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `source_of_truth: docs-only` at kickoff
+   **When** the skill runs
+   **Then** it asks whether the developer has a requirements document (PRD) and, if so, its path
+   **And** it reads `.md`/`.txt`/`.pdf`/`.docx` directly; a legacy binary `.doc` or unreadable file is not fatal — the skill says so plainly and falls back to the plain ask
+   **And** the document's content is summarized, never dumped verbatim into the manifest or chat
+2. **Given** a requirements document was read
+   **When** the skill elicits points and goal
+   **Then** it presents a **document-derived suggestion** for both, as a second advisory signal alongside any Phase-1 estimate (never silently written — same "suggest, human confirms" pattern as Phase-1; CAP-1 points confirmation stays human)
+3. **Given** the skill elicits points, goal, and sprint
+   **When** it prompts the developer
+   **Then** it uses `AskUserQuestion` (structured options + freeform "Other") for **points** and **sprint**; **goal** is asked as free text (optionally pre-filled with a document-derived candidate) since a one-line objective doesn't fit a small options set
+   **And** the "goal" question is phrased in plain language (e.g. "What does done look like for this story?"), not the bare word "Goal"
+4. **Given** `source_of_truth: docs-only` specifically (JIRA/Confluence unaffected — they have a real sprint concept to pull from)
+   **When** the developer has no milestone/release/sprint concept to give
+   **Then** an explicit "none"/"N/A" answer is accepted as valid — the skill does not re-prompt forever demanding a fabricated value
+   **And** the elicitation wording reflects this (e.g. "Milestone, release, or time period this belongs to — say 'none' if you don't track this")
+   **And** the manifest's `sprint` field itself stays named `sprint` regardless of backend (AD-4 normalized shape unchanged) — only the docs-only question wording and requiredness change; JIRA/Confluence keep `sprint` required exactly as today
+
+**Held for later (not in this story):** actually parsing structured data out of a PRD (e.g. extracting a formal task list) — this story only supports summarization to inform a human's own estimate, not automated extraction. Extending the same doc-read capability to JIRA/Confluence kickoffs, if ever wanted.
+
 ### Story 1.6: JIRA Adapter Fetches via the Atlassian Remote MCP Server
 
 > ✅ **Complete** — 2026-07-11 · [PR #19](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/19) (squash-merged to `enhancements`, 9eddf90) — supersedes Story 1.3. E2E scenario A verified live pre-merge; scenarios B/C/D pending a convenient test window (tracked in `docs/testing/story-1.6-e2e.md`). Review note: 4th consecutive PR with a misattributed/hallucinated reviewer finding (this time crediting base-branch commits and an untouched `APPROACH.md` to the PR) — grep-verify discipline held.
