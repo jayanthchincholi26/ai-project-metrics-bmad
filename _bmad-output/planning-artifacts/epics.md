@@ -206,10 +206,17 @@ So that I don't need a personal `JIRA_API_TOKEN` just to run kickoff — auth is
 
 **Testing strategy (decided 2026-07-10 — this story is skill-flow work, not script work):** Story 1.3 was a subprocess script, fully unit-testable with pytest; Story 1.6 changes the `story-kickoff` skill's conversational step 4a, which pytest cannot reach. Manual E2E against a real Atlassian test site (available — confirmed 2026-07-10) is therefore the *primary* verification, not the backstop. The story's Definition of Done must include a scripted E2E pass covering at minimum: (a) happy path — issue key → MCP fetch → confirm → `.story.yaml` written with `source_of_truth: jira`; (b) issue key not found; (c) MCP server not connected → graceful fallback message, kickoff still completable via plain ask (FR5); (d) points absent from the MCP response → null elicited via re-prompt rule, never invented. Any *new or changed* subprocess code (e.g. normalization helpers, if extracted) still gets pytest coverage per the repo standard; invocation remains natural-language ("kick off this story"), not a formal command (decided 2026-07-10).
 
-**Open questions to resolve before implementation:**
-- Confirm the exact MCP tool name and its response shape as exposed inside this project's Claude Code session (`getJiraIssue` per Atlassian's docs, but the effective tool name Claude Code sees is prefixed, e.g. `mcp__atlassian__getJiraIssue` — verify via `ToolSearch`/`.mcp.json` once the server is actually connected). An Atlassian test site is available for this (confirmed 2026-07-10); needs `.mcp.json` configured + one OAuth login before the schema can be inspected empirically.
-- Confirm whether story points live on a custom field visible to the MCP tool's response the same way Story 1.3 read `customfield_10016`, or whether the MCP tool's normalized response omits it (in which case points would come back `null` more often and rely on Phase-1 estimate + human confirmation).
+**Empirical verification (2026-07-11, against `my-sg-custom-dashboard.atlassian.net`):**
+- ✅ **OAuth flow works exactly as designed**: `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp/authv2` (project-local scope), then `/mcp` in the CLI → browser OAuth → authenticated on first try. No token provisioned anywhere.
+- ✅ **Full raw REST v3 issue shape survives the MCP layer** (fetched AI-53 with `fields: ["*all"]`): the response is the complete JIRA REST issue object wrapped in `{"issues": {"nodes": [...]}}` — custom fields intact, nothing normalized away.
+- ✅ **Points field visible**: `customfield_10016` present in the response (null on the test issue only because no points were set — the correct elicitation-path trigger). Story 1.3's `DEFAULT_POINTS_FIELD` and `extract_points()` logic transfer as-is.
+- ✅ **Sprint field visible**: `customfield_10020` with the full sprint-object list (closed + future entries on the test issue). Story 1.3's `extract_sprint()` rule (active wins, else last) handles the observed shape exactly.
+- ✅ **Tool names confirmed**: `mcp__atlassian__getJiraIssue` does the fetch, but it requires a `cloudId` parameter — obtained by calling `mcp__atlassian__getAccessibleAtlassianResources` first. Step 4a is therefore a **two-call sequence** (resolve cloudId → fetch issue); the skill should cache/reuse the cloudId within a kickoff rather than re-resolving per field.
+- ⏳ Still to confirm: a positive-path fetch with points actually set on the issue (`customfield_10016` returning the number, not null).
+
+**Remaining open questions:**
 - Decide whether the API-token path (Story 1.3) stays as a documented fallback long-term, or is deprecated/removed once MCP is proven out in the pilot.
+- Server-agnostic wording (decided 2026-07-11): the skill's step 4a should target *whichever JIRA MCP server the session has configured* (official Atlassian remote recommended as default; community `mcp-atlassian` also exists but registers zero tools without env credentials — observed live). Which server a project uses is a deployment/prerequisites choice, not skill logic.
 
 ---
 
