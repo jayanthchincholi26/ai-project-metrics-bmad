@@ -69,6 +69,22 @@ def test_fresh_install_creates_settings_with_all_six_events(fake_repo, capsys):
         assert len(our_commands(settings, event)) == 1
 
 
+def test_hook_commands_use_absolute_paths(fake_repo, capsys):
+    # Story 2.7: a relative path breaks the moment a session cd's elsewhere -
+    # every hook command must resolve independently of the invoking cwd.
+    run(fake_repo)
+
+    settings = settings_of(fake_repo)
+    for event, script in setup_hooks.CLAUDE_EVENTS.items():
+        commands = our_commands(settings, event)
+        assert len(commands) == 1
+        prefix = "uv run "
+        assert commands[0].startswith(prefix)
+        path_str = commands[0][len(prefix) :].strip('"')
+        assert Path(path_str).is_absolute()
+        assert Path(path_str) == (fake_repo / "tools" / "hooks" / "claude" / script).resolve()
+
+
 def test_ack_lists_git_hooks_and_events(fake_repo, capsys):
     exit_code = run(fake_repo)
 
@@ -79,6 +95,66 @@ def test_ack_lists_git_hooks_and_events(fake_repo, capsys):
     assert ack["ok"] is True
     assert sorted(ack["git_hooks"]) == sorted(GIT_HOOKS)
     assert sorted(ack["events_wired"]) == sorted(CLAUDE_EVENTS)
+
+
+def test_stale_relative_path_command_is_upgraded_not_duplicated(fake_repo, capsys):
+    # Story 2.7: simulates a pre-fix install (relative-path command already wired,
+    # e.g. on a pilot machine from before this story). Re-running must upgrade
+    # that entry in place, not append a second command alongside the stale one.
+    settings_dir = fake_repo / ".claude"
+    settings_dir.mkdir()
+    stale_command = "uv run tools/hooks/claude/pre_tool_use.py"
+    existing = {
+        "hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": stale_command}]}]}
+    }
+    (settings_dir / "settings.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    commands = our_commands(settings_of(fake_repo), "PreToolUse")
+    assert len(commands) == 1
+    assert commands[0] != stale_command
+    assert Path(commands[0][len("uv run ") :].strip('"')).is_absolute()
+
+
+def test_a_similarly_named_custom_hook_is_not_mistaken_for_ours(fake_repo, capsys):
+    # Review finding (PR #22): a naive endswith(script) match would treat a
+    # hand-added hook like "my_backstop.py" as our "stop.py" (it IS a suffix
+    # match) and overwrite the developer's own command. Must not happen.
+    settings_dir = fake_repo / ".claude"
+    settings_dir.mkdir()
+    custom_command = "uv run /usr/local/bin/my_backstop.py"
+    existing = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": custom_command}]}]}}
+    (settings_dir / "settings.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    settings = settings_of(fake_repo)
+    stop_commands = [h["command"] for entry in settings["hooks"]["Stop"] for h in entry["hooks"]]
+    assert custom_command in stop_commands  # untouched
+    assert len(stop_commands) == 2  # the developer's hook, plus ours added alongside it
+
+
+def test_trailing_whitespace_after_quote_is_still_recognized_as_ours(fake_repo, capsys):
+    # Review finding (PR #22): a hand-edited settings.json with trailing
+    # whitespace after the closing quote must still be recognized as our
+    # entry and upgraded, not duplicated.
+    settings_dir = fake_repo / ".claude"
+    settings_dir.mkdir()
+    padded_command = 'uv run "tools/hooks/claude/pre_tool_use.py" '
+    existing = {
+        "hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": padded_command}]}]}
+    }
+    (settings_dir / "settings.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    commands = our_commands(settings_of(fake_repo), "PreToolUse")
+    assert len(commands) == 1
+    assert commands[0] != padded_command
 
 
 def test_second_run_is_idempotent(fake_repo, capsys):

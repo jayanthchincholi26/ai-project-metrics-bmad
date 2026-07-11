@@ -47,20 +47,43 @@ def write_atomic(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
-def command_for(script: str) -> str:
-    return f"uv run tools/hooks/claude/{script}"
+def command_for(root: Path, script: str) -> str:
+    """Absolute, quoted path (Story 2.7) — a relative path breaks the moment a
+    session cd's elsewhere, since Claude Code's hook invocation reuses whatever
+    cwd the session has drifted to rather than always using the repo root.
+    Quoting guards against a repo root containing spaces; .as_posix() keeps
+    forward slashes for cross-platform consistency."""
+    abs_path = (root / "tools" / "hooks" / "claude" / script).resolve()
+    return f'uv run "{abs_path.as_posix()}"'
 
 
-def merge_settings(settings: dict[str, Any]) -> dict[str, Any]:
-    """Additively wire our six events; user keys and user hook entries are preserved."""
+def references_our_script(command: str, script: str) -> bool:
+    """True if `command` invokes `script` specifically — the old relative form,
+    the new absolute form, or either quoted/padded with incidental whitespace —
+    never merely a *substring* collision (PR #22 review): a hand-added hook
+    like `my_backstop.py` must never be mistaken for our `stop.py` just
+    because the filename happens to end the same way. Requires a path
+    boundary (`/`) immediately before the script name, or an exact match."""
+    cleaned = command.strip().rstrip('"').strip().replace("\\", "/")
+    return cleaned == script or cleaned.endswith("/" + script)
+
+
+def merge_settings(root: Path, settings: dict[str, Any]) -> dict[str, Any]:
+    """Additively wire our six events; user keys and user hook entries are
+    preserved. An existing entry for one of our six scripts — old relative-path
+    form or current absolute form — is upgraded in place rather than
+    duplicated (Story 2.7)."""
     hooks = settings.setdefault("hooks", {})
     for event, script in CLAUDE_EVENTS.items():
         entries = hooks.setdefault(event, [])
-        wanted = command_for(script)
-        present = any(
-            hook.get("command") == wanted for entry in entries for hook in entry.get("hooks", [])
-        )
-        if not present:
+        wanted = command_for(root, script)
+        upgraded = False
+        for entry in entries:
+            for hook in entry.get("hooks", []):
+                if references_our_script(hook.get("command", ""), script):
+                    hook["command"] = wanted
+                    upgraded = True
+        if not upgraded:
             entries.append({"hooks": [{"type": "command", "command": wanted}]})
     return settings
 
@@ -77,7 +100,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--repo-root", required=True, help="root of the clone to install into")
     args = p.parse_args(argv)
 
-    root = Path(args.repo_root)
+    root = Path(args.repo_root).resolve()
     if not (root / ".git").is_dir():
         return fail(f"{root} is not a git clone (no .git directory)")
     sources = {name: root / "tools" / "hooks" / "git" / f"{name}.sh" for name in GIT_HOOKS}
@@ -118,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         os.chmod(target, 0o755)
 
     settings_path.parent.mkdir(parents=True, exist_ok=True)
-    write_atomic(settings_path, json.dumps(merge_settings(settings), indent=2) + "\n")
+    write_atomic(settings_path, json.dumps(merge_settings(root, settings), indent=2) + "\n")
 
     print(
         json.dumps(

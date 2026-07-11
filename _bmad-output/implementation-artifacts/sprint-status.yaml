@@ -64,7 +64,7 @@ development_status:
   2-4-story-closes-and-a-snapshot-is-created-automatically: done
   2-5-story-points-are-estimated-automatically-at-kickoff: done
   2-6-story-points-are-reconciled-against-what-actually-happened: done
-  2-7-hook-commands-are-cwd-independent-absolute-paths: ready-for-dev
+  2-7-hook-commands-are-cwd-independent-absolute-paths: review
   epic-2-retrospective: optional
   epic-3: done
   3-1-active-story-pointer-tracks-time-automatically: done
