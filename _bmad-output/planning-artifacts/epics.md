@@ -335,6 +335,8 @@ So that I never manually compile a report.
 **Then** the snapshot assembler reduces the full event log (Stories 2.2, 2.3) into the fixed envelope shape: `schema_version, story_id, revision, pm_metrics, engineering_metrics, story_point_cost, token_cost` (AD-3a)
 **And** every close produces a new immutable revision; nothing is overwritten in place (AD-3)
 
+> 🔍 **Post-implementation finding (2026-07-11, live pilot-simulation testing):** when `sessions_observed: 0` (no AI session events captured at all — as opposed to sessions existing but not reporting token cost), `token_cost.reason` comes back bare `null` rather than an explanatory string. AD-10's rule is "null-with-reason, never a bare null" — this may be a minor gap in that guarantee for the zero-sessions case specifically (every other null-token-cost snapshot observed so far carried a real reason string, e.g. "claude-code hooks do not report token usage"). Low severity, not yet turned into a story — worth a quick look at whether `sessions_observed == 0` should populate a reason too (e.g. "no AI sessions observed for this story").
+
 ### Story 2.5: Story Points Are Estimated Automatically at Kickoff
 
 > ✅ **Complete** — 2026-07-10 · [PR #14](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/14)
