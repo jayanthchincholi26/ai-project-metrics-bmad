@@ -69,6 +69,22 @@ def test_fresh_install_creates_settings_with_all_six_events(fake_repo, capsys):
         assert len(our_commands(settings, event)) == 1
 
 
+def test_hook_commands_use_absolute_paths(fake_repo, capsys):
+    # Story 2.7: a relative path breaks the moment a session cd's elsewhere -
+    # every hook command must resolve independently of the invoking cwd.
+    run(fake_repo)
+
+    settings = settings_of(fake_repo)
+    for event, script in setup_hooks.CLAUDE_EVENTS.items():
+        commands = our_commands(settings, event)
+        assert len(commands) == 1
+        prefix = "uv run "
+        assert commands[0].startswith(prefix)
+        path_str = commands[0][len(prefix) :].strip('"')
+        assert Path(path_str).is_absolute()
+        assert Path(path_str) == (fake_repo / "tools" / "hooks" / "claude" / script).resolve()
+
+
 def test_ack_lists_git_hooks_and_events(fake_repo, capsys):
     exit_code = run(fake_repo)
 
@@ -79,6 +95,27 @@ def test_ack_lists_git_hooks_and_events(fake_repo, capsys):
     assert ack["ok"] is True
     assert sorted(ack["git_hooks"]) == sorted(GIT_HOOKS)
     assert sorted(ack["events_wired"]) == sorted(CLAUDE_EVENTS)
+
+
+def test_stale_relative_path_command_is_upgraded_not_duplicated(fake_repo, capsys):
+    # Story 2.7: simulates a pre-fix install (relative-path command already wired,
+    # e.g. on a pilot machine from before this story). Re-running must upgrade
+    # that entry in place, not append a second command alongside the stale one.
+    settings_dir = fake_repo / ".claude"
+    settings_dir.mkdir()
+    stale_command = "uv run tools/hooks/claude/pre_tool_use.py"
+    existing = {
+        "hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": stale_command}]}]}
+    }
+    (settings_dir / "settings.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    commands = our_commands(settings_of(fake_repo), "PreToolUse")
+    assert len(commands) == 1
+    assert commands[0] != stale_command
+    assert Path(commands[0][len("uv run ") :].strip('"')).is_absolute()
 
 
 def test_second_run_is_idempotent(fake_repo, capsys):
