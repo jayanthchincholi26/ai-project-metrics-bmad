@@ -58,20 +58,24 @@ An optional **description** may also be offered, but never block on it.
 
 **Re-prompt rule (Story 1.1 AC 3):** if any of the three required fields is missing, blank, or invalid (e.g. points not a positive whole number), re-ask for the missing/invalid field(s) specifically — do not proceed, do not substitute defaults, and never invoke the writer with incomplete input.
 
-### 4a. JIRA variant: fetch, then confirm
+### 4a. JIRA variant: fetch via MCP, then confirm
+
+The JIRA fetch goes through **whichever JIRA MCP server this session has configured** (Story 1.6; the official Atlassian Remote MCP Server is the recommended default — OAuth under the developer's own JIRA access, no personal API token anywhere). The Story 1.3 subprocess adapter remains only as a fallback (step 4 below).
 
 1. Ask the developer for the **JIRA issue key** (e.g. `PROJ-123`).
-2. Fetch the fields (credentials come from the developer's environment — `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`; **never ask the developer to paste a token into chat**):
-
-   ```
-   uv run tools/adapters/jira/main.py --repo-root <repo-root> --issue <KEY>
-   ```
-
-3. On exit 0, the ack carries `{points, goal, sprint, description}` (any field JIRA doesn't have is `null`). Present the fetched values, then:
-   - **Always confirm points with the developer** — even when JIRA supplied a number, points confirmation stays human (CAP-1). If step 3 also produced a Phase-1 suggestion, mention both and let the developer pick.
-   - Any `null` field → elicit it via the step-4 re-prompt rule.
-4. On non-zero exit → surface stderr **verbatim** (it never contains the token) and either re-ask the issue key (e.g. typo'd key / 404) or stop (missing env vars, credential failure — the developer must fix their environment first).
-5. Proceed to step 5 with the confirmed values and `--source-of-truth jira`.
+2. Fetch via the MCP tools (a two-call sequence; load them via tool search if deferred):
+   1. `getAccessibleAtlassianResources` → take the `cloudId`. Resolve it **once per kickoff** and reuse it; don't re-resolve per call. If multiple sites come back, ask the developer which site applies (once — this is a site choice, not the AD-4 backend question, which stays forbidden).
+   2. `getJiraIssue` with `cloudId`, `issueIdOrKey: <KEY>`, and `fields: ["summary", "description", <points field>, <sprint field>]` — where the points/sprint field IDs come from `.story-config.yaml` (`jira_points_field` / `jira_sprint_field`) when set, else the Jira Cloud defaults `customfield_10016` / `customfield_10020` (same override contract as Story 1.3).
+3. Normalize the response (`issues.nodes[0].fields`) to the AD-4 shape — same rules Story 1.3's adapter implements:
+   - **points** ← the points field: a number, or `null` when unset. Never invent a value.
+   - **goal** ← `summary`.
+   - **sprint** ← the sprint field: it's a list of sprint objects — the one with `state: "active"` wins; otherwise the **last** entry; take its `name`. `null` when absent.
+   - **description** ← `description`, or `null`.
+   Then confirm with the developer exactly as before: **points confirmation stays human** (CAP-1) even when JIRA supplied a number — if step 3 also produced a Phase-1 suggestion, mention both and let the developer pick. Any `null` field → elicit via the step-4 re-prompt rule.
+4. **Degradation chain — kickoff is never blocked** (FR5):
+   - Issue key not found / permission denied → tell the developer what the tool returned and re-ask the key.
+   - **No JIRA MCP tools available in this session** → say so plainly ("no JIRA MCP server is connected — see prerequisites"). Then, only if `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` are all set in the environment, fall back to the Story 1.3 script (`uv run tools/adapters/jira/main.py --repo-root <repo-root> --issue <KEY>`, same normalized ack, surface stderr verbatim on failure). Otherwise fall back to the plain step-4 ask, unassisted.
+5. Proceed to step 5 with the confirmed values and `--source-of-truth jira` (the manifest records the backend, not the transport — MCP vs fallback script makes no difference downstream).
 
 ### 4b. Confluence variant: fetch, then confirm
 
@@ -101,7 +105,7 @@ uv run tools/adapters/docs-only/main.py --repo-root <repo-root> --points <N> --g
 ## Boundaries
 
 - Only the writer script writes `.story.yaml` (atomically); this skill never writes or edits the manifest itself, and the resolver, fetch adapters, and Phase-1 estimator never write anything.
-- Credentials live in environment variables, read by the adapter at call time — never in `.story.yaml`, `.story-config.yaml`, chat, or any output (NFR4).
+- Credentials never appear in `.story.yaml`, `.story-config.yaml`, chat, or any output (NFR4). On the MCP path this is structural — auth lives entirely in the MCP server's own OAuth session and this skill never sees a credential of any kind. On the fallback-script path, credentials live in environment variables read by the adapter at call time. **Never ask the developer to paste a token into chat** in either mode.
 - Do not create `.story-events.jsonl`, `.active-story`, or any event/spool file — those belong to later capture stories (Epic 2/3).
 - `.story.yaml` and `.story-config.yaml` are meant to be committed; neither ever contains credentials.
 - The Phase-1 estimate is advisory only — it never gates, skips, or shortens capture, and the developer's confirmed points value always wins (FR5).
