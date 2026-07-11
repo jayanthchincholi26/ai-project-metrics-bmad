@@ -212,7 +212,7 @@ So that I don't need a personal `JIRA_API_TOKEN` just to run kickoff — auth is
 - ✅ **Points field visible**: `customfield_10016` present in the response (null on the test issue only because no points were set — the correct elicitation-path trigger). Story 1.3's `DEFAULT_POINTS_FIELD` and `extract_points()` logic transfer as-is.
 - ✅ **Sprint field visible**: `customfield_10020` with the full sprint-object list (closed + future entries on the test issue). Story 1.3's `extract_sprint()` rule (active wins, else last) handles the observed shape exactly.
 - ✅ **Tool names confirmed**: `mcp__atlassian__getJiraIssue` does the fetch, but it requires a `cloudId` parameter — obtained by calling `mcp__atlassian__getAccessibleAtlassianResources` first. Step 4a is therefore a **two-call sequence** (resolve cloudId → fetch issue); the skill should cache/reuse the cloudId within a kickoff rather than re-resolving per field.
-- ⏳ Still to confirm: a positive-path fetch with points actually set on the issue (`customfield_10016` returning the number, not null).
+- ✅ **Positive-path points confirmed** (2026-07-11): after setting Story Points = 5 on AI-53, a re-fetch returned `customfield_10016: 5`. All empirical unknowns for this story are now closed; implementation can start.
 
 **Remaining open questions:**
 - Decide whether the API-token path (Story 1.3) stays as a documented fallback long-term, or is deprecated/removed once MCP is proven out in the pilot.
