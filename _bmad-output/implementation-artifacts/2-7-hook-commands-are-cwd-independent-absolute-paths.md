@@ -4,7 +4,9 @@ baseline_commit: 28b3f5761ac123f41e31abc7178f5bbde5c9f81e
 
 # Story 2.7: Hook Commands Are Cwd-Independent (Absolute Paths)
 
-Status: review
+> ✅ **Complete** — 2026-07-11 · [PR #22](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/22) (squash-merged to `enhancements`, 4d21476; branch preserved, not deleted, per user request). Review found 2 real defects (suffix-matching collision, whitespace sensitivity) — both fixed and tested before merge. 5 of 7 findings were misattributed (files outside this PR's diff) — 6th consecutive PR with this pattern; logged as separate backlog items rather than acted on here.
+
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
