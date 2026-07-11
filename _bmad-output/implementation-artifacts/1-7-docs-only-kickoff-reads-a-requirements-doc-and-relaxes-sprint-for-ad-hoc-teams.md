@@ -37,6 +37,17 @@ so that docs-only kickoff is genuinely adapted to "no PM tool," not just "no JIR
    **And** the elicitation wording reflects this (e.g. "Milestone, release, or time period this belongs to — say 'none' if you don't track this")
    **And** the manifest's `sprint` field itself stays named `sprint` regardless of backend (AD-4 normalized shape unchanged); JIRA/Confluence keep `sprint` required exactly as today — this relaxation is docs-only-only
 
+5. **Given** `source_of_truth: docs-only` at kickoff (decided 2026-07-11: docs-only-only for now, not a cross-backend AD-4 shape change — see Held for later)
+   **When** the skill elicits the required fields
+   **Then** it additionally asks for a short, human-readable **Story Name** (e.g. "Auth Module Implementation") as free text, asked *before* goal/points/sprint
+   **And** the manifest gains a new field `name`, inserted in the fixed key order immediately after `story_id`; it is `null` when absent (JIRA/Confluence calls to the shared writer never pass it in this story, so their manifests carry `name: null` — this is expected, not a bug)
+   **And** the kickoff completion summary shown to the developer displays **Name** immediately after **Story ID**, so the summary is human-legible instead of only showing the opaque generated `story_id`
+
+6. **Given** a developer has just completed docs-only kickoff
+   **When** they aren't sure what to do next
+   **Then** `INSTALL.md`'s "Daily use" section documents the real sequence with a concrete example: `/opsx:propose <change-name>` (a separate kebab-case name **the developer invents** — never the `story_id`) to start proposal/design/tasks artifacts, ideally run *before* kickoff so the Phase-1 estimator has a real `tasks.md` to read; then normal work; then `/opsx:apply`; then `/opsx:archive` to close the openspec change (git/Claude hooks capture continuously throughout, independent of this sequence)
+   **And** when kickoff's Phase-1 estimate comes back null specifically because no openspec change was found (`phase1_points_reason` mentions "no openspec change found"), the skill adds a one-line, non-blocking nudge: something like "if this project uses openspec SDD, run `/opsx:propose <name>` before kickoff next time for an automatic estimate" (FR5 — informational only, never gates kickoff)
+
 ## Tasks / Subtasks
 
 - [ ] Task 1: Make `sprint` optional in the docs-only writer, backend-conditionally (AC: 4)
@@ -61,15 +72,29 @@ so that docs-only kickoff is genuinely adapted to "no PM tool," not just "no JIR
   - [ ] Subtask 4.1: run `uv run pytest`, `uv run ruff check .`, and `uv run ruff format --check tools tests` — all three, per the standing Story 3.2 PR #17 CI lesson (format is a separate gate from lint)
   - [ ] Subtask 4.2: manual E2E in a real Claude Code session (skill-flow change; pytest cannot reach conversational steps) — extend `docs/testing/story-1.6-e2e.md`-style coverage with a new scenario file or section: (a) docs-only kickoff with a real `.md` PRD path → suggestions presented, confirmed, `.story.yaml` correct; (b) docs-only kickoff, developer says "none" for sprint → `.story.yaml` has `sprint: null`, no re-prompt loop; (c) docs-only kickoff, bad/missing doc path → graceful fallback to plain ask, kickoff still completes; (d) JIRA kickoff (source_of_truth: jira) with no sprint on the issue → confirm sprint is **still required** and re-prompted exactly as before this story (regression check across the backend boundary)
   - [ ] Subtask 4.3: update `.claude/skills/story-kickoff/SKILL.md`'s "Boundaries" section if the PRD-read capability introduces any new boundary worth stating (e.g. "the skill never writes the document's own content into any tracked file")
-  - [ ] Subtask 4.4: update `docs/testing/pre-deploy-smoke-checklist.md` or the release `INSTALL.md` only if this story changes anything a fresh install path would encounter (likely not — this is a conversational elicitation change, not an install/prerequisite change); note in the PR if no doc changes were needed there
+  - [ ] Subtask 4.4: `INSTALL.md` **does** need updating this time (Task 6 below covers exactly what) — the earlier assumption that this story never touches install docs no longer holds now that AC 6 is in scope
+
+- [ ] Task 5: Add an optional `name` field to the docs-only writer and its kickoff elicitation (AC: 5)
+  - [ ] Subtask 5.1 (RED): extend `tests/adapters/test_docs_only.py` — kickoff with `--name "Auth Module Implementation"` writes `name` into the manifest, cleaned the same way `goal` is (collapse internal whitespace/newlines to one line), positioned immediately after `story_id`; kickoff without `--name` writes `name: null`. **`MANIFEST_KEYS` and every test asserting fixed key order must be updated for the new key** — this is a manifest *shape* change (unlike Task 1's value-only change), so re-check every existing key-order/full-manifest assertion in the file, not just the ones obviously about `name`
+  - [ ] Subtask 5.2 (GREEN): add `--name` as an optional argparse argument (default `None`) to `tools/adapters/docs-only/main.py`; `clean()` it if provided, write `null` if absent; insert it into the manifest dict immediately after `story_id` (both in the `render()` call's dict literal and in any place that enumerates the fixed key order)
+  - [ ] Subtask 5.3: update `.claude/skills/story-kickoff/SKILL.md` step 4 — ask "What should we call this story? (a short name, e.g. 'Auth Module Implementation')" as free text, as the **first** question in the docs-only elicitation sequence, before goal/points/sprint; pass the answer via the new `--name` flag in step 5's write command. JIRA/Confluence variants (4a/4b) are **not** changed — they do not ask for or pass `--name` in this story (AC 5's explicit docs-only-only scope)
+  - [ ] Subtask 5.4: update SKILL.md's kickoff-complete relay message to show `Name: <value>` immediately after `Story ID: <value>` — this directly fixes the "story_id alone doesn't make sense in the summary" problem
+
+- [ ] Task 6: Document the kickoff → openspec/opsx sequencing (AC: 6)
+  - [ ] Subtask 6.1: add a concrete worked example to `tools/build-release/INSTALL.md`'s "Daily use" section: propose (`/opsx:propose add-user-auth`) → artifacts created → kick off the story (real Phase-1 estimate now available) → work normally → `/opsx:apply` → `/opsx:archive`. State explicitly that the change name is developer-chosen and unrelated to `story_id` — this was a real point of confusion in testing (2026-07-11) and is worth calling out by name, not just implying it through the example
+  - [ ] Subtask 6.2: in `.claude/skills/story-kickoff/SKILL.md` step 3 (Phase-1 estimator), when `phase1_points` is null specifically because `phase1_points_reason` indicates no openspec change was found, add the one-line nudge from AC 6 to what's told to the developer — additive to the existing "tell the developer why and fall back to a plain ask" instruction, never a new blocking behavior (FR5)
 
 ## Dev Notes
 
 ### Scope — what this story is and is not
 
 - This story touches the **docs-only kickoff path only**. JIRA (Story 1.6) and Confluence (Story 1.4) variants are explicitly unaffected — their `sprint` stays required, and neither gets a document-read capability in this story (Held for later, below).
-- **Do NOT build in this story:** structured extraction of a formal task list from a PRD (this story only supports human-facing summarization to *inform* a developer's own estimate, never automated point calculation from document content); a new adapter script for document reading (it's conversational, using the Read tool already available to the skill); extending document-read to JIRA/Confluence kickoffs.
-- The `points`/`goal`/`description` manifest fields and their validation in `tools/adapters/docs-only/main.py` are **unchanged** by this story — only `--sprint`'s requiredness changes, and only conditionally on `--source-of-truth`.
+- **Do NOT build in this story:** structured extraction of a formal task list from a PRD (this story only supports human-facing summarization to *inform* a developer's own estimate, never automated point calculation from document content); a new adapter script for document reading (it's conversational, using the Read tool already available to the skill); extending document-read to JIRA/Confluence kickoffs; a `name` field for JIRA/Confluence (decided 2026-07-11 — docs-only-only for now; see Held for later).
+- The `points`/`goal`/`description` manifest fields and their validation in `tools/adapters/docs-only/main.py` are **unchanged** by this story — `--sprint`'s requiredness changes conditionally on `--source-of-truth` (Task 1), and a new optional `--name` is added (Task 5, defaults `null`, docs-only-only elicitation).
+
+### Held for later (explicitly out of scope, decided 2026-07-11)
+
+- **Cross-backend `name` field.** JIRA's `summary` (already mapped to `goal` today) could plausibly also populate a normalized `name` field for JIRA/Confluence, giving every backend a consistent short title — but that changes the AD-4 shape for all three adapters, not just docs-only, and needs its own design pass (does `goal` then change meaning for JIRA too, or does `name` become a genuinely new *additional* fetched field?). Revisit as a dedicated story if story names are wanted across backends, not folded in here.
 
 ### Architecture compliance (binding invariants)
 
@@ -96,13 +121,14 @@ If the dev agent finds a reason to prefer the rejected design during implementat
 ### Source tree touched
 
 ```text
-.claude/skills/story-kickoff/SKILL.md   UPDATE  docs-only elicitation (step 4): PRD read, AskUserQuestion, rewording
-tools/adapters/docs-only/main.py        UPDATE  --sprint becomes conditionally optional (Task 1)
-tests/adapters/test_docs_only.py        UPDATE  new sprint-optionality tests (regression-lock jira/confluence)
+.claude/skills/story-kickoff/SKILL.md   UPDATE  docs-only elicitation (step 4): name, PRD read, AskUserQuestion, rewording; step 3's null-estimate message (Task 6.2)
+tools/adapters/docs-only/main.py        UPDATE  --sprint conditionally optional (Task 1); new optional --name (Task 5)
+tests/adapters/test_docs_only.py        UPDATE  sprint-optionality tests + name-field tests + updated key-order assertions
+tools/build-release/INSTALL.md          UPDATE  kickoff -> openspec/opsx sequencing example (Task 6.1)
 docs/testing/                           UPDATE  new E2E scenarios (Task 4.2) — reuse the story-1.6-e2e.md pattern
 ```
 
-No other files are touched. `tools/adapters/jira/main.py`, `tools/adapters/confluence/main.py`, and their tests are untouched — this story does not modify their behavior even though they share the docs-only writer as their manifest-writing backend (their calls always supply a non-empty `--sprint` after their own re-prompt rule, so Task 1's conditional change is invisible to them).
+No other files are touched. `tools/adapters/jira/main.py`, `tools/adapters/confluence/main.py`, and their tests are untouched — this story does not modify their behavior even though they share the docs-only writer as their manifest-writing backend (their calls always supply a non-empty `--sprint` after their own re-prompt rule, so Task 1's conditional change is invisible to them, and they never pass `--name` in this story).
 
 ### Testing standards (project-context.md §5/§6)
 
@@ -129,6 +155,8 @@ No other files are touched. `tools/adapters/jira/main.py`, `tools/adapters/confl
 - [Source: tools/adapters/docs-only/main.py] — current sprint validation (`required=True`, non-empty check) this story conditionally relaxes
 - [Source: tests/adapters/test_docs_only.py] — existing fixture/helper pattern (`kickoff()`, `MANIFEST_KEYS`) to extend
 - [Source: project-context.md] — §1 stdlib-only/no-premature-abstraction, §5-6 testing standards, §8-12 branch/PR/DoD
+- [Source: tools/estimate-phase1/main.py#find_change_dir] — confirms no story_id<->openspec-change-name link exists anywhere in the codebase (verified 2026-07-11 during story design); the "exactly one candidate directory" heuristic is the only linkage, which is why sequencing (propose before kickoff) matters for AC 6
+- [Source: .claude/commands/opsx/propose.md, .claude/commands/opsx/archive.md] — real `/opsx:propose`/`/opsx:archive` command contracts (verified 2026-07-11) — the change name is developer-chosen kebab-case, never `story_id`; do not invent command syntax without checking these files
 
 ## Dev Agent Record
 

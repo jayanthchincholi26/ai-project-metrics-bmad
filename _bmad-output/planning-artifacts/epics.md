@@ -183,7 +183,7 @@ So that the capture side knows which adapter to activate without asking me on ev
 
 ### Story 1.7: Docs-Only Kickoff Reads a Requirements Doc and Relaxes Sprint for Ad Hoc Teams
 
-> ⏳ **Not started** — opened 2026-07-11, design discussion in `epics.md` history / session notes
+> ⏳ **Ready for dev** — opened 2026-07-11; full context-engineered story file at `_bmad-output/implementation-artifacts/1-7-docs-only-kickoff-reads-a-requirements-doc-and-relaxes-sprint-for-ad-hoc-teams.md` (via `bmad-create-story`)
 
 As a developer on a project with no PM tool,
 I want kickoff to optionally read a requirements document I point it to, and to not force a fake sprint number on a team that doesn't run sprints,
@@ -210,8 +210,17 @@ So that docs-only kickoff is genuinely adapted to "no PM tool," not just "no JIR
    **Then** an explicit "none"/"N/A" answer is accepted as valid — the skill does not re-prompt forever demanding a fabricated value
    **And** the elicitation wording reflects this (e.g. "Milestone, release, or time period this belongs to — say 'none' if you don't track this")
    **And** the manifest's `sprint` field itself stays named `sprint` regardless of backend (AD-4 normalized shape unchanged) — only the docs-only question wording and requiredness change; JIRA/Confluence keep `sprint` required exactly as today
+5. **Given** `source_of_truth: docs-only` (decided 2026-07-11: docs-only-only, not a cross-backend AD-4 change — see Held for later)
+   **When** the skill elicits the required fields
+   **Then** it also asks for a short human-readable **Story Name** (e.g. "Auth Module Implementation") as free text, before goal/points/sprint
+   **And** the manifest gains a new optional `name` field (`null` for JIRA/Confluence, which don't ask for it in this story), positioned right after `story_id`
+   **And** the kickoff completion summary shows **Name** right after **Story ID** — directly fixes the "opaque `story_id`-only summary" gap found in testing
+6. **Given** a developer just completed docs-only kickoff and isn't sure what's next
+   **When** they read `INSTALL.md`
+   **Then** it documents the real sequence with a concrete example: `/opsx:propose <change-name>` (developer-chosen kebab-case, **never** `story_id` — verified against `.claude/commands/opsx/propose.md`) ideally before kickoff for a real Phase-1 estimate, then normal work, then `/opsx:apply`, then `/opsx:archive`
+   **And** when Phase-1 comes back null because no openspec change was found, the skill adds a one-line non-blocking nudge toward `/opsx:propose` (FR5 — informational only)
 
-**Held for later (not in this story):** actually parsing structured data out of a PRD (e.g. extracting a formal task list) — this story only supports summarization to inform a human's own estimate, not automated extraction. Extending the same doc-read capability to JIRA/Confluence kickoffs, if ever wanted.
+**Held for later (decided 2026-07-11):** a `name` field for JIRA/Confluence too (JIRA's `summary` already maps to `goal` today — extending `name` cross-backend changes the AD-4 shape for all three adapters and needs its own design pass on whether `goal` then means something different for JIRA; revisit as its own story if wanted). Actually parsing structured data out of a PRD (e.g. extracting a formal task list) — this story only supports summarization to inform a human's own estimate, not automated extraction. Extending the same doc-read capability to JIRA/Confluence kickoffs, if ever wanted.
 
 ### Story 1.6: JIRA Adapter Fetches via the Atlassian Remote MCP Server
 
