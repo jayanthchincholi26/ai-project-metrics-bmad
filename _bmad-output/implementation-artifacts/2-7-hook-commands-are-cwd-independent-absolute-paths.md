@@ -112,6 +112,14 @@ tests/test_setup_hooks.py  UPDATE  absolute-path assertions; new upgrade-in-plac
 - [Source: tools/hooks/_events.py] — docstring's documented assumption that git always invokes hooks with cwd at repo root (the reasoning Task 3 must verify empirically, not just cite)
 - [Source: project-context.md] — §1 stdlib-only, §2 atomic writes, §5-6 testing standards, §8-12 branch/PR/DoD
 
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #22) triaged per project-context §9 — 2026-07-11:
+
+- [x] [AI-Review][Critical] Suffix-matching collision: `references_our_script()`'s original `command.rstrip('"').endswith(script)` would misidentify an unrelated hand-added hook (e.g. `my_backstop.py`) as our `stop.py` purely because the filename ends the same way, silently overwriting the developer's own hook command. Fixed: now requires a path boundary (`/`) immediately before the script name, or an exact match. New test: `test_a_similarly_named_custom_hook_is_not_mistaken_for_ours` (confirmed failing before the fix — the custom command was overwritten — and passing after).
+- [x] [AI-Review][Minor] Whitespace sensitivity: trailing whitespace after a quoted command (e.g. a hand-edited `settings.json`) would prevent recognition as ours, causing a duplicate entry on the next install. Fixed: `.strip()` before and after the quote-strip. New test: `test_trailing_whitespace_after_quote_is_still_recognized_as_ours`.
+- Declined (out of scope for this story, filed as separate backlog items — see `epics.md`): [AI-Review][Major] `commit-msg.sh` could abort a commit if `uv` is missing from a git client's PATH — real concern, but the file is untouched by this PR (Story 2.1/2.2 territory); [AI-Review][Medium] `repo_root()`'s cwd fallback lacks a parent-directory walk — `_events.py` untouched by this PR; [AI-Review][Minor] missing `.sh`-count assertion in a pre-existing test, temp-file cleanup on write failure, flat-YAML documentation — all reference files/tests this PR does not touch. Five of seven review findings referenced code entirely outside this PR's 4-file diff (verified via `git diff enhancements..story/2.7... --name-only` before triaging) — the 6th PR in a row with at least one misattributed reviewer finding; grep-verify held.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -137,7 +145,7 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### File List
 
-- tools/setup-hooks.py (modified — `command_for()` takes `root` and returns an absolute quoted path; new `references_our_script()`; `merge_settings()` takes `root`, upgrades matching entries in place instead of exact-string matching; `main()` resolves `root` once and passes it through)
-- tests/test_setup_hooks.py (modified — 2 new tests: absolute-path assertion, upgrade-not-duplicate regression test)
+- tools/setup-hooks.py (modified — `command_for()` takes `root` and returns an absolute quoted path; `references_our_script()` matches on a path-boundary-safe suffix, not a bare substring; `merge_settings()` takes `root`, upgrades matching entries in place instead of exact-string matching; `main()` resolves `root` once and passes it through)
+- tests/test_setup_hooks.py (modified — 4 new tests: absolute-path assertion, upgrade-not-duplicate regression test, plus 2 review-driven tests for the collision and whitespace fixes)
 - _bmad-output/implementation-artifacts/2-7-hook-commands-are-cwd-independent-absolute-paths.md (this file — task checkboxes, Dev Agent Record, status)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)

@@ -58,11 +58,14 @@ def command_for(root: Path, script: str) -> str:
 
 
 def references_our_script(command: str, script: str) -> bool:
-    """True if `command` invokes `script`, whether via the old relative form,
-    the new absolute form, or either quoted — the trailing quote the new form
-    adds must be stripped before comparing, or a plain endswith() silently
-    fails to match and this becomes a duplicate-entry bug (Story 2.7)."""
-    return command.rstrip('"').endswith(script)
+    """True if `command` invokes `script` specifically — the old relative form,
+    the new absolute form, or either quoted/padded with incidental whitespace —
+    never merely a *substring* collision (PR #22 review): a hand-added hook
+    like `my_backstop.py` must never be mistaken for our `stop.py` just
+    because the filename happens to end the same way. Requires a path
+    boundary (`/`) immediately before the script name, or an exact match."""
+    cleaned = command.strip().rstrip('"').strip().replace("\\", "/")
+    return cleaned == script or cleaned.endswith("/" + script)
 
 
 def merge_settings(root: Path, settings: dict[str, Any]) -> dict[str, Any]:

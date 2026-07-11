@@ -118,6 +118,45 @@ def test_stale_relative_path_command_is_upgraded_not_duplicated(fake_repo, capsy
     assert Path(commands[0][len("uv run ") :].strip('"')).is_absolute()
 
 
+def test_a_similarly_named_custom_hook_is_not_mistaken_for_ours(fake_repo, capsys):
+    # Review finding (PR #22): a naive endswith(script) match would treat a
+    # hand-added hook like "my_backstop.py" as our "stop.py" (it IS a suffix
+    # match) and overwrite the developer's own command. Must not happen.
+    settings_dir = fake_repo / ".claude"
+    settings_dir.mkdir()
+    custom_command = "uv run /usr/local/bin/my_backstop.py"
+    existing = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": custom_command}]}]}}
+    (settings_dir / "settings.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    settings = settings_of(fake_repo)
+    stop_commands = [h["command"] for entry in settings["hooks"]["Stop"] for h in entry["hooks"]]
+    assert custom_command in stop_commands  # untouched
+    assert len(stop_commands) == 2  # the developer's hook, plus ours added alongside it
+
+
+def test_trailing_whitespace_after_quote_is_still_recognized_as_ours(fake_repo, capsys):
+    # Review finding (PR #22): a hand-edited settings.json with trailing
+    # whitespace after the closing quote must still be recognized as our
+    # entry and upgraded, not duplicated.
+    settings_dir = fake_repo / ".claude"
+    settings_dir.mkdir()
+    padded_command = 'uv run "tools/hooks/claude/pre_tool_use.py" '
+    existing = {
+        "hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": padded_command}]}]}
+    }
+    (settings_dir / "settings.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    commands = our_commands(settings_of(fake_repo), "PreToolUse")
+    assert len(commands) == 1
+    assert commands[0] != padded_command
+
+
 def test_second_run_is_idempotent(fake_repo, capsys):
     run(fake_repo)
     first_settings = settings_of(fake_repo)
