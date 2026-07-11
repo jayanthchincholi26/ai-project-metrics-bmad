@@ -183,7 +183,7 @@ So that the capture side knows which adapter to activate without asking me on ev
 
 ### Story 1.7: Docs-Only Kickoff Reads a Requirements Doc and Relaxes Sprint for Ad Hoc Teams
 
-> ⏳ **Ready for dev** — opened 2026-07-11; full context-engineered story file at `_bmad-output/implementation-artifacts/1-7-docs-only-kickoff-reads-a-requirements-doc-and-relaxes-sprint-for-ad-hoc-teams.md` (via `bmad-create-story`)
+> ✅ **Complete** — 2026-07-11 · [PR #21](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/21) (squash-merged to `enhancements`, da3b593). Manual E2E of the skill-flow scenarios deferred to the user's own post-release testing pass, by explicit instruction.
 
 As a developer on a project with no PM tool,
 I want kickoff to optionally read a requirements document I point it to, and to not force a fake sprint number on a team that doesn't run sprints,

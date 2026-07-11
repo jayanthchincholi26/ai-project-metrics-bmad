@@ -4,7 +4,9 @@ baseline_commit: ffc694efa49bb565b3e8b0d5caef38fc8895a515
 
 # Story 1.7: Docs-Only Kickoff Reads a Requirements Doc and Relaxes Sprint for Ad Hoc Teams
 
-Status: review
+> ✅ **Complete** — 2026-07-11 · [PR #21](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/21) (squash-merged to `enhancements`, da3b593). Review note: 5th consecutive PR with a misattributed reviewer finding (credited two pre-existing INSTALL.md fixes, from earlier standalone commits, to this PR) — grep-verify held; substantive verdict (zero real defects) confirmed against the actual 6-file diff. Manual E2E scenarios deferred to the user's own post-release testing pass, by explicit instruction.
+
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
