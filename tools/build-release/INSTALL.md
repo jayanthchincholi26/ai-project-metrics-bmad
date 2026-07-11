@@ -39,7 +39,10 @@ No third-party Python packages are needed at runtime — every script is standar
    same setup from a plain clone (they still each run step 2 once).
 
 **Important:** run step 2 *before* opening a Claude Code session in the repo — hooks wire
-up at session start. If a session was already open, start a new one. And open the repo
+up at session start (`SessionStart`) and won't retroactively apply to a session already in
+progress. If a Claude Code panel was already open in this window before you ran step 2 —
+even just to look at it — **reload the window** (Ctrl+Shift+P → "Developer: Reload Window")
+or start a brand-new session before continuing; don't reuse the old one. And open the repo
 folder itself as your editor's workspace root (not a parent folder), or Claude Code won't
 see the kickoff skill.
 
