@@ -468,7 +468,7 @@ so that ordinary branch-per-story git hygiene (branching the next story off `dev
    **When** `story-2` is branched off `develop` after `story-1`'s manifest-clearing change has merged
    **Then** kickoff proceeds normally with no stale-manifest block
 
-**Held for later:** whether the fix belongs in the wrapper (automatic teardown) vs. the Story Archival Checklist (a documented manual step) is an open design question — worth resolving before implementation, not deciding by default.
+**Design decision (resolved 2026-07-13, before implementation):** not a wrapper-side automatic teardown (that would only cover the openspec/opsx path, and mutating git state as a side effect of archiving is a surprising thing for a wrapper to do) and not a manual checklist step (too easy to forget, same class of problem as Story 2.11). Instead: `story-kickoff`'s own "Refuse a double kickoff early" guard (SKILL.md step 2) gets smarter. AD-3 already guarantees a snapshot is the authoritative signal a story has closed — so when `.story.yaml` already exists, kickoff checks whether `snapshots/{story_id}.*.json` also exists for that manifest's `story_id`. If a snapshot exists, the story is provably already closed (just its manifest lingered via merge/branch-inherit) — kickoff says so plainly and offers to clear `.story.yaml` (confirmed, not silent) so the new kickoff can proceed. If no snapshot exists, it's genuinely the same in-progress story — today's hard block stays exactly as-is. This is backend-agnostic (works whether or not a project uses openspec) and needs zero new state or wrapper changes.
 
 ### Story 2.11: Setup Enforces `.gitignore` for Local Capture State (Prevents Silent Cross-Branch Data Loss)
 
