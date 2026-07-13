@@ -103,10 +103,24 @@ def ensure_gitignore(root: Path) -> None:
     """Append any of GITIGNORE_ENTRIES missing from .gitignore (Story 2.11);
     create the file if absent. Prevents .story-events.jsonl et al from ever
     being git-tracked, which silently forks/discards captured events the
-    moment two story branches diverge and checkout swaps between them."""
+    moment two story branches diverge and checkout swaps between them.
+
+    Matching is whitespace-tolerant and recognizes a leading-slash-anchored
+    form (e.g. `/.story-events.jsonl`) as already covering an entry, so an
+    existing hand-written rule isn't redundantly duplicated (review finding,
+    PR #23)."""
     path = root / ".gitignore"
-    existing = path.read_text(encoding="utf-8-sig").splitlines() if path.exists() else []
-    missing = [entry for entry in GITIGNORE_ENTRIES if entry not in existing]
+    if path.exists() and not path.is_file():
+        print(
+            f"warning: {path} exists but is not a regular file — skipping .gitignore enforcement",
+            file=sys.stderr,
+        )
+        return
+    existing = path.read_text(encoding="utf-8-sig").splitlines() if path.is_file() else []
+    covered = {line.strip() for line in existing}
+    missing = [
+        entry for entry in GITIGNORE_ENTRIES if entry not in covered and f"/{entry}" not in covered
+    ]
     if not missing:
         return
     text = "\n".join(existing + missing) + "\n"
@@ -118,13 +132,17 @@ def tracked_capture_files(root: Path) -> list[str]:
     commit predating this fix, the exact situation that caused silent
     cross-branch event-log forking in live pilot testing. `git_out()` already
     degrades to None on any failure (not a repo, git unavailable, timeout);
-    treat that the same as "not tracked" rather than blocking the install."""
-    tracked = []
-    for entry in GITIGNORE_ENTRIES:
-        result = _events.git_out("ls-files", "--error-unmatch", entry, cwd=root)
-        if result:
-            tracked.append(entry)
-    return tracked
+    treat that the same as "not tracked" rather than blocking the install.
+
+    One batched `git ls-files` call rather than one subprocess per entry
+    (review finding, PR #23) — `git ls-files -- <paths...>` exits 0 and prints
+    just the subset that's actually tracked, never failing for an untracked
+    path in the list."""
+    result = _events.git_out("ls-files", "--", *GITIGNORE_ENTRIES, cwd=root)
+    if not result:
+        return []
+    tracked_lines = set(result.splitlines())
+    return [entry for entry in GITIGNORE_ENTRIES if entry in tracked_lines]
 
 
 def fail(message: str) -> int:

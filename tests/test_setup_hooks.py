@@ -346,3 +346,68 @@ def test_git_unavailable_is_treated_as_not_tracked_never_blocks_install(
     assert exit_code == 0
     assert (fake_repo / ".gitignore").exists()
     assert (fake_repo / ".claude" / "settings.json").exists()
+
+
+def test_anchored_slash_prefixed_entry_is_not_redundantly_duplicated(fake_repo, capsys):
+    # Review finding (PR #23): a hand-written anchored rule like
+    # "/.story-events.jsonl" already covers the file; a naive exact-match
+    # check would fail to recognize that and append a duplicate plain entry.
+    gitignore = fake_repo / ".gitignore"
+    gitignore.write_text("/.story-events.jsonl\n", encoding="utf-8")
+
+    run(fake_repo)
+
+    lines = gitignore.read_text(encoding="utf-8").splitlines()
+    assert lines.count("/.story-events.jsonl") == 1
+    assert ".story-events.jsonl" not in lines
+    assert ".story-events.pending.jsonl" in lines
+
+
+def test_whitespace_padded_existing_entry_is_recognized_not_duplicated(fake_repo, capsys):
+    # Review finding (PR #23): leading/trailing whitespace around an existing
+    # entry must not defeat the "already present" check.
+    gitignore = fake_repo / ".gitignore"
+    gitignore.write_text("  .story-events.jsonl  \n", encoding="utf-8")
+
+    run(fake_repo)
+
+    lines = gitignore.read_text(encoding="utf-8").splitlines()
+    assert lines.count("  .story-events.jsonl  ") == 1
+    assert ".story-events.jsonl" not in lines
+
+
+def test_gitignore_as_a_directory_does_not_crash_the_install(fake_repo, capsys):
+    # Review finding (PR #23): path.exists() alone doesn't guarantee it's a
+    # regular file — a directory named .gitignore must not crash setup.
+    (fake_repo / ".gitignore").mkdir()
+
+    exit_code = run(fake_repo)
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "not a regular file" in captured.err
+    assert (fake_repo / ".claude" / "settings.json").exists()
+
+
+def test_tracked_check_uses_a_single_batched_git_call(fake_repo, capsys, monkeypatch):
+    # Review finding (PR #23): one subprocess per entry is wasteful; a single
+    # `git ls-files -- <paths...>` call should cover all 4 entries at once.
+    calls = []
+
+    def fake_git_out(*args, **kwargs):
+        calls.append(args)
+        if "ls-files" in args:
+            return ".story-events.jsonl\n.active-story"
+        return None
+
+    monkeypatch.setattr(setup_hooks._events, "git_out", fake_git_out)
+
+    run(fake_repo)
+
+    ls_files_calls = [c for c in calls if "ls-files" in c]
+    assert len(ls_files_calls) == 1
+
+    captured = capsys.readouterr()
+    assert ".story-events.jsonl" in captured.err
+    assert ".active-story" in captured.err
+    assert ".story-events.pending.jsonl" not in captured.err

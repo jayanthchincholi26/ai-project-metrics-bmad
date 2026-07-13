@@ -117,6 +117,7 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 - Full suite: `uv run pytest -q` → 238 passed; `uv run ruff check .` clean; `uv run ruff format --check tools tests` flagged 2 files (whitespace-only), fixed via `ruff format`, then clean
 - Live E2E #1 (tracked-file warning): real git repo, deliberately committed `.story-events.jsonl` (simulating the exact pre-fix state found in pilot testing), ran the fixed installer — warning correctly printed to stderr naming the file and `git rm --cached` fix, exit code 0, `.gitignore`/hooks/settings all written normally
 - Live E2E #2 (branch continuity): real git repo, fresh install (no pre-existing tracked files, confirmed zero warnings), kicked off a story, created `story/A`, appended an event, committed, created `story/B` off `story/A`, appended a second event (uncommitted — file is now ignored, nothing to commit), checked out back to `story/A` — confirmed `.story-events.jsonl` still contained **both** events (`on-A-1` and `on-B-1`) after the round-trip checkout, proving the log stays continuous and is never touched/forked by `git checkout` once ignored
+- Post-review E2E: real git repo with both edge cases at once — a pre-existing anchored `/.story-events.jsonl` rule in `.gitignore` **and** the file force-tracked (`git add -f`, simulating a stale commit despite the ignore rule) — confirmed no redundant plain entry was added to `.gitignore`, and the tracked-file warning still fired correctly via the new single batched `git ls-files` call
 
 ### Completion Notes List
 
@@ -128,7 +129,17 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 ### File List
 
 - tools/setup-hooks.py (modified — new `GITIGNORE_ENTRIES` constant, `ensure_gitignore()`, `tracked_capture_files()`, both wired into `main()`; imports `_events` for the shared `git_out()` helper)
-- tests/test_setup_hooks.py (modified — 6 new tests: fresh-install creation, partial-existing append, idempotency, tracked-file warning, no-warning-when-clean, git-unavailable-degrades-safely)
+- tests/test_setup_hooks.py (modified — 11 new tests total: fresh-install creation, partial-existing append, idempotency, tracked-file warning, no-warning-when-clean, git-unavailable-degrades-safely, anchored-slash-entry recognition, whitespace-padded-entry recognition, gitignore-as-a-directory doesn't crash, single-batched-git-call)
 - tools/build-release/INSTALL.md (modified — notes the `.gitignore` step is now automatic via `setup-hooks.py`, explains the tracked-file warning)
 - _bmad-output/implementation-artifacts/2-11-setup-enforces-gitignore-for-local-capture-state.md (this file — task checkboxes, Dev Agent Record, status)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
+
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #23) — 2026-07-13, all 3 findings genuine (this PR's own new code, no misattribution):
+
+- [x] [AI-Review][Minor] `tracked_capture_files()` spawned one `git ls-files` subprocess per entry (4 total) — wasteful, especially on Windows where process creation is slower. Fixed: a single batched `git ls-files -- <paths...>` call, which exits 0 and prints just the subset that's tracked. New test: `test_tracked_check_uses_a_single_batched_git_call`.
+- [x] [AI-Review][Minor] `ensure_gitignore()`'s exact-string-equality check missed a pre-existing entry written with surrounding whitespace, or anchored with a leading slash (e.g. `/.story-events.jsonl`) — would redundantly append a duplicate plain entry. Fixed: matching now strips whitespace and also recognizes the leading-slash-anchored form as already-covered. New tests: `test_anchored_slash_prefixed_entry_is_not_redundantly_duplicated`, `test_whitespace_padded_existing_entry_is_recognized_not_duplicated`.
+- [x] [AI-Review][Minor] `path.exists()` before `read_text()` would crash (`IsADirectoryError`) if `.gitignore` were somehow a directory rather than a file. Fixed: guarded with `path.is_file()`, printing a visible warning and skipping enforcement rather than crashing the whole install. New test: `test_gitignore_as_a_directory_does_not_crash_the_install`.
+
+All 3 findings verified against the actual PR #23 diff before fixing (`git log --oneline -1 story/2.11-gitignore-enforcement -- tools/setup-hooks.py` confirms the file is this PR's own new code) — no misattribution this round. Post-review real-git E2E re-verified both the anchored-entry dedup and the tracked-file warning together (see Debug Log).
