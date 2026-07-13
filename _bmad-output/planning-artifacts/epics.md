@@ -448,7 +448,7 @@ so that a transient git/subprocess failure never silently writes capture files i
 
 ### Story 2.10: A Closed Story's Manifest Doesn't Block the Next Story's Kickoff
 
-> ⏳ **Not started** — opened 2026-07-13, found during live pilot testing of the JIRA-via-MCP flow (v0.2.1, `ai-project-metrics-bmad-testing` test repo)
+> ✅ **Complete** — 2026-07-13 · [PR #24](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/24) (squash-merged to `enhancements`, 05c29fa; branch preserved). Found live during pilot testing of the JIRA-via-MCP flow (v0.2.1, `ai-project-metrics-bmad-testing` test repo). Skill-instruction-only change (no pytest surface) — verified with 4 real live invocations of the actual skill, not simulated. Review found 3 real, correctly-attributed defects (explicit `<repo-root>`-relative path, missing-`snapshots/`-directory fallback, malformed-manifest fallback) — all fixed and re-verified live before merge.
 
 As a developer,
 I want kicking off a new story to work normally even though the previous story's `.story.yaml` was merged into my base branch,
