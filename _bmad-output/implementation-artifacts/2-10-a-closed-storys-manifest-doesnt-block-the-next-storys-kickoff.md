@@ -114,6 +114,8 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 - Live E2E #1 (AC 1, 2, 4 — closed manifest, offer-to-clear): a scratch repo with `.story.yaml` for `story-20260710-abc123` and a matching `snapshots/story-20260710-abc123.v1.rev1.json` — actually invoked the `story-kickoff` skill (via the Skill tool) against this repo. It correctly detected the matching snapshot, named the closed story's `story_id`/`goal`/snapshot revision, and asked for confirmation. On confirming, it deleted `.story.yaml` and proceeded through steps 3-5 (Phase-1 estimate → null, docs-only elicitation via `AskUserQuestion`, manifest write) to a **successful kickoff with a new, distinct `story_id`** (`story-20260713-2f8b11`, vs. the old `story-20260710-abc123`)
 - Live E2E #2 (AC 3 — still-open manifest, unweakened hard block): same scratch repo, `.story.yaml` swapped to `story-20260713-stillopen` with **no** matching snapshot file — re-invoked the skill; it correctly hard-blocked exactly as before ("this story is already kicked off," showing `story_id`/goal), no clear offered, nothing deleted
 - Full regression (`uv run pytest -q`, `uv run ruff check .`) confirmed green — this story touches no Python, so this is a no-change confirmation, not a meaningful regression test in itself
+- Post-review Live E2E #3 (missing `snapshots/` directory entirely): scratch repo, `.story.yaml` with a real `story_id` but no `snapshots/` folder at all (a fresh repo where nothing has ever been archived) — re-invoked the skill; correctly treated the missing directory as "no matching snapshot," hard-blocked exactly as the still-open case, manifest untouched
+- Post-review Live E2E #4 (malformed manifest, no `story_id` key): scratch repo, `.story.yaml` missing its `story_id` key entirely, **with** a `snapshots/` file present matching a different, old `story_id` (deliberately planted to prove the malformed-manifest check runs first and isn't fooled by an unrelated snapshot) — re-invoked the skill; correctly treated the malformed manifest as still-open without even attempting the snapshot check, hard-blocked, manifest untouched
 
 ### Completion Notes List
 
@@ -124,6 +126,16 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### File List
 
-- .claude/skills/story-kickoff/SKILL.md (modified — step 2 gains the snapshot-existence check and confirm-then-clear flow)
+- .claude/skills/story-kickoff/SKILL.md (modified — step 2 gains the snapshot-existence check and confirm-then-clear flow; post-review, also a missing-`story_id` fallback and a missing-`snapshots/`-directory fallback)
 - _bmad-output/implementation-artifacts/2-10-a-closed-storys-manifest-doesnt-block-the-next-storys-kickoff.md (this file — task checkboxes, Dev Agent Record, status)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
+
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #24) — 2026-07-13, all 3 findings genuine (this PR's own new instruction text, no misattribution):
+
+- [x] [AI-Review][Minor] Instructions didn't explicitly say `snapshots/` resolves from the same `<repo-root>` passed to every other command, risking a cwd-drift bug if the agent checked the wrong directory. Fixed: explicit `<repo-root>/snapshots/` wording added.
+- [x] [AI-Review][Medium] A repo where no story has ever been archived yet has no `snapshots/` directory at all — instructions didn't say what to do, risking a stall or error. Fixed: explicitly treat a missing `snapshots/` directory as "no matching snapshot." Verified live (Live E2E #3).
+- [x] [AI-Review][Medium] A malformed or `story_id`-less `.story.yaml` wasn't handled — the agent could have tried a generic glob or failed parsing. Fixed: explicitly treat a missing/unparseable `story_id` as still-open, skipping the snapshot check entirely. Verified live (Live E2E #4), including the case where an unrelated snapshot exists for a different `story_id` — confirmed it doesn't fool the check.
+
+All 3 findings verified against the actual PR #24 diff before fixing (`git log --oneline -1 story/2.10-stale-manifest-guard -- .claude/skills/story-kickoff/SKILL.md` confirms the file is this PR's own new instruction text) — no misattribution this round.
