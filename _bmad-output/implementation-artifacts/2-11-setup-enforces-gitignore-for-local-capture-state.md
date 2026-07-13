@@ -4,7 +4,7 @@ baseline_commit: 18edb0b
 
 # Story 2.11: Setup Enforces `.gitignore` for Local Capture State
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,22 +34,22 @@ so that switching between story branches never silently discards or forks captur
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `.gitignore` enforcement (AC: 1, 4)
-  - [ ] Subtask 1.1 (RED): add a test creating a `fake_repo` with no `.gitignore` at all; run the installer; assert all 4 entries now present
-  - [ ] Subtask 1.2 (RED): add a test with a `.gitignore` that already has 2 of the 4 entries (plus an unrelated line, e.g. `node_modules/`); run the installer; assert only the missing 2 are appended, the existing 2 aren't duplicated, and the unrelated line survives untouched
-  - [ ] Subtask 1.3 (GREEN): implement `ensure_gitignore(root: Path) -> None` in `tools/setup-hooks.py` — read existing `.gitignore` lines (if the file exists; `utf-8-sig` per this codebase's established BOM-safety convention, see `tools/adapters/resolve.py`'s `read_config()`), compare against `GITIGNORE_ENTRIES = (".story-events.jsonl", ".story-events.pending.jsonl", ".active-story", ".active-claude-session")` by exact line match (ignoring trailing whitespace), append only what's missing via `write_atomic()` (reuse the existing helper — never a partial/non-atomic write), preserving all existing lines and their order
-  - [ ] Subtask 1.4 (GREEN): wire `ensure_gitignore(root)` into `main()`, called unconditionally alongside the existing git-hooks/settings.json writes
-  - [ ] Subtask 1.5: re-run `test_second_run_is_idempotent`-style check for this new behavior — second install produces byte-identical `.gitignore`
+- [x] Task 1: `.gitignore` enforcement (AC: 1, 4)
+  - [x] Subtask 1.1 (RED): add a test creating a `fake_repo` with no `.gitignore` at all; run the installer; assert all 4 entries now present
+  - [x] Subtask 1.2 (RED): add a test with a `.gitignore` that already has 2 of the 4 entries (plus an unrelated line, e.g. `node_modules/`); run the installer; assert only the missing 2 are appended, the existing 2 aren't duplicated, and the unrelated line survives untouched
+  - [x] Subtask 1.3 (GREEN): implement `ensure_gitignore(root: Path) -> None` in `tools/setup-hooks.py` — read existing `.gitignore` lines (if the file exists; `utf-8-sig` per this codebase's established BOM-safety convention, see `tools/adapters/resolve.py`'s `read_config()`), compare against `GITIGNORE_ENTRIES = (".story-events.jsonl", ".story-events.pending.jsonl", ".active-story", ".active-claude-session")` by exact line match (ignoring trailing whitespace), append only what's missing via `write_atomic()` (reuse the existing helper — never a partial/non-atomic write), preserving all existing lines and their order
+  - [x] Subtask 1.4 (GREEN): wire `ensure_gitignore(root)` into `main()`, called unconditionally alongside the existing git-hooks/settings.json writes
+  - [x] Subtask 1.5: re-run `test_second_run_is_idempotent`-style check for this new behavior — second install produces byte-identical `.gitignore`
 
-- [ ] Task 2: warn (never fail) when a covered file is already tracked (AC: 2)
-  - [ ] Subtask 2.1 (RED): add a test that pre-creates one of the 4 files, marks it tracked via a mocked/injected git-query function returning the file as tracked, and asserts (a) a warning appears on stderr naming that file and mentioning `git rm --cached`, (b) exit code is still 0, (c) `.gitignore`/git hooks/`.claude/settings.json` are all still written normally
-  - [ ] Subtask 2.2 (GREEN): implement `tracked_capture_files(root: Path) -> list[str]` — for each of the 4 entries, ask git whether it's tracked. Reuse the existing safe-subprocess pattern already established in `tools/hooks/_events.py`'s `git_out()` (10s timeout, `capture_output=True`, returns `None` on any failure — never raises, never blocks). A `None`/failed git call (not a repo, git unavailable, timeout) must be treated as "can't determine, don't warn" — same fail-safe philosophy as every other git call in this codebase, not a reason to error out of the whole install
-  - [ ] Subtask 2.3 (GREEN): print one consolidated warning line per tracked file to stderr from `main()`, after the normal install work completes and before the final JSON ack — e.g. `warning: .story-events.jsonl is tracked by git; this can silently fork your event log across story branches — run: git rm --cached .story-events.jsonl` — and confirm the JSON ack line is still the only stdout line (existing tests assert exactly one stdout line; don't break that contract by printing warnings to stdout)
+- [x] Task 2: warn (never fail) when a covered file is already tracked (AC: 2)
+  - [x] Subtask 2.1 (RED): add a test that pre-creates one of the 4 files, marks it tracked via a mocked/injected git-query function returning the file as tracked, and asserts (a) a warning appears on stderr naming that file and mentioning `git rm --cached`, (b) exit code is still 0, (c) `.gitignore`/git hooks/`.claude/settings.json` are all still written normally
+  - [x] Subtask 2.2 (GREEN): implement `tracked_capture_files(root: Path) -> list[str]` — for each of the 4 entries, ask git whether it's tracked. Reuse the existing safe-subprocess pattern already established in `tools/hooks/_events.py`'s `git_out()` (10s timeout, `capture_output=True`, returns `None` on any failure — never raises, never blocks). A `None`/failed git call (not a repo, git unavailable, timeout) must be treated as "can't determine, don't warn" — same fail-safe philosophy as every other git call in this codebase, not a reason to error out of the whole install
+  - [x] Subtask 2.3 (GREEN): print one consolidated warning line per tracked file to stderr from `main()`, after the normal install work completes and before the final JSON ack — e.g. `warning: .story-events.jsonl is tracked by git; this can silently fork your event log across story branches — run: git rm --cached .story-events.jsonl` — and confirm the JSON ack line is still the only stdout line (existing tests assert exactly one stdout line; don't break that contract by printing warnings to stdout)
 
-- [ ] Task 3: full regression, live E2E, and doc parity (AC: 1-4)
-  - [ ] Subtask 3.1: `uv run pytest` full suite green; `uv run ruff check .`; `uv run ruff format --check tools tests`
-  - [ ] Subtask 3.2: live E2E reproduction of the exact bug this story fixes — real git repo, deliberately commit `.story-events.jsonl` (simulating the pre-fix state found in testing), then run the fixed installer and confirm the warning appears; separately, on a **fresh** repo (nothing tracked yet), run the installer, do real work across two branches with real `git checkout`s, and confirm the event log stays continuous (no forking) — this is the actual real-world scenario that motivated the story, not just a unit-test abstraction
-  - [ ] Subtask 3.3: update `tools/build-release/INSTALL.md`'s "Daily use" section — the manual `.gitignore` step listed there is no longer something the developer needs to do themselves; note that `setup-hooks.py` now handles it, while leaving the actual `.gitignore` line list visible for anyone curious what's being ignored and why
+- [x] Task 3: full regression, live E2E, and doc parity (AC: 1-4)
+  - [x] Subtask 3.1: `uv run pytest` full suite green; `uv run ruff check .`; `uv run ruff format --check tools tests`
+  - [x] Subtask 3.2: live E2E reproduction of the exact bug this story fixes — real git repo, deliberately commit `.story-events.jsonl` (simulating the pre-fix state found in testing), then run the fixed installer and confirm the warning appears; separately, on a **fresh** repo (nothing tracked yet), run the installer, do real work across two branches with real `git checkout`s, and confirm the event log stays continuous (no forking) — this is the actual real-world scenario that motivated the story, not just a unit-test abstraction
+  - [x] Subtask 3.3: update `tools/build-release/INSTALL.md`'s "Daily use" section — the manual `.gitignore` step listed there is no longer something the developer needs to do themselves; note that `setup-hooks.py` now handles it, while leaving the actual `.gitignore` line list visible for anyone curious what's being ignored and why
 
 ## Dev Notes
 
@@ -108,16 +108,27 @@ No conflicts with the unified project structure — this story extends the same 
 
 ### Agent Model Used
 
-_to be filled by dev-story_
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### Debug Log References
 
-_to be filled by dev-story_
+- RED: 6 new tests added to `tests/test_setup_hooks.py`, confirmed all 6 failing against pre-fix `tools/setup-hooks.py` (`AttributeError: module 'setup_hooks' has no attribute '_events'` — expected, since `_events` wasn't imported yet)
+- GREEN: `uv run pytest tests/test_setup_hooks.py -q` → 22/22 passed after implementation
+- Full suite: `uv run pytest -q` → 238 passed; `uv run ruff check .` clean; `uv run ruff format --check tools tests` flagged 2 files (whitespace-only), fixed via `ruff format`, then clean
+- Live E2E #1 (tracked-file warning): real git repo, deliberately committed `.story-events.jsonl` (simulating the exact pre-fix state found in pilot testing), ran the fixed installer — warning correctly printed to stderr naming the file and `git rm --cached` fix, exit code 0, `.gitignore`/hooks/settings all written normally
+- Live E2E #2 (branch continuity): real git repo, fresh install (no pre-existing tracked files, confirmed zero warnings), kicked off a story, created `story/A`, appended an event, committed, created `story/B` off `story/A`, appended a second event (uncommitted — file is now ignored, nothing to commit), checked out back to `story/A` — confirmed `.story-events.jsonl` still contained **both** events (`on-A-1` and `on-B-1`) after the round-trip checkout, proving the log stays continuous and is never touched/forked by `git checkout` once ignored
 
 ### Completion Notes List
 
-_to be filled by dev-story_
+- Task 1: `ensure_gitignore(root)` reads the existing `.gitignore` (if any, `utf-8-sig` per this codebase's BOM-safety convention) and appends only the missing entries via the existing `write_atomic()` helper — creates the file if absent, preserves existing lines/order, no duplication on repeat runs.
+- Task 2: `tracked_capture_files(root)` asks git (`git ls-files --error-unmatch <file>`, via the shared `_events.git_out()` helper — same 10s-timeout/never-raises pattern used everywhere else in this codebase) whether each of the 4 covered files is tracked; a failed/unavailable git call degrades to "not tracked" exactly like every other `git_out()` caller, never blocking the install. `main()` prints one warning line per tracked file to **stderr** (never stdout — verified the existing "exactly one JSON line on stdout" contract still holds) after the normal install work, before the final ack.
+- Task 3: full regression green, both real-git E2E scenarios reproduced and confirmed (not just unit-tested), `INSTALL.md` updated to note the `.gitignore` step is now automatic and to explain why the warning matters if seen.
+- No new dependencies (reused the existing `_events.git_out()` and `write_atomic()`). No architecture deviations from the story file.
 
 ### File List
 
-_to be filled by dev-story_
+- tools/setup-hooks.py (modified — new `GITIGNORE_ENTRIES` constant, `ensure_gitignore()`, `tracked_capture_files()`, both wired into `main()`; imports `_events` for the shared `git_out()` helper)
+- tests/test_setup_hooks.py (modified — 6 new tests: fresh-install creation, partial-existing append, idempotency, tracked-file warning, no-warning-when-clean, git-unavailable-degrades-safely)
+- tools/build-release/INSTALL.md (modified — notes the `.gitignore` step is now automatic via `setup-hooks.py`, explains the tracked-file warning)
+- _bmad-output/implementation-artifacts/2-11-setup-enforces-gitignore-for-local-capture-state.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)

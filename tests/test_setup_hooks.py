@@ -260,3 +260,89 @@ def test_all_ten_hook_scripts_exist():
     # needs the tracked scripts to exist.
     assert len(sorted((REPO / "tools" / "hooks" / "git").glob("*.py"))) == 4
     assert len(sorted((REPO / "tools" / "hooks" / "claude").glob("*.py"))) == 6
+
+
+# Story 2.11: .gitignore enforcement for local capture state (prevents silent
+# cross-branch event-log forking found during 2026-07-13 pilot testing).
+
+
+def test_fresh_install_creates_gitignore_with_all_four_entries(fake_repo, capsys):
+    assert not (fake_repo / ".gitignore").exists()
+
+    run(fake_repo)
+
+    lines = (fake_repo / ".gitignore").read_text(encoding="utf-8").splitlines()
+    for entry in setup_hooks.GITIGNORE_ENTRIES:
+        assert entry in lines
+
+
+def test_existing_gitignore_gets_only_missing_entries_appended(fake_repo, capsys):
+    gitignore = fake_repo / ".gitignore"
+    gitignore.write_text("node_modules/\n.story-events.jsonl\n.active-story\n", encoding="utf-8")
+
+    run(fake_repo)
+
+    lines = gitignore.read_text(encoding="utf-8").splitlines()
+    assert lines.count("node_modules/") == 1
+    assert lines.count(".story-events.jsonl") == 1
+    assert lines.count(".active-story") == 1
+    assert ".story-events.pending.jsonl" in lines
+    assert ".active-claude-session" in lines
+
+
+def test_gitignore_write_is_idempotent_on_second_run(fake_repo, capsys):
+    run(fake_repo)
+    first = (fake_repo / ".gitignore").read_text(encoding="utf-8")
+
+    run(fake_repo)
+
+    assert (fake_repo / ".gitignore").read_text(encoding="utf-8") == first
+
+
+def test_tracked_capture_file_produces_a_visible_warning_but_still_exits_zero(
+    fake_repo, capsys, monkeypatch
+):
+    monkeypatch.setattr(
+        setup_hooks._events,
+        "git_out",
+        lambda *args, **kwargs: ".story-events.jsonl" if "ls-files" in args else None,
+    )
+
+    exit_code = run(fake_repo)
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "warning" in captured.err.lower()
+    assert ".story-events.jsonl" in captured.err
+    assert "git rm --cached" in captured.err
+    # the stdout contract (exactly one JSON ack line) must not be disturbed by the warning
+    out_lines = captured.out.strip().splitlines()
+    assert len(out_lines) == 1
+    assert json.loads(out_lines[0])["ok"] is True
+
+
+def test_no_warning_when_nothing_is_tracked(fake_repo, capsys, monkeypatch):
+    monkeypatch.setattr(setup_hooks._events, "git_out", lambda *args, **kwargs: None)
+
+    exit_code = run(fake_repo)
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.err == ""
+
+
+def test_git_unavailable_is_treated_as_not_tracked_never_blocks_install(
+    fake_repo, capsys, monkeypatch
+):
+    # fake_repo has no real git repository - a real git_out call would fail this
+    # way; must degrade to "can't determine, don't warn," never crash the install.
+    def raise_like_no_repo(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(setup_hooks._events, "git_out", raise_like_no_repo)
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    assert (fake_repo / ".gitignore").exists()
+    assert (fake_repo / ".claude" / "settings.json").exists()
