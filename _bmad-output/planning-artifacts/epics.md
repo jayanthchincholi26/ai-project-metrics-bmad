@@ -220,6 +220,8 @@ So that docs-only kickoff is genuinely adapted to "no PM tool," not just "no JIR
    **Then** it documents the real sequence with a concrete example: `/opsx:propose <change-name>` (developer-chosen kebab-case, **never** `story_id` — verified against `.claude/commands/opsx/propose.md`) ideally before kickoff for a real Phase-1 estimate, then normal work, then `/opsx:apply`, then `/opsx:archive`
    **And** when Phase-1 comes back null because no openspec change was found, the skill adds a one-line non-blocking nudge toward `/opsx:propose` (FR5 — informational only)
 
+> 🔍 **Post-implementation finding (2026-07-13, live pilot testing):** during the no-MCP fallback path (JIRA MCP tools unavailable, kickoff degrading to manual elicitation per CAP-4/AD-10), the first `AskUserQuestion` call threw a visible `InputValidationError` (partial payload: `"origin": "array"...`) before silently retrying and succeeding — the developer saw a raw tool-use error flash by, though kickoff still completed correctly. Not reproduced on the JIRA-success path (which only asks a single confirm/override question), so it appears isolated to the fallback path's multi-field elicitation (points + sprint asked together, per AC 3 above). Low severity — self-recovered, no bad data written — but a real, reproducible error worth a look: likely a malformed multi-question payload (missing/incorrect field on one of the two questions) in that specific branch of the skill's instructions.
+
 **Held for later (decided 2026-07-11):** a `name` field for JIRA/Confluence too (JIRA's `summary` already maps to `goal` today — extending `name` cross-backend changes the AD-4 shape for all three adapters and needs its own design pass on whether `goal` then means something different for JIRA; revisit as its own story if wanted). Actually parsing structured data out of a PRD (e.g. extracting a formal task list) — this story only supports summarization to inform a human's own estimate, not automated extraction. Extending the same doc-read capability to JIRA/Confluence kickoffs, if ever wanted.
 
 ### Story 1.6: JIRA Adapter Fetches via the Atlassian Remote MCP Server
@@ -443,6 +445,56 @@ so that a transient git/subprocess failure never silently writes capture files i
 2. **Given** no `.git` directory is found anywhere in the parent chain (genuinely not inside a repo)
    **When** `repo_root()` is called
    **Then** it falls back to `Path.cwd()` exactly as today — this story only adds a smarter *intermediate* step, not a new failure mode
+
+### Story 2.10: A Closed Story's Manifest Doesn't Block the Next Story's Kickoff
+
+> ⏳ **Not started** — opened 2026-07-13, found during live pilot testing of the JIRA-via-MCP flow (v0.2.1, `ai-project-metrics-bmad-testing` test repo)
+
+As a developer,
+I want kicking off a new story to work normally even though the previous story's `.story.yaml` was merged into my base branch,
+so that ordinary branch-per-story git hygiene (branching the next story off `develop`, not off the previous story's branch) never gets blocked by a stale manifest.
+
+**Context:** AD-5 requires `.story.yaml` to be git-committed per story, and it is — but no story, AD, or the Story DoD/Archival Checklist (`project-context.md` §12–13) ever defines how it's retired once that story closes. Concretely: `story-1` branches off `develop`, kickoff writes and commits `.story.yaml`, the story is archived (`opsx-wrapper archive`) and its branch merges back into `develop` — `.story.yaml` merges in too. `story-2` then branches off `develop` (completely normal git flow, not branching off `story-1`'s branch) and inherits story-1's `.story.yaml`. `story-kickoff`'s "Refuse a double kickoff early" guard (SKILL.md step 2) then blocks kickoff, telling the developer to "close out or archive the current story" — but story-1 *is* already closed; only its manifest file is still sitting there from the merge. Confirmed live: `story/AI-53` (branched after `story/add-user-basic-auth` had been archived, snapshotted, committed, and pushed) still carried the old story's `.story.yaml` and had to be manually `git rm`'d before kickoff would proceed.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** a story has been successfully archived via `tools/opsx-wrapper/main.py archive <name>`
+   **When** the archive completes successfully
+   **Then** `.story.yaml` is removed (staged for the developer's next commit, consistent with "close = one command, nothing left dangling" — the same philosophy Story 2.4's wrapper already applies to the snapshot step) — needs a decision on whether removal is automatic-and-committed by the wrapper itself, or automatic-but-left-staged for the developer's own close-out commit
+2. **Given** a project that doesn't use `openspec`/the opsx wrapper (plain docs-only or JIRA/Confluence close-out with no archive command)
+   **When** a story is done
+   **Then** define an equivalent manual or documented step so the same stale-manifest problem doesn't occur for non-openspec projects too
+3. **Given** the fix above
+   **When** `story-2` is branched off `develop` after `story-1`'s manifest-clearing change has merged
+   **Then** kickoff proceeds normally with no stale-manifest block
+
+**Design decision (resolved 2026-07-13, before implementation):** not a wrapper-side automatic teardown (that would only cover the openspec/opsx path, and mutating git state as a side effect of archiving is a surprising thing for a wrapper to do) and not a manual checklist step (too easy to forget, same class of problem as Story 2.11). Instead: `story-kickoff`'s own "Refuse a double kickoff early" guard (SKILL.md step 2) gets smarter. AD-3 already guarantees a snapshot is the authoritative signal a story has closed — so when `.story.yaml` already exists, kickoff checks whether `snapshots/{story_id}.*.json` also exists for that manifest's `story_id`. If a snapshot exists, the story is provably already closed (just its manifest lingered via merge/branch-inherit) — kickoff says so plainly and offers to clear `.story.yaml` (confirmed, not silent) so the new kickoff can proceed. If no snapshot exists, it's genuinely the same in-progress story — today's hard block stays exactly as-is. This is backend-agnostic (works whether or not a project uses openspec) and needs zero new state or wrapper changes.
+
+### Story 2.11: Setup Enforces `.gitignore` for Local Capture State (Prevents Silent Cross-Branch Data Loss)
+
+> ⏳ **Not started** — opened 2026-07-13, found during live pilot testing of the mid-session branch-switch scenario (flow-2, `ai-project-metrics-bmad-testing` test repo). Severity: high — silent data corruption, no error surfaced anywhere.
+
+As a developer working multiple story branches off the same trunk,
+I want `.story-events.jsonl` (and the other local capture files) to always be git-ignored,
+so that switching between story branches never silently discards or forks captured events.
+
+**Context:** INSTALL.md documents `.story-events.jsonl`, `.story-events.pending.jsonl`, `.active-story`, and `.active-claude-session` as files the developer should manually add to `.gitignore` — but nothing in `setup-hooks.py` enforces or validates this, and it's a single easy-to-miss bullet buried in the "Daily use" section, not the "Install" steps. In this pilot test, that bullet was missed, so `.story-events.jsonl` got committed on `story/add-user-basic-auth` and carried forward via normal branching.
+
+**What happened (verbatim from testing):** with `.story-events.jsonl` git-tracked, `story/AI-53` and `story/AI-54` each accumulated their own committed version of the shared event log. Checking out between them caused git to silently overwrite the working-tree file with whichever branch's committed version was checked out — discarding, not merging, whatever events had been recorded on the branch just left. Confirmed via `Select-String` over the full log: every `AI-54`-branch event (the `stub.txt` commit, the AI-54 kickoff, etc.) was completely absent once back on `story/AI-53` — no error, no warning, just quietly missing data. Had a snapshot been assembled for either story mid-test, its `engineering_metrics` would have been silently wrong.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `tools/setup-hooks.py --repo-root .` is run (fresh install or upgrade)
+   **When** the repo's `.gitignore` doesn't already contain `.story-events.jsonl`, `.story-events.pending.jsonl`, `.active-story`, and `.active-claude-session`
+   **Then** the installer appends the missing entries automatically (creating `.gitignore` if absent), consistent with the "one command, nothing left dangling" philosophy already applied to `opsx-wrapper`'s archive step
+2. **Given** a repo where one or more of these files is *already* git-tracked (this pilot's exact situation — a stale commit predates the fix)
+   **When** the installer runs
+   **Then** it detects the already-tracked file(s) and surfaces a visible, actionable warning (AD-9: never fail silently) — e.g. "`.story-events.jsonl` is tracked by git; this can silently fork your event log across branches — run `git rm --cached .story-events.jsonl` to fix" — rather than silently leaving the dangerous state in place
+3. **Given** this fix
+   **When** a developer works two story branches off the same trunk and switches between them repeatedly
+   **Then** `.story-events.jsonl` is never touched by `git checkout` at all (untracked + ignored), so the log stays continuous and no branch's events are ever discarded or forked
+
+**Held for later:** whether `setup-hooks.py` should also proactively scan for and warn about *other* dangerous already-committed local state beyond this specific file list — out of scope for this story, which fixes the concrete case actually found.
 
 ---
 

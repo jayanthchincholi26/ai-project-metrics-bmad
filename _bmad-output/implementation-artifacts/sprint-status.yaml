@@ -1,5 +1,5 @@
 # generated: 2026-07-09
-# last_updated: 2026-07-11
+# last_updated: 2026-07-13
 # project: explore-jira-ai-metrics
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-11
+last_updated: 2026-07-13
 project: explore-jira-ai-metrics
 project_key: NOKEY
 tracking_system: file-system
@@ -67,6 +67,8 @@ development_status:
   2-7-hook-commands-are-cwd-independent-absolute-paths: done  # PR #22, merged 4d21476
   2-8-git-commit-hooks-never-abort-a-commit-if-uv-is-unavailable: backlog  # split from PR #22 review
   2-9-repo-root-falls-back-to-a-parent-directory-walk-not-just-cwd: backlog  # split from PR #22 review
+  2-10-a-closed-storys-manifest-doesnt-block-the-next-storys-kickoff: ready-for-dev  # found during 2026-07-13 JIRA MCP pilot testing
+  2-11-setup-enforces-gitignore-for-local-capture-state: review  # high severity, silent cross-branch data loss found 2026-07-13
   epic-2-retrospective: optional
   epic-3: done
   3-1-active-story-pointer-tracks-time-automatically: done
