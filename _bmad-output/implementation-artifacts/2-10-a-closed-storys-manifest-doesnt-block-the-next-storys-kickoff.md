@@ -4,7 +4,7 @@ baseline_commit: 18edb0b
 
 # Story 2.10: A Closed Story's Manifest Doesn't Block the Next Story's Kickoff
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,21 +34,21 @@ so that ordinary branch-per-story git hygiene (branching the next story off `dev
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: teach `story-kickoff` to distinguish a closed story's stale manifest from a genuinely in-progress one (AC: 1, 3)
-  - [ ] Subtask 1.1: update `.claude/skills/story-kickoff/SKILL.md` step 2 ("Refuse a double kickoff early") — when `.story.yaml` exists, read its `story_id`, then check whether any file matching `snapshots/{story_id}.*.json` exists (a directory listing/glob is sufficient; no new script needed — this is a plain existence check, not a value the manifest writer or resolver needs to compute)
-  - [ ] Subtask 1.2: if no matching snapshot exists, keep today's exact behavior — stop, tell the developer the story's `story_id`/`goal`, do not delete or overwrite the manifest
-  - [ ] Subtask 1.3: if a matching snapshot exists, tell the developer plainly that this branch inherited an already-closed story's manifest (name the closed story's `story_id`/`goal` and the snapshot revision found), and ask for explicit confirmation before clearing it — never delete without asking
+- [x] Task 1: teach `story-kickoff` to distinguish a closed story's stale manifest from a genuinely in-progress one (AC: 1, 3)
+  - [x] Subtask 1.1: update `.claude/skills/story-kickoff/SKILL.md` step 2 ("Refuse a double kickoff early") — when `.story.yaml` exists, read its `story_id`, then check whether any file matching `snapshots/{story_id}.*.json` exists (a directory listing/glob is sufficient; no new script needed — this is a plain existence check, not a value the manifest writer or resolver needs to compute)
+  - [x] Subtask 1.2: if no matching snapshot exists, keep today's exact behavior — stop, tell the developer the story's `story_id`/`goal`, do not delete or overwrite the manifest
+  - [x] Subtask 1.3: if a matching snapshot exists, tell the developer plainly that this branch inherited an already-closed story's manifest (name the closed story's `story_id`/`goal` and the snapshot revision found), and ask for explicit confirmation before clearing it — never delete without asking
 
-- [ ] Task 2: clear-and-proceed flow (AC: 2, 4)
-  - [ ] Subtask 2.1: on confirmation, delete `.story.yaml` (a real file delete — this mirrors what a developer would do manually with `git rm .story.yaml`, except kickoff performs the file delete directly; committing that deletion is the developer's own next `git commit`, exactly like any other kickoff-adjacent file change today — kickoff has never auto-committed anything and shouldn't start here)
-  - [ ] Subtask 2.2: after clearing, fall through to the normal step 3-5 kickoff flow (Phase-1 estimate, field elicitation, manifest write) exactly as if `.story.yaml` had never existed — no special-cased shortened flow
-  - [ ] Subtask 2.3: on decline (developer says no), stop exactly like today's hard block — do not proceed with kickoff, do not delete anything
+- [x] Task 2: clear-and-proceed flow (AC: 2, 4)
+  - [x] Subtask 2.1: on confirmation, delete `.story.yaml` (a real file delete — this mirrors what a developer would do manually with `git rm .story.yaml`, except kickoff performs the file delete directly; committing that deletion is the developer's own next `git commit`, exactly like any other kickoff-adjacent file change today — kickoff has never auto-committed anything and shouldn't start here)
+  - [x] Subtask 2.2: after clearing, fall through to the normal step 3-5 kickoff flow (Phase-1 estimate, field elicitation, manifest write) exactly as if `.story.yaml` had never existed — no special-cased shortened flow
+  - [x] Subtask 2.3: on decline (developer says no), stop exactly like today's hard block — do not proceed with kickoff, do not delete anything
 
-- [ ] Task 3: manual E2E verification and doc parity (AC: 1-4)
-  - [ ] Subtask 3.1: this is a skill-instruction change (SKILL.md), not a Python code change — there is no automated test surface for it, matching this project's established pattern for skill-level behavior (e.g. Story 1.6's MCP two-call sequence is verified via live E2E, not pytest)
-  - [ ] Subtask 3.2: reproduce the exact scenario found in testing — kick off a story, archive it (produces a snapshot), branch a second story off the same lineage (inheriting the closed story's `.story.yaml`), attempt kickoff for the second story, confirm it now offers to clear the stale manifest instead of hard-blocking, confirm accepting proceeds to a normal kickoff with a new `story_id`
-  - [ ] Subtask 3.3: separately verify AC 3 is not weakened — attempt kickoff for a second story on a branch where `.story.yaml` exists **and no snapshot exists yet** for its `story_id` (the still-in-progress case); confirm today's hard block still fires unchanged
-  - [ ] Subtask 3.4: verify AC 4's backend-agnostic claim — this scenario must not reference or depend on `tools/opsx-wrapper/main.py` at all; the check is purely "does `snapshots/{story_id}.*.json` exist," which is produced by the snapshot assembler regardless of which source-of-truth backend or close-out path (wrapper vs plain `uv run tools/snapshot-assembler/main.py`) was used
+- [x] Task 3: manual E2E verification and doc parity (AC: 1-4)
+  - [x] Subtask 3.1: this is a skill-instruction change (SKILL.md), not a Python code change — there is no automated test surface for it, matching this project's established pattern for skill-level behavior (e.g. Story 1.6's MCP two-call sequence is verified via live E2E, not pytest)
+  - [x] Subtask 3.2: reproduce the exact scenario found in testing — kick off a story, archive it (produces a snapshot), branch a second story off the same lineage (inheriting the closed story's `.story.yaml`), attempt kickoff for the second story, confirm it now offers to clear the stale manifest instead of hard-blocking, confirm accepting proceeds to a normal kickoff with a new `story_id`
+  - [x] Subtask 3.3: separately verify AC 3 is not weakened — attempt kickoff for a second story on a branch where `.story.yaml` exists **and no snapshot exists yet** for its `story_id` (the still-in-progress case); confirm today's hard block still fires unchanged
+  - [x] Subtask 3.4: verify AC 4's backend-agnostic claim — this scenario must not reference or depend on `tools/opsx-wrapper/main.py` at all; the check is purely "does `snapshots/{story_id}.*.json` exist," which is produced by the snapshot assembler regardless of which source-of-truth backend or close-out path (wrapper vs plain `uv run tools/snapshot-assembler/main.py`) was used
 
 ## Dev Notes
 
@@ -106,16 +106,24 @@ No conflicts — this story only extends the existing kickoff skill's step 2, th
 
 ### Agent Model Used
 
-_to be filled by dev-story_
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### Debug Log References
 
-_to be filled by dev-story_
+- No pytest surface for this story (skill-instruction change only, per Dev Notes) — Definition of Done is live manual E2E, executed for real (not simulated):
+- Live E2E #1 (AC 1, 2, 4 — closed manifest, offer-to-clear): a scratch repo with `.story.yaml` for `story-20260710-abc123` and a matching `snapshots/story-20260710-abc123.v1.rev1.json` — actually invoked the `story-kickoff` skill (via the Skill tool) against this repo. It correctly detected the matching snapshot, named the closed story's `story_id`/`goal`/snapshot revision, and asked for confirmation. On confirming, it deleted `.story.yaml` and proceeded through steps 3-5 (Phase-1 estimate → null, docs-only elicitation via `AskUserQuestion`, manifest write) to a **successful kickoff with a new, distinct `story_id`** (`story-20260713-2f8b11`, vs. the old `story-20260710-abc123`)
+- Live E2E #2 (AC 3 — still-open manifest, unweakened hard block): same scratch repo, `.story.yaml` swapped to `story-20260713-stillopen` with **no** matching snapshot file — re-invoked the skill; it correctly hard-blocked exactly as before ("this story is already kicked off," showing `story_id`/goal), no clear offered, nothing deleted
+- Full regression (`uv run pytest -q`, `uv run ruff check .`) confirmed green — this story touches no Python, so this is a no-change confirmation, not a meaningful regression test in itself
 
 ### Completion Notes List
 
-_to be filled by dev-story_
+- Task 1: `.claude/skills/story-kickoff/SKILL.md` step 2 ("Refuse a double kickoff early") now reads the existing manifest's `story_id`, then checks `snapshots/` for a file matching `{story_id}.*.json`. No matching snapshot → today's exact hard-block behavior, unchanged. A matching snapshot → tells the developer the closed story's identity and the snapshot revision found, asks for confirmation before clearing.
+- Task 2: on confirmation, the instructions direct a real file delete of `.story.yaml` (never an auto-commit — that stays the developer's own next commit, consistent with every other kickoff-adjacent file change), then fall through to steps 3-5 unmodified. On decline, behavior matches today's hard block exactly — nothing proceeds, nothing is deleted.
+- Task 3: both ACs' scenarios were exercised via **real invocations of the actual skill** (not just read through and reasoned about) in a scratch repo, per this project's established live-E2E discipline for skill-level changes (matching Story 1.6/1.7's precedent) — the closed-manifest path correctly produced a fresh `story_id` after clearing, and the still-open path correctly stayed hard-blocked.
+- No new dependencies, no Python code changes, no architecture deviations from the story file. The resolved design decision (kickoff-side snapshot check, rejecting both a wrapper-side auto-teardown and a manual checklist step) was made during story creation and implemented exactly as specified.
 
 ### File List
 
-_to be filled by dev-story_
+- .claude/skills/story-kickoff/SKILL.md (modified — step 2 gains the snapshot-existence check and confirm-then-clear flow)
+- _bmad-output/implementation-artifacts/2-10-a-closed-storys-manifest-doesnt-block-the-next-storys-kickoff.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
