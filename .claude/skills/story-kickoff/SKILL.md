@@ -29,9 +29,16 @@ Dispatch on the JSON ack:
 
 The ack also carries the project's **AI tool** (`ai_tool`, default `claude-code` when undeclared — never ask). Remember it: step 5 passes it to the writer. If `ai_tool_implemented` is `false`, tell the developer that capture for that tool isn't built yet (AD-10 — metrics will be reduced-confidence until its adapter exists), but do **not** block the kickoff. Only override the resolved value per story if the team genuinely mixes tools and the developer says so.
 
-### 2. Refuse a double kickoff early
+### 2. Refuse a double kickoff early — unless the existing manifest is provably closed
 
-If `.story.yaml` already exists at the repo root, stop and tell the developer: this story is already kicked off (show its `story_id` and `goal`). Re-running kickoff would change story identity mid-story. Do not delete or overwrite the manifest.
+If `.story.yaml` already exists at the repo root, read its `story_id`. **If `story_id` is missing, blank, or the manifest can't be parsed, treat it as still open** (the safe default — fall straight to the "no matching snapshot" branch below, do not attempt the snapshot check at all).
+
+Otherwise, check whether `<repo-root>/snapshots/` (resolved from the same repo root passed to every other command in this flow, never the ambient cwd) contains any file matching `{story_id}.*.json`. **If the `snapshots/` directory doesn't exist at all** (e.g. no story has ever been archived yet in this repo), that's simply no matching snapshot — treat it exactly like the "no matching snapshot" case below, not an error.
+
+- **No matching snapshot** (still open): behavior is unchanged — stop, tell the developer this story is already kicked off (show its `story_id` and `goal`). Re-running kickoff would change story identity mid-story. Do not delete or overwrite the manifest.
+- **A matching snapshot exists** (Story 2.10 — AD-3 guarantees a snapshot revision is the authoritative signal a story closed): this manifest almost certainly lingered via a merge or branching off a sibling story branch, not a story still in progress. Tell the developer plainly, naming the closed story's `story_id`/`goal` and the snapshot revision found (e.g. "The `.story.yaml` here is from `story-<old-id>` ('<old-goal>'), which was already closed (snapshot found: `snapshots/story-<old-id>.v1.rev<N>.json`). This looks like an inherited manifest from a previous story on this branch lineage, not a story still in progress. OK to clear it and continue kicking off this new story?"). Only on explicit confirmation, delete `.story.yaml` (a real file delete — kickoff does not auto-commit this; that's the developer's own next commit, same as any other kickoff-adjacent change) and fall through to steps 3-5 as if no manifest had existed. On decline, stop exactly like the still-open case — do not proceed, do not delete anything.
+
+This check is backend-agnostic: it only depends on whether a snapshot file exists for the stale manifest's `story_id`, never on whether the project uses openspec/the opsx wrapper.
 
 ### 3. Estimate story points (Phase-1, informational only)
 
