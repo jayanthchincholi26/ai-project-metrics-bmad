@@ -472,7 +472,7 @@ so that ordinary branch-per-story git hygiene (branching the next story off `dev
 
 ### Story 2.11: Setup Enforces `.gitignore` for Local Capture State (Prevents Silent Cross-Branch Data Loss)
 
-> ⏳ **Not started** — opened 2026-07-13, found during live pilot testing of the mid-session branch-switch scenario (flow-2, `ai-project-metrics-bmad-testing` test repo). Severity: high — silent data corruption, no error surfaced anywhere.
+> ✅ **Complete** — 2026-07-13 · [PR #23](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/23) (squash-merged to `enhancements`, 8397b95; branch preserved). Found live during pilot testing (flow-2 branch-switch scenario), severity high — silent data corruption, no error surfaced anywhere. Review found 3 real, correctly-attributed defects (batched `git ls-files` call, whitespace/anchored-entry tolerance, `.gitignore`-as-a-directory guard) — all fixed and tested before merge.
 
 As a developer working multiple story branches off the same trunk,
 I want `.story-events.jsonl` (and the other local capture files) to always be git-ignored,

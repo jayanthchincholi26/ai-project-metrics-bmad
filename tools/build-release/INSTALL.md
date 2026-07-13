@@ -113,7 +113,8 @@ If your project **doesn't** use openspec SDD:
   openspec SDD, just `uv run tools/snapshot-assembler/main.py --repo-root .`) produces the immutable,
   versioned metrics snapshot under `snapshots/`.
 
-Add these to your `.gitignore` (local capture state, never committed):
+`uv run tools/setup-hooks.py --repo-root .` (step 2 of Install, above) automatically adds
+these lines to your `.gitignore` — local capture state, never committed:
 
 ```
 .story-events.jsonl
@@ -121,6 +122,11 @@ Add these to your `.gitignore` (local capture state, never committed):
 .active-story
 .active-claude-session
 ```
+
+If any of these was already git-tracked from before this was automatic, the installer
+prints a `warning:` to stderr naming the file and the fix (`git rm --cached <file>`) — this
+matters: a tracked `.story-events.jsonl` silently forks and discards captured events every
+time you switch between story branches, with no error at all. Don't ignore that warning.
 
 ## Updating
 

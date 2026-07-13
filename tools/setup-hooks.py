@@ -25,6 +25,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parent / "hooks")
+)  # bridge to the shared git_out() helper
+import _events  # noqa: E402 (path must be set up first)
+
 MARKER = "installed by explore-jira-ai-metrics setup-hooks"
 GIT_HOOKS = ("post-commit", "post-checkout", "post-merge", "commit-msg")
 CLAUDE_EVENTS = {
@@ -35,6 +40,12 @@ CLAUDE_EVENTS = {
     "Stop": "stop.py",
     "UserPromptSubmit": "user_prompt_submit.py",
 }
+GITIGNORE_ENTRIES = (
+    ".story-events.jsonl",
+    ".story-events.pending.jsonl",
+    ".active-story",
+    ".active-claude-session",
+)
 
 
 def write_atomic(path: Path, text: str) -> None:
@@ -86,6 +97,52 @@ def merge_settings(root: Path, settings: dict[str, Any]) -> dict[str, Any]:
         if not upgraded:
             entries.append({"hooks": [{"type": "command", "command": wanted}]})
     return settings
+
+
+def ensure_gitignore(root: Path) -> None:
+    """Append any of GITIGNORE_ENTRIES missing from .gitignore (Story 2.11);
+    create the file if absent. Prevents .story-events.jsonl et al from ever
+    being git-tracked, which silently forks/discards captured events the
+    moment two story branches diverge and checkout swaps between them.
+
+    Matching is whitespace-tolerant and recognizes a leading-slash-anchored
+    form (e.g. `/.story-events.jsonl`) as already covering an entry, so an
+    existing hand-written rule isn't redundantly duplicated (review finding,
+    PR #23)."""
+    path = root / ".gitignore"
+    if path.exists() and not path.is_file():
+        print(
+            f"warning: {path} exists but is not a regular file — skipping .gitignore enforcement",
+            file=sys.stderr,
+        )
+        return
+    existing = path.read_text(encoding="utf-8-sig").splitlines() if path.is_file() else []
+    covered = {line.strip() for line in existing}
+    missing = [
+        entry for entry in GITIGNORE_ENTRIES if entry not in covered and f"/{entry}" not in covered
+    ]
+    if not missing:
+        return
+    text = "\n".join(existing + missing) + "\n"
+    write_atomic(path, text)
+
+
+def tracked_capture_files(root: Path) -> list[str]:
+    """Which of GITIGNORE_ENTRIES is already git-tracked (Story 2.11) — a stale
+    commit predating this fix, the exact situation that caused silent
+    cross-branch event-log forking in live pilot testing. `git_out()` already
+    degrades to None on any failure (not a repo, git unavailable, timeout);
+    treat that the same as "not tracked" rather than blocking the install.
+
+    One batched `git ls-files` call rather than one subprocess per entry
+    (review finding, PR #23) — `git ls-files -- <paths...>` exits 0 and prints
+    just the subset that's actually tracked, never failing for an untracked
+    path in the list."""
+    result = _events.git_out("ls-files", "--", *GITIGNORE_ENTRIES, cwd=root)
+    if not result:
+        return []
+    tracked_lines = set(result.splitlines())
+    return [entry for entry in GITIGNORE_ENTRIES if entry in tracked_lines]
 
 
 def fail(message: str) -> int:
@@ -142,6 +199,14 @@ def main(argv: list[str] | None = None) -> int:
 
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     write_atomic(settings_path, json.dumps(merge_settings(root, settings), indent=2) + "\n")
+
+    ensure_gitignore(root)
+    for tracked in tracked_capture_files(root):
+        print(
+            f"warning: {tracked} is tracked by git; this can silently fork your event log "
+            f"across story branches — run: git rm --cached {tracked}",
+            file=sys.stderr,
+        )
 
     print(
         json.dumps(
