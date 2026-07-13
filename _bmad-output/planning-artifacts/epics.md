@@ -621,3 +621,51 @@ So that the documented install steps work on first contact instead of failing wi
 **And** once Story 4.1's release-artifact flow exists, tagging `main` is what produces the distributable — making "main is current" a hard precondition of every release rather than a convention
 
 **Relationship to Story 4.1:** independent and unblocking — this story is worth doing immediately (it's one PR plus a documented rule) even before the distribution mechanism is built, since anyone cloning the repo today gets a broken default branch.
+
+---
+
+## Epic 5: Leadership-Ready Reporting and Real Cost/Defect Tracking
+
+> 🆕 **Opened 2026-07-13** — a batch of enhancement requests from the user after two clean rounds of docs-only/JIRA pilot testing (v0.2.2), inspired partly by a richer per-story report format seen in a different tool (`developer_handover.md`/`metrics.md`-style: date/duration, story points, estimated cost, AI token cost, defect breakdown, testing/review efficiency, notes). Work happens on a new branch, `enhancements-v2`, off `enhancements` — **starting tomorrow (2026-07-14), not today.** Agreed priority order: A → B → C → E, with D last since its capture mechanism needs the user's decision first (not yet made).
+
+### Story 5.1: INSTALL.md — Numbered Steps, No Prose (small)
+
+> ⏳ **Not started**
+
+Strip `INSTALL.md`'s lengthy descriptive prose down to plain numbered steps ("Step 1.", "Step 2.", ...) for both the docs-only and JIRA flows separately, matching the step-list style the user has been using throughout pilot testing. Also make the archive→snapshot step explicit — state the literal `uv run tools/snapshot-assembler/main.py --repo-root .` (or the `opsx-wrapper` one-command equivalent) command to run after archiving, not just "produces a snapshot."
+
+### Story 5.2: Real Cost and Token Fields Per Story (medium)
+
+> ⏳ **Not started**
+
+Two things, both feeding a story's per-story cost picture:
+1. **Real token counts** — the transcript-parsing enhancement scoped out 2026-07-13 (see `project_pm_metrics_pipeline.md` memory): `tools/hooks/claude/session_end.py` already receives `transcript_path` in its hook payload but doesn't read it; Claude Code's own local transcript `.jsonl` contains real per-turn `usage.input_tokens`/`output_tokens` (confirmed by direct inspection). Sum these across a session's transcript instead of emitting a bare null token_cost.
+2. **Cost fields**, mirroring `developer_handover.md`'s formulas exactly:
+   - `Estimated Cost = hourly_rate × duration` (duration already computable from `first_event_at`/`last_event_at`)
+   - `AI Token Cost = (input_tokens × ai_input_rate / 1,000,000) + (output_tokens × ai_output_rate / 1,000,000)`
+   - Rates (`hourly_rate`, `ai_input_rate`, `ai_output_rate`) belong in **`.story-config.yaml`** (this project's existing config file), not a new `.env` — stay consistent with the established config convention rather than introducing a second one.
+
+**Caveat carried over from the original transcript-parsing discussion:** Claude Code's transcript format is an internal/unversioned schema, not a stable public API — this couples the implementation to whatever that format looks like today.
+
+### Story 5.3: `metrics-<date>.md` Generator (medium, builds on 5.2 but doesn't require it first)
+
+> ⏳ **Not started**
+
+A new tool that reads `snapshots/*.json` (kept as the canonical machine-readable artifact per AD-3 — this does not replace JSON, it renders a human-readable view alongside it) and writes/updates one markdown file per day (e.g. `metrics-07142026.md`) formatted like this repo's own existing hand-maintained `docs/metrics.md` — one section per story, with whatever fields are actually available (points, goal, engineering metrics, phase1/phase2 points, cost/token fields once 5.2 lands). Fields not yet captured (e.g. defect counts, before 5.4 exists) are shown honestly as "not yet tracked," never a fake zero — same null-with-reason philosophy as the rest of this pipeline.
+
+### Story 5.4: Bug/Defect + Review-Efficiency Tracking (largest — capture mechanism not yet decided)
+
+> ⏳ **Not started** — blocked on a design decision from the user before a story can even be drafted properly
+
+Add defect tracking (compile / unit-test / peer-review breakdown) and testing/review efficiency percentages, mirroring `developer_handover.md`'s QA efficiency formulas (`testingEfficiency = (compileBugs + testBugs) / totalDefects`, `reviewEfficiency = reviewBugs / totalDefects`, always summing to 100%). **Open question, three options discussed 2026-07-13, none chosen yet:**
+1. **Manual logging command** (like the other tool's `orchestrator.js bug <key> "..."`) — simplest, but conflicts with this project's core "silent byproduct capture" design principle (CAP-1) by requiring the developer to explicitly log each defect.
+2. **Semi-automated**: parse CI test-failure results (compile/unit-test defects, if the target repo has CI) and count GitHub PR review comments via the GitHub API (peer-review defects).
+3. **Hybrid**: automated where a signal exists, manual fallback otherwise — with an honest `reduced_confidence` flag whenever a manual log is used, consistent with how the rest of this pipeline already handles partial signals.
+
+Do not start create-story for this until the user has picked a direction.
+
+### Story 5.5: Leadership HTML Dashboard (depends on 5.3, or reads snapshots directly)
+
+> ⏳ **Not started**
+
+A static, self-contained local HTML file presenting the accumulated `metrics-*.md`/snapshot data as a shareable table for leadership — matching the existing pattern already in this repo (`docs/architecture-diagram-leadership.html`, `docs/new-machine-onboarding.html`). **Not** published via any hosted-link/artifact-publishing tool — this is internal, potentially sensitive leadership data (consistent with `APPROACH.md`'s "how this data will/won't be used" policy) and should stay a local file the user shares at their own discretion. Consult this project's `dataviz` guidance when building the actual table/layout.

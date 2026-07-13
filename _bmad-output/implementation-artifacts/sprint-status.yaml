@@ -79,3 +79,10 @@ development_status:
   4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff
   4-2-develop-promotes-to-main-on-a-defined-release-cadence: backlog  # gated on QA pass
   epic-4-retrospective: optional
+  epic-5: backlog  # opened 2026-07-13, work starts 2026-07-14 on branch enhancements-v2
+  5-1-installmd-numbered-steps-no-prose: backlog
+  5-2-real-cost-and-token-fields-per-story: backlog
+  5-3-metrics-date-md-generator: backlog
+  5-4-bugdefect-review-efficiency-tracking: backlog  # blocked on user's capture-mechanism decision
+  5-5-leadership-html-dashboard: backlog
+  epic-5-retrospective: optional
