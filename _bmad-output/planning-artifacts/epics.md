@@ -636,7 +636,7 @@ Strip `INSTALL.md`'s lengthy descriptive prose down to plain numbered steps ("St
 
 ### Story 5.2: Real Cost and Token Fields Per Story (medium)
 
-> ⏳ **Not started**
+> ✅ **Complete** — 2026-07-14 · [PR #26](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/26) (squash-merged to `enhancements-v2`, 2593c02; branch preserved). Live E2E against a real Claude Code session transcript (not synthetic) found and fixed a real bug (stale reason shadowing real token data). Review found 2 more real, correctly-attributed defects (a `TypeError` crash risk on mixed-offset timestamps; a transcript memory-efficiency improvement) — both fixed and tested before merge.
 
 Two things, both feeding a story's per-story cost picture:
 1. **Real token counts** — the transcript-parsing enhancement scoped out 2026-07-13 (see `project_pm_metrics_pipeline.md` memory): `tools/hooks/claude/session_end.py` already receives `transcript_path` in its hook payload but doesn't read it; Claude Code's own local transcript `.jsonl` contains real per-turn `usage.input_tokens`/`output_tokens` (confirmed by direct inspection). Sum these across a session's transcript instead of emitting a bare null token_cost.
