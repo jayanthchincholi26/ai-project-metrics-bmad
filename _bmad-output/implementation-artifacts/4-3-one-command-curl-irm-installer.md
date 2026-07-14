@@ -4,7 +4,7 @@ baseline_commit: 937e0a1
 
 # Story 4.3: One-Command Curl/irm Installer (No Manual Zip Download)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,26 +38,26 @@ so that I don't have to manually find the GitHub Releases page, download a zip, 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: write `install.sh` (macOS/Linux) (AC: 1, 2, 3)
-  - [ ] Subtask 1.1: git-repo precondition check, clear failure message if not
-  - [ ] Subtask 1.2: resolve latest release's zip download URL via the GitHub API (`curl` + basic JSON field extraction — no `jq` dependency assumed, since this must work on a bare-bones machine with only `curl`/`unzip` as prerequisites)
-  - [ ] Subtask 1.3: download to a temp file, extract into the current directory, clean up the temp file
-  - [ ] Subtask 1.4: print the next-step guidance (the `setup-hooks.py` command)
+- [x] Task 1: write `install.sh` (macOS/Linux) (AC: 1, 2, 3)
+  - [x] Subtask 1.1: git-repo precondition check, clear failure message if not
+  - [x] Subtask 1.2: resolve latest release's zip download URL via the GitHub API (`curl` + basic JSON field extraction — no `jq` dependency assumed, since this must work on a bare-bones machine with only `curl`/`unzip` as prerequisites)
+  - [x] Subtask 1.3: download to a temp file, extract into the current directory, clean up the temp file
+  - [x] Subtask 1.4: print the next-step guidance (the `setup-hooks.py` command)
 
-- [ ] Task 2: write `install.ps1` (Windows PowerShell) (AC: 1, 2, 3)
-  - [ ] Subtask 2.1: same git-repo precondition check
-  - [ ] Subtask 2.2: resolve the latest release's zip URL via `Invoke-RestMethod` against the same GitHub API endpoint
-  - [ ] Subtask 2.3: download via `Invoke-WebRequest`, extract via `Expand-Archive` into the current directory, clean up the temp file
-  - [ ] Subtask 2.4: print the same next-step guidance
+- [x] Task 2: write `install.ps1` (Windows PowerShell) (AC: 1, 2, 3)
+  - [x] Subtask 2.1: same git-repo precondition check
+  - [x] Subtask 2.2: resolve the latest release's zip URL via `Invoke-RestMethod` against the same GitHub API endpoint
+  - [x] Subtask 2.3: download via `Invoke-WebRequest`, extract via `Expand-Archive` into the current directory, clean up the temp file
+  - [x] Subtask 2.4: print the same next-step guidance
 
-- [ ] Task 3: document the new install path, keep the old one intact (AC: 2, 5)
-  - [ ] Subtask 3.1: add a new "Quick install" section to `tools/build-release/INSTALL.md`, above the existing "Install (per repository, once)" section, presenting the one-line curl/irm command as the primary path and the manual zip-download steps as the explicit fallback ("prefer no network access to GitHub, or want to inspect the zip first? Extract it manually instead:") — not a replacement, an addition
-  - [ ] Subtask 3.2: the raw script URLs must point at this repo's `main` branch (the branch a released zip's own `INSTALL.md` snapshot won't drift from, unlike pinning to a specific tag) — confirm this is genuinely how `uv`'s own installer resolves its script (a stable branch reference, not a tag), matching the established precedent this project's own `INSTALL.md` already cites
+- [x] Task 3: document the new install path, keep the old one intact (AC: 2, 5)
+  - [x] Subtask 3.1: add a new "Quick install" section to `tools/build-release/INSTALL.md`, above the existing "Install (per repository, once)" section, presenting the one-line curl/irm command as the primary path and the manual zip-download steps as the explicit fallback ("prefer no network access to GitHub, or want to inspect the zip first? Extract it manually instead:") — not a replacement, an addition
+  - [x] Subtask 3.2: the raw script URLs must point at this repo's `main` branch (the branch a released zip's own `INSTALL.md` snapshot won't drift from, unlike pinning to a specific tag) — confirm this is genuinely how `uv`'s own installer resolves its script (a stable branch reference, not a tag), matching the established precedent this project's own `INSTALL.md` already cites
 
-- [ ] Task 4: live E2E, both platforms available in this environment (AC: 1-3)
-  - [ ] Subtask 4.1: **Windows/PowerShell** — run `install.ps1` for real, from a real terminal, against a fresh empty git repo, with real network access to GitHub; confirm the resulting directory structure matches a manually-extracted zip exactly, and that `uv run tools/setup-hooks.py --repo-root .` works immediately afterward
-  - [ ] Subtask 4.2: **Bash** (this environment's Bash tool runs Git Bash / POSIX sh, which can execute `.sh` scripts directly) — run `install.sh` for real, same verification
-  - [ ] Subtask 4.3: confirm a clear, non-cryptic failure message when run outside a git repo (both scripts)
+- [x] Task 4: live E2E, both platforms available in this environment (AC: 1-3)
+  - [x] Subtask 4.1: **Windows/PowerShell** — run `install.ps1` for real, from a real terminal, against a fresh empty git repo, with real network access to GitHub; confirm the resulting directory structure matches a manually-extracted zip exactly, and that `uv run tools/setup-hooks.py --repo-root .` works immediately afterward
+  - [x] Subtask 4.2: **Bash** (this environment's Bash tool runs Git Bash / POSIX sh, which can execute `.sh` scripts directly) — run `install.sh` for real, same verification
+  - [x] Subtask 4.3: confirm a clear, non-cryptic failure message when run outside a git repo (both scripts)
 
 ## Dev Notes
 
@@ -104,16 +104,22 @@ New files under the existing `tools/build-release/` directory, alongside `main.p
 
 ### Agent Model Used
 
-_to be filled by dev-story_
+Claude Sonnet 5
 
 ### Debug Log References
 
-_to be filled by dev-story_
+Live E2E only (no pytest surface, per AC 4): ran `install.sh` and `install.ps1` against real empty git repos with real network access to GitHub, against the actual latest release (v0.3.0). Verified: successful extraction matches a manually-extracted zip; `uv run tools/setup-hooks.py --repo-root .` runs clean immediately after; both scripts fail with a clear one-line message outside a git repo (exit 1 for `install.sh`; a catchable `throw` for `install.ps1`). Separately verified via `Get-Content install.ps1 -Raw | Invoke-Expression` inside a `try/catch` that `throw` (not `exit`) is required in `install.ps1`: an `irm | iex`-style invocation runs the script's code in the caller's own session, so `exit` would terminate the caller's whole PowerShell session rather than just the script — confirmed the session survives the `throw`.
+
+Repo visibility: this project's GitHub repo (`jayanthchincholi26/ai-project-metrics-bmad`) was private, which would make both the release-API call and the raw-script fetch fail unauthenticated. Scanned full git history for secrets (`git log --all --diff-filter=A --name-only` + `git log --all -p` grepped for token/credential patterns) — clean, one doc reference to an env var name, no real values. Flipped the repo to public with the user's explicit confirmation (`gh repo edit --visibility public --accept-visibility-change-consequences`).
 
 ### Completion Notes List
 
-_to be filled by dev-story_
+- Implemented `install.sh` and `install.ps1` exactly as scoped: git-repo precondition, latest-release resolution via the GitHub API (no `jq`; POSIX `grep`/`sed` field extraction on the Unix side, `Invoke-RestMethod`'s native JSON parsing on Windows), download+extract+cleanup, next-step guidance.
+- Added a "Quick install" section to `INSTALL.md` ahead of the existing manual "Install (per repository, once)" section; the manual steps are preserved verbatim as the explicit fallback (AC 5) — only step 1's wording gained a one-line pointer to the new section.
+- Neither script ships inside the release zip (`tools/build-release/main.py`'s `EXCLUDED_DIR_NAMES` already excludes `build-release/`) — both are fetched directly via `raw.githubusercontent.com/.../main/...`, per the story's design decision.
 
 ### File List
 
-_to be filled by dev-story_
+tools/build-release/install.sh (new)
+tools/build-release/install.ps1 (new)
+tools/build-release/INSTALL.md (updated — new "Quick install" section)
