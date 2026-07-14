@@ -318,3 +318,50 @@ def test_close_active_story_slice_without_a_pointer_is_a_no_op(repo):
 
     assert not (repo / ACTIVE_STORY_FILE).exists()
     assert read_events(repo) == []
+
+
+# --- offset-naive vs offset-aware timestamp degradation (PR #33 review finding) ---
+# datetime.now().astimezone() is offset-aware; subtracting an offset-naive
+# datetime.fromisoformat() from it raises TypeError, not ValueError - the same
+# class of bug already fixed in snapshot-assembler's estimated_cost_of()
+# (Story 5.2). None of these three functions previously caught it.
+
+
+def test_update_active_story_degrades_gracefully_on_offset_naive_opened_at(repo, monkeypatch):
+    write_pointer(repo, "story-a", "2026-07-10T09:00:00")  # offset-naive, no +00:00
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:05:00+00:00")
+    )
+
+    events.update_active_story(repo, "story-b")  # must not raise
+
+    closed = read_events(repo)[0]
+    assert closed["type"] == "time.slice_closed"
+    assert closed["payload"]["duration_seconds"] is None
+
+
+def test_record_activity_degrades_gracefully_on_offset_naive_last_activity_at(repo, monkeypatch):
+    write_pointer(
+        repo, "story-a", "2026-07-10T09:00:00+00:00", last_activity_at="2026-07-10T09:05:00"
+    )
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:20:01+00:00")
+    )
+
+    events.record_activity(repo)  # must not raise
+
+    assert read_events(repo) == []  # gap_seconds couldn't be computed, so no pause emitted
+    assert read_pointer(repo)["last_activity_at"] == "2026-07-10T09:20:01+00:00"
+
+
+def test_close_active_story_slice_degrades_gracefully_on_offset_naive_opened_at(repo, monkeypatch):
+    write_pointer(repo, "story-a", "2026-07-10T09:00:00")  # offset-naive, no +00:00
+    monkeypatch.setattr(
+        events, "_now", lambda: events.datetime.fromisoformat("2026-07-10T09:30:00+00:00")
+    )
+
+    events.close_active_story_slice(repo)  # must not raise
+
+    closed = read_events(repo)[0]
+    assert closed["type"] == "time.slice_closed"
+    assert closed["payload"]["duration_seconds"] is None

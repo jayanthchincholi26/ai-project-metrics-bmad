@@ -110,6 +110,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--description", help="optional longer description")
     p.add_argument(
+        "--jira-issue-key",
+        help="the parent Jira issue key (e.g. 'AI-139'), Story 5.4 - persisted so a later "
+        "defect-logging step can attach a Jira subtask to the right parent; null when omitted "
+        "(confluence/docs-only stories have no Jira parent)",
+    )
+    p.add_argument(
         "--source-of-truth",
         choices=("jira", "confluence", "docs-only"),
         default="docs-only",
@@ -155,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
             return fail("--sprint must not be empty")
         sprint = None  # docs-only: no sprint/milestone concept is a valid answer
     description = clean(args.description) if args.description else ""
+    jira_issue_key = clean(args.jira_issue_key) if args.jira_issue_key else ""
 
     root = Path(args.repo_root)
     if not root.is_dir():
@@ -172,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
                 "story_id": story_id,
                 "name": name or None,
                 "source_of_truth": args.source_of_truth,
+                "jira_issue_key": jira_issue_key or None,
                 "ai_tool": args.ai_tool,
                 "points": points,
                 "points_estimated": points_estimated,

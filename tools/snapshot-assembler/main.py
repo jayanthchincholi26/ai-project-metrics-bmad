@@ -246,6 +246,45 @@ def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, A
     }
 
 
+def defect_metrics_of(events: "list[dict]") -> dict[str, Any]:
+    """Story 5.4: reduces ai.claude-code.defect_{compile,test,review} events into
+    counts and QA efficiency percentages (formulas match aep-orchestrator's
+    reference tool exactly - only its 100%-manual capture mechanism was not
+    copied, see the story's Background). Null-with-reason when zero defect
+    events exist (AD-10) - deliberately NOT the reference tool's fabricated
+    100%/0% default, since "no defects logged" and "confirmed zero defects"
+    are indistinguishable without a stronger signal this story doesn't add."""
+
+    def count(event_type: str) -> int:
+        return sum(1 for e in events if e.get("type") == event_type)
+
+    compile_defects = count("ai.claude-code.defect_compile")
+    test_defects = count("ai.claude-code.defect_test")
+    review_defects = count("ai.claude-code.defect_review")
+    total_defects = compile_defects + test_defects + review_defects
+
+    if total_defects == 0:
+        return {
+            "total_defects": None,
+            "compile_defects": None,
+            "test_defects": None,
+            "review_defects": None,
+            "testing_efficiency": None,
+            "review_efficiency": None,
+            "reason": "no defects logged for this story",
+        }
+
+    return {
+        "total_defects": total_defects,
+        "compile_defects": compile_defects,
+        "test_defects": test_defects,
+        "review_defects": review_defects,
+        "testing_efficiency": (compile_defects + test_defects) / total_defects * 100,
+        "review_efficiency": review_defects / total_defects * 100,
+        "reason": None,
+    }
+
+
 def estimated_cost_of(
     engineering_metrics: "dict[str, Any]", config: "dict[str, str]"
 ) -> dict[str, Any]:
@@ -429,6 +468,7 @@ def main(argv: "list[str] | None" = None) -> int:
         "story_point_cost": story_point_cost_of(root, ours, manifest),
         "token_cost": token_cost_of(ours, config),
         "estimated_cost": estimated_cost_of(engineering_metrics, config),
+        "defect_metrics": defect_metrics_of(ours),
     }
 
     snapshots_dir = root / SNAPSHOTS_DIR

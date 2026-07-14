@@ -215,13 +215,36 @@ def test_null_estimated_and_token_cost_show_not_tracked_with_reason(tmp_path):
     assert "no transcript_path in hook payload" in html
 
 
-def test_defects_column_is_always_not_yet_tracked(tmp_path):
+def test_defects_column_falls_back_to_not_tracked_when_defect_metrics_is_absent(tmp_path):
+    # A snapshot predating Story 5.4 has no defect_metrics section at all.
     write_snapshot(tmp_path, "story-a", 1)
 
     run(tmp_path)
 
     html = dashboard_html(tmp_path)
-    assert "not yet tracked" in html
+    assert "not tracked — no reason given" in html
+
+
+def test_defects_column_renders_real_values(tmp_path):
+    write_snapshot(
+        tmp_path,
+        "story-a",
+        1,
+        defect_metrics={
+            "total_defects": 4,
+            "compile_defects": 1,
+            "test_defects": 2,
+            "review_defects": 1,
+            "testing_efficiency": 75.0,
+            "review_efficiency": 25.0,
+            "reason": None,
+        },
+    )
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert "4 total (testing 75.0% / review 25.0%)" in html
 
 
 def test_output_is_self_contained_no_external_network_references(tmp_path):

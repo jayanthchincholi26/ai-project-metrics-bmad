@@ -50,6 +50,7 @@ from typing import Any, Optional
 EVENTS_FILE = ".story-events.jsonl"
 PENDING_FILE = ".story-events.pending.jsonl"
 MANIFEST = ".story.yaml"
+CONFIG = ".story-config.yaml"
 ACTIVE_STORY_FILE = ".active-story"
 ACTIVE_SESSION_FILE = ".active-claude-session"
 ATTEMPTS = 4  # 1 initial + 3 retries (AD-9)
@@ -137,6 +138,24 @@ def parse_scalar(raw: str) -> str:
     if " #" in value:
         value = value.split(" #", 1)[0].strip()
     return value
+
+
+def read_story_config(root: Path) -> "dict[str, str]":
+    """Story 5.4: shared here (unlike tools/snapshot-assembler/main.py's own
+    duplicate of the same reader, kept standalone by design) because hook
+    scripts already import this module rather than staying self-contained -
+    no new duplication is introduced by reusing it here."""
+    path = root / CONFIG
+    if not path.is_file():
+        return {}
+    config: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or ":" not in stripped:
+            continue
+        key, raw = stripped.split(":", 1)
+        config[key.strip()] = parse_scalar(raw)
+    return config
 
 
 def story_id(root: Path) -> Optional[str]:
@@ -240,7 +259,7 @@ def update_active_story(root: Path, incoming_story_id: Optional[str]) -> None:
         if opened_at:
             try:
                 duration_seconds = (now - datetime.fromisoformat(opened_at)).total_seconds()
-            except ValueError:
+            except (ValueError, TypeError):
                 duration_seconds = None
         emit(
             "time",
@@ -285,7 +304,7 @@ def record_activity(root: Path) -> None:
     if last_activity_raw:
         try:
             gap_seconds = (now - datetime.fromisoformat(last_activity_raw)).total_seconds()
-        except ValueError:
+        except (ValueError, TypeError):
             gap_seconds = None
         if gap_seconds is not None and gap_seconds > IDLE_THRESHOLD_SECONDS:
             emit(
@@ -352,7 +371,7 @@ def close_active_story_slice(root: Path) -> None:
     if opened_at:
         try:
             duration_seconds = (now - datetime.fromisoformat(opened_at)).total_seconds()
-        except ValueError:
+        except (ValueError, TypeError):
             duration_seconds = None
 
     emit(

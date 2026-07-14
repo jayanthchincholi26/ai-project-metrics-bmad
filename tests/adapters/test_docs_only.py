@@ -20,6 +20,7 @@ MANIFEST_KEYS = [
     "story_id",
     "name",
     "source_of_truth",
+    "jira_issue_key",
     "ai_tool",
     "points",
     "points_estimated",
@@ -123,6 +124,24 @@ def test_name_is_null_for_jira_calls_that_do_not_pass_it(tmp_path):
     kickoff(tmp_path, sprint="Sprint 3", **{"source-of-truth": "jira"})
 
     assert parse_manifest(tmp_path)["name"] is None
+
+
+def test_jira_issue_key_defaults_to_null(tmp_path):
+    kickoff(tmp_path)
+
+    assert parse_manifest(tmp_path)["jira_issue_key"] is None
+
+
+def test_jira_issue_key_recorded_when_provided(tmp_path):
+    kickoff(tmp_path, sprint="Sprint 3", **{"source-of-truth": "jira", "jira-issue-key": "AI-139"})
+
+    assert parse_manifest(tmp_path)["jira_issue_key"] == "AI-139"
+
+
+def test_jira_issue_key_is_null_when_not_passed_even_for_confluence(tmp_path):
+    kickoff(tmp_path, sprint="Sprint 3", **{"source-of-truth": "confluence"})
+
+    assert parse_manifest(tmp_path)["jira_issue_key"] is None
 
 
 def test_description_defaults_to_null(tmp_path):

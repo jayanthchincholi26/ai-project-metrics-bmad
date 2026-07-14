@@ -223,6 +223,136 @@ def test_session_end_with_no_transcript_path_is_null_with_reason(repo, monkeypat
     assert isinstance(payload["token_cost_reason"], str) and payload["token_cost_reason"]
 
 
+# --- compile/test defect capture (Story 5.4) ---
+
+
+def write_story_config(repo_root: Path, **rates) -> None:
+    lines = "".join(f"{key}: {value}\n" for key, value in rates.items())
+    (repo_root / ".story-config.yaml").write_text(lines, encoding="utf-8")
+
+
+def test_post_tool_use_emits_defect_test_on_matched_failing_command(repo, monkeypatch):
+    write_story_config(repo, test_commands="pytest, npm test")
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "pytest tests/"},
+            "tool_output": {"exit_code": 1, "stdout": "FAILED", "stderr": "boom"},
+        },
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "ai.claude-code.defect_test" in types
+
+
+def test_post_tool_use_emits_defect_compile_on_matched_failing_build_command(repo, monkeypatch):
+    write_story_config(repo, build_commands="tsc --noEmit, ruff check")
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "tsc --noEmit"},
+            "tool_output": {"exit_code": 2},
+        },
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "ai.claude-code.defect_compile" in types
+
+
+def test_post_tool_use_defect_payload_never_contains_command_text_or_output(repo, monkeypatch):
+    write_story_config(repo, test_commands="pytest")
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "pytest tests/ -k secret_token_xyz"},
+            "tool_output": {"exit_code": 1, "stdout": "leaked stdout", "stderr": "leaked stderr"},
+        },
+    )
+
+    post_tool_use.main([])
+
+    raw = (repo / ".story-events.jsonl").read_text(encoding="utf-8")
+    assert "secret_token_xyz" not in raw
+    assert "leaked stdout" not in raw
+    assert "leaked stderr" not in raw
+
+
+def test_post_tool_use_no_defect_on_successful_matched_command(repo, monkeypatch):
+    write_story_config(repo, test_commands="pytest")
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "pytest tests/"},
+            "tool_output": {"exit_code": 0},
+        },
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "ai.claude-code.defect_test" not in types
+    assert "ai.claude-code.defect_compile" not in types
+
+
+def test_post_tool_use_no_defect_on_unmatched_command(repo, monkeypatch):
+    write_story_config(repo, test_commands="pytest")
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "echo hello"},
+            "tool_output": {"exit_code": 1},
+        },
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "ai.claude-code.defect_test" not in types
+    assert "ai.claude-code.defect_compile" not in types
+
+
+def test_post_tool_use_no_defect_when_no_config_present(repo, monkeypatch):
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "pytest tests/"},
+            "tool_output": {"exit_code": 1},
+        },
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert types == ["ai.claude-code.tool_use"]
+
+
+def test_post_tool_use_non_bash_tool_never_emits_a_defect(repo, monkeypatch):
+    write_story_config(repo, test_commands="pytest")
+    feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Edit"})
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "ai.claude-code.defect_test" not in types
+    assert "ai.claude-code.defect_compile" not in types
+
+
 def write_transcript(tmp_path: Path, lines: list[dict]) -> str:
     path = tmp_path / "transcript.jsonl"
     path.write_text("\n".join(json.dumps(line) for line in lines) + "\n", encoding="utf-8")
