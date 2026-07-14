@@ -634,6 +634,12 @@ A second, more convenient distribution path alongside Story 4.1's existing GitHu
 
 A commented `.story-config.yaml.example` (every documented key, commented out, with its default explained) now ships in the release artifact, so a developer copies-and-edits instead of hand-typing from `INSTALL.md`'s prose. Deliberately **not** auto-copied into `.story-config.yaml` — a project's absence of that file is meaningful (AD-4's docs-only default), and this story must not weaken that by silently deciding a `source_of_truth` on the developer's behalf.
 
+### Story 4.5: Publish as a Package for a True One-Word Install (`uvx ai-metrics-capture install`)
+
+> ⏳ **Not started** — opened 2026-07-14, after the user asked why the Story 4.3 curl/irm command has to be a long fully-qualified `raw.githubusercontent.com` URL instead of something as short as `npx bmad-method install`
+
+Story 4.3's `curl`/`irm` one-liner is only as short as a raw GitHub URL allows — there's no name-resolution layer, so it must fully spell out host/org/repo/branch/path every time. `npx bmad-method install` is short specifically because npm's **registry** resolves the package name for you. The Python/`uv` equivalent is publishing this project as a real package (PyPI) with a console-script entry point, giving developers `uvx ai-metrics-capture install` (or similar) — no URL, no version/branch to think about, `uvx` resolves and runs the latest published version directly. This is the heavier distribution mechanism Story 4.3's Dev Notes explicitly named and deferred ("Do NOT build in this story: a PyPI package / `uvx ai-metrics-capture init` entry point"). Scope for this story: package metadata (`pyproject.toml` with a `[project.scripts]` entry point), a thin CLI wrapper around the existing `build-release`/install logic, a PyPI publish step (likely via a GitHub Actions release workflow, gated behind Story 4.2's `main`-promotion cadence), and updated `INSTALL.md` presenting the `uvx` command as the new primary path — Story 4.3's curl/irm scripts stay documented as a fallback for machines without `uv`, same additive precedent as 4.3 itself over 4.1's manual zip.
+
 ---
 
 ## Epic 5: Leadership-Ready Reporting and Real Cost/Defect Tracking

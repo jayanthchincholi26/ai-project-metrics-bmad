@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-13
+last_updated: 2026-07-14
 project: explore-jira-ai-metrics
 project_key: NOKEY
 tracking_system: file-system
@@ -80,6 +80,7 @@ development_status:
   4-2-develop-promotes-to-main-on-a-defined-release-cadence: backlog  # gated on QA pass
   4-3-one-command-curl-irm-installer: done  # PR #30, merged 2a100e4
   4-4-story-config-yaml-example-template-shipped-in-release: done  # PR #29
+  4-5-publish-as-a-package-for-a-true-one-word-install: ready-for-dev  # opened 2026-07-14
   epic-4-retrospective: optional
   epic-5: in-progress  # opened 2026-07-13, work started 2026-07-14 on branch enhancements-v2
   5-1-installmd-numbered-steps-no-prose: done  # PR #25, merged 9130a94
