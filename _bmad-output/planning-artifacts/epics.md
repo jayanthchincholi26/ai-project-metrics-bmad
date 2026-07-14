@@ -652,6 +652,12 @@ Teardown counterpart to Story 4.3's install scripts: `uninstall.sh`/`uninstall.p
 
 `setup-hooks.py` read `.claude/settings.json` with plain `utf-8`, so a BOM-prefixed file crashed with "Unexpected UTF-8 BOM" — fixed to `utf-8-sig` (this project's established convention for exactly this class of bug, now the 4th instance). Root cause traced to `uninstall.ps1`'s own settings.json rewrite step using `Set-Content -Encoding utf8`, which writes a real BOM on Windows PowerShell 5.1 — fixed to write BOM-less UTF-8 directly via `.NET`'s `UTF8Encoding($false)`. Two-sided fix: the read is now defensive against any BOM-writing tool, and the actual source of the corruption (this project's own uninstall script) no longer introduces one.
 
+### Story 4.8: `.story-config.yaml.example` Template Missing Story 5.4's Defect-Capture Keys
+
+> ✅ **Complete** — opened 2026-07-14, user noticed the shipped template never mentioned `test_commands`/`build_commands`; PR pending
+
+Story 5.4 added real, working `test_commands`/`build_commands` config keys but never updated the shipped `.story-config.yaml.example` template, `INSTALL.md`'s own embedded config example, or Story 4.4's template-completeness test's hardcoded key list — all three fixed. A real gap in Story 5.4's own Definition of Done that a stricter completeness check should have caught.
+
 ---
 
 ## Epic 5: Leadership-Ready Reporting and Real Cost/Defect Tracking

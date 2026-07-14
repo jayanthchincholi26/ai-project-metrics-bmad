@@ -77,6 +77,13 @@ below is the manual alternative to this command.
    # hourly_rate: 10        # USD/hr, used for estimated_cost
    # ai_input_rate: 1.25    # USD per 1,000,000 input tokens
    # ai_output_rate: 5.00   # USD per 1,000,000 output tokens
+
+   # Optional — automatic compile/test defect capture. Comma-separated command
+   # patterns; a Bash call matching one that exits non-zero is logged as a
+   # defect automatically. Absent by default (no capture without this opt-in).
+   # Only the matched pattern name is ever recorded, never the command/output:
+   # test_commands: pytest, npm test
+   # build_commands: tsc --noEmit, ruff check
    ```
 4. Commit `tools/`, `.claude/skills/`, and `.story-config.yaml` so every teammate gets the
    same setup from a plain clone (they still each run step 2 once).

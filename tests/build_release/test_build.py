@@ -52,6 +52,8 @@ def test_story_config_example_contains_every_documented_key(tmp_path):
         "hourly_rate",
         "ai_input_rate",
         "ai_output_rate",
+        "test_commands",
+        "build_commands",
     ):
         assert key in content, key
 
