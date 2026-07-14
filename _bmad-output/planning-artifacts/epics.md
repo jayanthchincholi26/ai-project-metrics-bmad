@@ -630,7 +630,7 @@ So that the documented install steps work on first contact instead of failing wi
 
 ### Story 5.1: INSTALL.md — Numbered Steps, No Prose (small)
 
-> ⏳ **Not started**
+> ✅ **Complete** — 2026-07-14 · [PR #25](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/25) (squash-merged to `enhancements-v2`, 9130a94; branch preserved). Review found 1 real, correctly-flagged issue (a pipe-escaping edge case in the Prerequisites table) — verified to predate this PR (Story 1.7) but fixed anyway since the file was already being touched.
 
 Strip `INSTALL.md`'s lengthy descriptive prose down to plain numbered steps ("Step 1.", "Step 2.", ...) for both the docs-only and JIRA flows separately, matching the step-list style the user has been using throughout pilot testing. Also make the archive→snapshot step explicit — state the literal `uv run tools/snapshot-assembler/main.py --repo-root .` (or the `opsx-wrapper` one-command equivalent) command to run after archiving, not just "produces a snapshot."
 
