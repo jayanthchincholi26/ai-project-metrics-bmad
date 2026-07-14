@@ -118,6 +118,8 @@ Verified on both `uninstall.sh` and `uninstall.ps1`: the y/N prompt genuinely ab
 
 Real bug caught and fixed mid-implementation: `uninstall.sh`'s settings.json surgery originally shelled out to `uv run python3`, which on this Windows machine resolves to the Microsoft Store's `python3` alias stub and fails even under `uv run` ("Python was not found...") — `uv run python` (no `3`) works correctly. Fixed before completing E2E; re-verified after.
 
+**Review round 2** (PR #31): added a Python-availability fallback chain (`uv run python` → `python3` → `python`) for the settings.json surgery, so uninstall doesn't crash under `set -e` if `uv` itself has already been removed from the machine. Each candidate is verified to actually execute (`$candidate -c "pass"`), not just present on PATH — re-using the exact lesson from the bug above, since a `python3` alias can exist on PATH while being non-functional. Verified live with a real PATH manipulation hiding `uv`: the script correctly detected the broken `python3` stub via the executability check, found no working `python` either, and degraded to a graceful warning (leaving `.claude/settings.json` untouched, with clear by-hand instructions) rather than crashing — while still completing every other removal. Re-confirmed the normal `uv`-present path is unaffected.
+
 ### Completion Notes List
 
 - `uninstall.sh`/`uninstall.ps1` mirror `install.sh`/`install.ps1`'s structure exactly: same git-repo precondition (`-e ".git"`, worktree/submodule-safe), same `throw`-not-`exit` rule in the PowerShell script.

@@ -69,7 +69,24 @@ for p in $PATHS; do
 done
 
 if [ -f "$SETTINGS" ]; then
-    uv run python - "$SETTINGS" <<'PY'
+    # Prefer uv (this project's own convention), but degrade gracefully if uv
+    # itself has already been removed -- don't let settings.json cleanup crash
+    # under `set -e` just because the rest of the toolchain is gone too. Each
+    # candidate is verified to actually run (not just present on PATH) before
+    # being trusted -- a `python3` on PATH can still be a non-functional stub
+    # (e.g. the Windows Store alias) even when `command -v` finds it.
+    PYTHON_CMD=""
+    for candidate in "uv run python" python3 python; do
+        if $candidate -c "pass" >/dev/null 2>&1; then
+            PYTHON_CMD="$candidate"
+            break
+        fi
+    done
+
+    if [ -z "$PYTHON_CMD" ]; then
+        echo "warning: no working Python found (tried uv, python3, python) — leaving $SETTINGS untouched; remove this tooling's hook entries from it by hand if needed" >&2
+    else
+        $PYTHON_CMD - "$SETTINGS" <<'PY'
 import json
 import os
 import sys
@@ -111,6 +128,7 @@ with open(tmp, "w", encoding="utf-8", newline="\n") as f:
     f.write("\n")
 os.replace(tmp, path)
 PY
+    fi
 fi
 
 echo ""
