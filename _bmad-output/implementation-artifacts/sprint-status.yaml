@@ -89,4 +89,5 @@ development_status:
   5-3-metrics-date-md-generator: done  # PR #27, merged 1339056
   5-4-bugdefect-review-efficiency-tracking: backlog  # blocked on user's capture-mechanism decision
   5-5-leadership-html-dashboard: done  # PR #28, merged b958140
+  5-6-token-cost-reason-is-bare-null-when-zero-sessions-observed: in-progress  # opened 2026-07-14, fixes 2026-07-11 finding (8f480a3)
   epic-5-retrospective: optional
