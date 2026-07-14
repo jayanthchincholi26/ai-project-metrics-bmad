@@ -706,3 +706,9 @@ A static, self-contained local HTML file presenting the accumulated `metrics-*.m
 > ✅ **Complete** — opened 2026-07-14, closing out the 2026-07-11 finding (see Story 2.4's finding note above), confirmed with a live repro during 2026-07-14 pilot testing; PR #32, merged
 
 Narrow fix to `tools/snapshot-assembler/main.py`'s `token_cost_of()`: when zero `session_end` events exist (`sessions_observed: 0`), `reason` currently comes back bare `null` instead of an explanatory string, violating AD-10's null-with-reason rule — confirmed live (`ai_sessions: 1`, `sessions_observed: 0`, "not tracked — no reason given" rendered in both the dashboard and metrics report). Does **not** attempt to make `ai_sessions` and `sessions_observed` match — they measure genuinely different things (sessions *started* vs. sessions that *ended cleanly with token data*) and a mismatch is expected whenever a session doesn't end gracefully (e.g. the VS Code window closed abruptly instead of `/exit`/`Ctrl+C`).
+
+### Story 5.7: `post_tool_use.py` Reads `exit_code` From the Wrong Payload Location
+
+> 🆕 **Opened 2026-07-14** — found live during JIRA-flow testing (`story-20260714-9429f0`): a deliberately failing `tsc --noEmit` never produced a `defect_compile` event despite `build_commands` being correctly configured. Epic 5 reopened to `in-progress`.
+
+Root cause, confirmed against Claude Code's official hooks documentation: `post_tool_use.py` reads `exit_code` from `tool_output.exit_code`, but Claude Code actually places it as a **top-level** `exit_code` key in the PostToolUse payload — so the guard never fires, for any command, ever. Story 5.4's own test suite didn't catch this because its hook-input fixtures baked in the same wrong (nested) shape, so 322 green tests validated against a payload shape Claude Code doesn't actually send. Ready for dev.
