@@ -624,13 +624,13 @@ So that the documented install steps work on first contact instead of failing wi
 
 ### Story 4.3: One-Command Curl/irm Installer (No Manual Zip Download)
 
-> ⏳ **Not started** — opened 2026-07-14, after the user asked why this couldn't be "install like BMad or openspec"
+> ✅ **Complete** — opened 2026-07-14 after the user asked why this couldn't be "install like BMad or openspec"; PR pending
 
-A second, more convenient distribution path alongside Story 4.1's existing GitHub Releases zip — a single `curl -fsSL <url> | sh` (macOS/Linux) or `irm <url> | iex` (Windows) command, mirroring the exact pattern `uv`'s own installer already uses (already cited in this project's own `INSTALL.md`). The script resolves the **latest** release dynamically via the GitHub API, downloads and extracts the zip into the current directory, then prints the next step. Does not replace the manual zip-download path — both stay documented, this is additive. No automated test (not Python; same manual-E2E-only precedent as Story 2.7's git-hook shims).
+A second, more convenient distribution path alongside Story 4.1's existing GitHub Releases zip — a single `curl -fsSL <url> | sh` (macOS/Linux) or `irm <url> | iex` (Windows) command, mirroring the exact pattern `uv`'s own installer already uses (already cited in this project's own `INSTALL.md`). The script resolves the **latest** release dynamically via the GitHub API, downloads and extracts the zip into the current directory, then prints the next step. Does not replace the manual zip-download path — both stay documented, this is additive. No automated test (not Python; same manual-E2E-only precedent as Story 2.7's git-hook shims); verified via real live E2E against the actual v0.3.0 release. Required making the GitHub repo public (was private, which blocks unauthenticated `curl`/`raw.githubusercontent.com` access) — confirmed with the user after a clean secrets scan of the full git history.
 
 ### Story 4.4: `.story-config.yaml.example` Template Shipped in the Release
 
-> ⏳ **Not started** — opened 2026-07-14, after the user asked why the config file couldn't ship as part of the build
+> ✅ **Complete** — opened 2026-07-14, after the user asked why the config file couldn't ship as part of the build; PR #29
 
 A commented `.story-config.yaml.example` (every documented key, commented out, with its default explained) now ships in the release artifact, so a developer copies-and-edits instead of hand-typing from `INSTALL.md`'s prose. Deliberately **not** auto-copied into `.story-config.yaml` — a project's absence of that file is meaningful (AD-4's docs-only default), and this story must not weaken that by silently deciding a `source_of_truth` on the developer's behalf.
 
