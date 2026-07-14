@@ -624,7 +624,7 @@ So that the documented install steps work on first contact instead of failing wi
 
 ### Story 4.3: One-Command Curl/irm Installer (No Manual Zip Download)
 
-> ✅ **Complete** — opened 2026-07-14 after the user asked why this couldn't be "install like BMad or openspec"; PR pending
+> ✅ **Complete** — opened 2026-07-14 after the user asked why this couldn't be "install like BMad or openspec"; PR #30, merged
 
 A second, more convenient distribution path alongside Story 4.1's existing GitHub Releases zip — a single `curl -fsSL <url> | sh` (macOS/Linux) or `irm <url> | iex` (Windows) command, mirroring the exact pattern `uv`'s own installer already uses (already cited in this project's own `INSTALL.md`). The script resolves the **latest** release dynamically via the GitHub API, downloads and extracts the zip into the current directory, then prints the next step. Does not replace the manual zip-download path — both stay documented, this is additive. No automated test (not Python; same manual-E2E-only precedent as Story 2.7's git-hook shims); verified via real live E2E against the actual v0.3.0 release. Required making the GitHub repo public (was private, which blocks unauthenticated `curl`/`raw.githubusercontent.com` access) — confirmed with the user after a clean secrets scan of the full git history.
 
