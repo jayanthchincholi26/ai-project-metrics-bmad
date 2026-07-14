@@ -666,6 +666,6 @@ Do not start create-story for this until the user has picked a direction.
 
 ### Story 5.5: Leadership HTML Dashboard (depends on 5.3, or reads snapshots directly)
 
-> ⏳ **Not started**
+> ✅ **Complete** — 2026-07-14 · [PR #28](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/28) (squash-merged to `enhancements-v2`, b958140; branch preserved). A self-contained, no-publishing-mechanism HTML dashboard (table + honest stat tiles, no chart, per the user's own explicit request and `dataviz`'s choosing-a-form guidance). Live E2E against real snapshot data found and fixed a missing-full-document-structure gap. Review found 1 real defect (a present-but-null snapshot section crash, verified with an actual before/after crash reproduction) and 1 stale finding — the third consecutive PR (#26, #27, #28) where the same already-fixed `TypeError` claim was incorrectly re-raised.
 
 A static, self-contained local HTML file presenting the accumulated `metrics-*.md`/snapshot data as a shareable table for leadership — matching the existing pattern already in this repo (`docs/architecture-diagram-leadership.html`, `docs/new-machine-onboarding.html`). **Not** published via any hosted-link/artifact-publishing tool — this is internal, potentially sensitive leadership data (consistent with `APPROACH.md`'s "how this data will/won't be used" policy) and should stay a local file the user shares at their own discretion. Consult this project's `dataviz` guidance when building the actual table/layout.
