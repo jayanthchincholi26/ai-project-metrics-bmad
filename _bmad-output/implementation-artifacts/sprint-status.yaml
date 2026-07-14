@@ -81,7 +81,7 @@ development_status:
   4-3-one-command-curl-irm-installer: done  # PR #30, merged 2a100e4
   4-4-story-config-yaml-example-template-shipped-in-release: done  # PR #29
   4-5-publish-as-a-package-for-a-true-one-word-install: ready-for-dev  # opened 2026-07-14
-  4-6-one-command-uninstall-uninstall-sh-uninstall-ps1: review  # PR pending, opened 2026-07-14
+  4-6-one-command-uninstall-uninstall-sh-uninstall-ps1: done  # PR #31, merged 063abb7
   epic-4-retrospective: optional
   epic-5: in-progress  # opened 2026-07-13, work started 2026-07-14 on branch enhancements-v2
   5-1-installmd-numbered-steps-no-prose: done  # PR #25, merged 9130a94
@@ -89,5 +89,5 @@ development_status:
   5-3-metrics-date-md-generator: done  # PR #27, merged 1339056
   5-4-bugdefect-review-efficiency-tracking: backlog  # blocked on user's capture-mechanism decision
   5-5-leadership-html-dashboard: done  # PR #28, merged b958140
-  5-6-token-cost-reason-is-bare-null-when-zero-sessions-observed: review  # PR pending, opened 2026-07-14, fixes 2026-07-11 finding (8f480a3)
+  5-6-token-cost-reason-is-bare-null-when-zero-sessions-observed: done  # PR #32, merged 52d47f9
   epic-5-retrospective: optional
