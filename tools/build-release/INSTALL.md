@@ -25,11 +25,31 @@ powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | ie
 ```
 See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/getting-started/installation/) for other platforms, then restart your terminal.
 
+## Quick install (recommended)
+
+One command, run once at your repository root — fetches the latest release and
+extracts it for you (equivalent to Install step 1 below, without the manual zip
+download):
+
+**macOS/Linux:**
+```
+curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/install.sh | sh
+```
+
+**Windows (PowerShell):**
+```
+irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/install.ps1 | iex
+```
+
+Then continue at Install step 2 below. Prefer the manual zip download instead
+(e.g. air-gapped machine, or you want to inspect the contents first)? Step 1
+below is the manual alternative to this command.
+
 ## Install (per repository, once)
 
 1. Extract this zip **at your repository root** (it adds `tools/`,
    `.claude/skills/story-kickoff/`, and `.story-config.yaml.example`; nothing is
-   overwritten).
+   overwritten) — or use "Quick install" above to skip the manual download.
 2. From the repo root, run:
    ```
    uv run tools/setup-hooks.py --repo-root .
