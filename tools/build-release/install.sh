@@ -6,8 +6,8 @@ set -e
 
 REPO="jayanthchincholi26/ai-project-metrics-bmad"
 
-if [ ! -d ".git" ]; then
-    echo "error: not a git repository (no .git directory here) — cd to your repo root first" >&2
+if [ ! -e ".git" ]; then
+    echo "error: not a git repository (no .git directory or file here) — cd to your repo root first" >&2
     exit 1
 fi
 

@@ -22,7 +22,7 @@ if (-not $asset) {
     throw "could not find a .zip asset on the latest release of $Repo"
 }
 
-$tmpZip = [System.IO.Path]::GetTempFileName() + ".zip"
+$tmpZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([System.IO.Path]::GetRandomFileName()).zip"
 Write-Host "Downloading $($asset.browser_download_url)..."
 Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tmpZip
 
