@@ -12,12 +12,18 @@ Check these **in order**:
 | # | Requirement | Why | Check |
 | --- | --- | --- | --- |
 | 1 | Git | Capture hooks are git hooks; branch-per-story is assumed for time attribution | `git --version` |
-| 2 | uv | **uv** is a fast Python package/project manager — every script here runs via `uv run`, and uv **provisions its own Python automatically**, no separate Python install needed | `uv --version` — if empty/not found, install from [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/getting-started/installation/) (Windows: `powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 \| iex"`), then restart your terminal |
+| 2 | uv | **uv** is a fast Python package/project manager — every script here runs via `uv run`, and uv **provisions its own Python automatically**, no separate Python install needed | `uv --version` — if empty/not found, see the install command below |
 | 3 | Python 3.8+ | Informational only if step 2 succeeded — uv manages its own Python. A bare `python --version` failing (e.g. Windows' Microsoft Store stub) is **not a blocker** as long as `uv --version` works | `python --version` (optional check) |
 | 4 | Claude Code | AI-session capture (the default `ai_tool: claude-code` adapter) | the VS Code extension or CLI |
 | 5 | JIRA via MCP *(only if your project uses JIRA)* | Kickoff auto-fills points/goal/sprint through a JIRA MCP server — OAuth, **no personal API token** | see "JIRA setup" below |
 
 No third-party Python packages are needed at runtime — every script is standard-library only.
+
+If `uv --version` is empty/not found, install it (Windows PowerShell):
+```
+powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/getting-started/installation/) for other platforms, then restart your terminal.
 
 ## Install (per repository, once)
 

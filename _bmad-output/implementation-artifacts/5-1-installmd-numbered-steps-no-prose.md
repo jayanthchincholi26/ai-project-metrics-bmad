@@ -160,6 +160,14 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### File List
 
-- tools/build-release/INSTALL.md (rewritten — "Daily use" split into two step lists; surrounding sections condensed/reformatted, no content lost)
+- tools/build-release/INSTALL.md (rewritten — "Daily use" split into two step lists; surrounding sections condensed/reformatted, no content lost; the Prerequisites table's uv-install command moved out of the table cell to fix a pre-existing pipe-escaping issue, see Review Follow-ups)
 - _bmad-output/implementation-artifacts/5-1-installmd-numbered-steps-no-prose.md (this file — task checkboxes, Dev Agent Record, status)
+
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #25) — 2026-07-14:
+
+- [x] [AI-Review][Low] Prerequisites table's uv-install command used a backslash-escaped pipe (`\|`) to survive markdown table-cell parsing; a raw/plain-text view of the file (not GitHub's rendered page) would show that literal backslash, and copying from there into PowerShell would be a syntax error. **Verified this predates PR #25** (traces to Story 1.7/PR #21, 2026-07-11 — not introduced by this PR) but fixed anyway since the same file is already being rewritten here. Rather than the reviewer's suggested `&#124;` swap (which has the identical raw-view problem — an HTML entity doesn't decode in a plain-text view either), moved the install command out of the table cell entirely into its own fenced code block below the table — copy-paste safe from any view, rendered or raw, with no escaping needed at all.
+
+All findings verified against the actual PR #25 diff before acting (`git diff enhancements-v2..story/5.1-installmd-rewrite -- tools/build-release/INSTALL.md` confirmed the flagged line was unchanged, pre-existing content) — correctly attributed as real but pre-existing, not a defect introduced by this PR.
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
