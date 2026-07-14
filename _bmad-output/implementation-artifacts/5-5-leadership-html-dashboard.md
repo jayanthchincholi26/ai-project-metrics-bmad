@@ -132,7 +132,16 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 ### File List
 
 - tools/dashboard/main.py (new — aggregates stats, renders the self-contained dashboard HTML, reuses `metrics-report`'s `discover_snapshots()`/`humanize_minutes()`/`duration_minutes_of()`)
-- tests/dashboard/test_dashboard.py (new — 17 tests covering discovery reuse, revision selection, cross-date aggregation, sort order, stat-tile honesty, per-story rendering, self-containment, real-table/no-image, theme CSS presence, full-document structure, idempotent regeneration)
+- tests/dashboard/test_dashboard.py (new — 18 tests covering discovery reuse, revision selection, cross-date aggregation, sort order, stat-tile honesty, per-story rendering, self-containment, real-table/no-image, theme CSS presence, full-document structure, idempotent regeneration, present-but-null section handling)
 - tools/build-release/INSTALL.md (modified — optional `dashboard` step added to both Daily-use flows; `metrics-reports/` commit-guidance note extended to cover `dashboard.html` and its no-publishing boundary)
 - _bmad-output/implementation-artifacts/5-5-leadership-html-dashboard.md (this file — task checkboxes, Dev Agent Record, status)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
+
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #28) — 2026-07-14, 1 of 2 findings genuine, 1 stale/incorrect:
+
+- [x] [AI-Review][Medium] `aggregate_stats()`/`render_row()`/`render_table()`'s sort key all used `s.get("key", {})`, which only supplies the default for an **absent** key — a corrupted/hand-edited snapshot with a section present but explicitly `null` (e.g. `"pm_metrics": null`) would crash with `AttributeError: 'NoneType' object has no attribute 'get'` on the chained `.get()` call. Fixed: `(s.get("key") or {})` everywhere this pattern appeared. **Verified the crash reproduces exactly as described** by temporarily reverting the fix and re-running the new regression test — confirmed the exact `AttributeError` before restoring the fix. New test: `test_a_present_but_null_section_does_not_crash_generation`.
+- [ ] [AI-Review][Stale/Incorrect] "The `TypeError` crash in `snapshot-assembler/main.py`'s `estimated_cost_of()` remains unpatched." **Verified false, for the third time now** (also raised, incorrectly, on PRs #26 and #27) — `git log --oneline -1 story/5.5-leadership-dashboard -- tools/snapshot-assembler/main.py` shows that file isn't even touched by this PR (last real change was PR #27, unrelated); the fix has been in place since PR #26 (`except (ValueError, TypeError):`, with a comment citing that PR). No action taken.
+
+The genuine finding was verified with an actual before/after crash reproduction, not just read-through — consistent with this project's practice of proving a regression test really catches what it claims to.

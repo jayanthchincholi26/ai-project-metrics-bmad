@@ -51,9 +51,12 @@ def aggregate_stats(snapshots: "list[dict]") -> "dict[str, Any]":
         known = [getter(s) for s in snapshots if isinstance(getter(s), (int, float))]
         return (sum(known) if known else None), len(known)
 
-    points_sum, points_known = known_sum(lambda s: s.get("pm_metrics", {}).get("points"))
-    cost_sum, cost_known = known_sum(lambda s: s.get("estimated_cost", {}).get("usd"))
-    token_sum, token_known = known_sum(lambda s: s.get("token_cost", {}).get("cost_usd"))
+    # (s.get("key") or {}) not s.get("key", {}) - a corrupted/hand-edited snapshot
+    # could have the key present but explicitly null, and dict.get()'s default only
+    # covers an absent key, not a present-but-None value (review finding, PR #28)
+    points_sum, points_known = known_sum(lambda s: (s.get("pm_metrics") or {}).get("points"))
+    cost_sum, cost_known = known_sum(lambda s: (s.get("estimated_cost") or {}).get("usd"))
+    token_sum, token_known = known_sum(lambda s: (s.get("token_cost") or {}).get("cost_usd"))
 
     return {
         "total_stories": total_stories,
@@ -100,10 +103,11 @@ def render_stat_tiles(stats: "dict[str, Any]") -> str:
 
 
 def render_row(snapshot: dict) -> str:
-    pm = snapshot.get("pm_metrics", {})
-    eng = snapshot.get("engineering_metrics", {})
-    est = snapshot.get("estimated_cost", {})
-    tok = snapshot.get("token_cost", {})
+    # (s.get("key") or {}) - same present-but-null guard as aggregate_stats() above
+    pm = snapshot.get("pm_metrics") or {}
+    eng = snapshot.get("engineering_metrics") or {}
+    est = snapshot.get("estimated_cost") or {}
+    tok = snapshot.get("token_cost") or {}
 
     name = pm.get("name") or snapshot.get("story_id", "unknown-story")
     date = (eng.get("last_event_at") or pm.get("created") or "")[:10] or "unknown"
@@ -130,8 +134,8 @@ def render_table(snapshots: "list[dict]") -> str:
     ordered = sorted(
         snapshots,
         key=lambda s: (
-            s.get("engineering_metrics", {}).get("last_event_at")
-            or s.get("pm_metrics", {}).get("created")
+            (s.get("engineering_metrics") or {}).get("last_event_at")
+            or (s.get("pm_metrics") or {}).get("created")
             or ""
         ),
         reverse=True,

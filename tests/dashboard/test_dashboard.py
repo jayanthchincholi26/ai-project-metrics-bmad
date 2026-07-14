@@ -291,3 +291,24 @@ def test_no_snapshots_produces_a_dashboard_with_zero_stories(tmp_path):
     assert exit_code == 0
     html = dashboard_html(tmp_path)
     assert "0" in html
+
+
+def test_a_present_but_null_section_does_not_crash_generation(tmp_path):
+    # Review finding (PR #28): dict.get(key, {}) only supplies its default for an
+    # ABSENT key - a corrupted/hand-edited snapshot with e.g. "pm_metrics": null
+    # (key present, value None) would crash aggregate_stats()/render_row() with
+    # AttributeError on the chained .get() call. Must degrade gracefully instead.
+    path = write_snapshot(tmp_path, "story-a", 1)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["pm_metrics"] = None
+    data["estimated_cost"] = None
+    data["token_cost"] = None
+    data["engineering_metrics"] = None
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    html = dashboard_html(tmp_path)
+    assert "story-a" in html  # falls back to story_id since pm_metrics.name is unavailable
+    assert "not set" in html  # points, gracefully degraded rather than crashing
