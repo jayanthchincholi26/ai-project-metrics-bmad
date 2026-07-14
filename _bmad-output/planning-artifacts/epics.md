@@ -642,7 +642,7 @@ Story 4.3's `curl`/`irm` one-liner is only as short as a raw GitHub URL allows �
 
 ### Story 4.6: One-Command Uninstall (`uninstall.sh` / `uninstall.ps1`)
 
-> ⏳ **Not started** — opened 2026-07-14, after the user asked how to reset a test repo back to a clean state between install tests
+> ✅ **Complete** — opened 2026-07-14, after the user asked how to reset a test repo back to a clean state between install tests; PR pending
 
 Teardown counterpart to Story 4.3's install scripts: `uninstall.sh`/`uninstall.ps1` remove everything the install and `setup-hooks.py` added — the extracted `tools/`/skill/`INSTALL.md`/config template, the four `.git/hooks/` shims, this tooling's own entries in `.claude/settings.json` (surgically, never the whole file), and any capture-time artifacts (`.story.yaml`, `.story-events.jsonl`, `snapshots/`, `metrics-reports/`, etc.) if present. Prints what it's about to remove and asks for y/N confirmation first (a `--yes`/`-Yes` flag skips the prompt for scripted use) — this is destructive, unlike install. No automated test (shell/PowerShell scripts, same manual-E2E-only precedent as 4.3).
 

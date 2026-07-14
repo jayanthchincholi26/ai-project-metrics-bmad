@@ -27,10 +27,10 @@ See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/g
 
 ## Quick install (recommended)
 
-> **TEMPORARY:** the commands below point at the `enhancements-v2` branch, not
-> `main` — solo self-testing only while Story 4.2 (`develop`→`main` promotion)
-> is still pending. **Switch both URLs back to `main` before handing this to
-> any other developer.**
+> **TEMPORARY:** the commands below (and Uninstall's, further down) point at
+> the `enhancements-v2` branch, not `main` — solo self-testing only while
+> Story 4.2 (`develop`→`main` promotion) is still pending. **Switch all four
+> URLs back to `main` before handing this to any other developer.**
 
 One command, run once at your repository root — fetches the latest release and
 extracts it for you (equivalent to Install step 1 below, without the manual zip
@@ -222,6 +222,30 @@ team, since it may summarize cost figures).
 Download the newer release zip, extract it at the repo root (overwriting `tools/` and the
 skill), re-run `uv run tools/setup-hooks.py --repo-root .`, and commit the diff. Hook
 installs are idempotent — re-running upgrades in place.
+
+## Uninstall
+
+`uninstall.sh`/`uninstall.ps1` remove everything Install added — `tools/`, the skill,
+`INSTALL.md`, `.story-config.yaml.example`, the four git hooks, this tooling's own
+entries in `.claude/settings.json` (surgically — any other hooks/keys you have are left
+untouched), and, if present, anything a kickoff/close cycle created (`.story.yaml`,
+`.story-events.jsonl`, `.active-story`, `snapshots/`, `metrics-reports/`, etc.). Like
+Install, they're fetched directly from the repo, not shipped inside the release zip:
+
+**macOS/Linux:**
+```
+curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/uninstall.sh | sh
+```
+
+**Windows (PowerShell):**
+```
+irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/uninstall.ps1 | iex
+```
+
+This is destructive — it prints exactly what it's about to remove and asks for a `y/N`
+confirmation first. To skip the prompt (scripted use): `curl ... | sh -s -- --yes`, or for
+PowerShell, set `$env:AI_METRICS_UNINSTALL_YES = "1"` before piping (a switch argument
+can't reach a script invoked via `irm | iex`).
 
 ## Troubleshooting
 
