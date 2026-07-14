@@ -649,7 +649,7 @@ Two things, both feeding a story's per-story cost picture:
 
 ### Story 5.3: `metrics-<date>.md` Generator (medium, builds on 5.2 but doesn't require it first)
 
-> ⏳ **Not started**
+> ✅ **Complete** — 2026-07-14 · [PR #27](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/27) (squash-merged to `enhancements-v2`, 1339056; branch preserved). Live E2E against this project's own real accumulated snapshots (not synthetic fixtures) found and fixed 2 real gaps (a missing Goal line; a duration fallback for pre-Story-5.2-schema snapshots). Also fixed a small, previously-undiscovered gap: `pm_metrics.name` had been in `.story.yaml` since Story 1.7 but was never carried into the snapshot. Review found 2 more real defects (malformed-date-field guards) plus 1 stale/incorrect finding, correctly identified as such by diffing against the actual PR before acting.
 
 A new tool that reads `snapshots/*.json` (kept as the canonical machine-readable artifact per AD-3 — this does not replace JSON, it renders a human-readable view alongside it) and writes/updates one markdown file per day (e.g. `metrics-07142026.md`) formatted like this repo's own existing hand-maintained `docs/metrics.md` — one section per story, with whatever fields are actually available (points, goal, engineering metrics, phase1/phase2 points, cost/token fields once 5.2 lands). Fields not yet captured (e.g. defect counts, before 5.4 exists) are shown honestly as "not yet tracked," never a fake zero — same null-with-reason philosophy as the rest of this pipeline.
 
