@@ -82,6 +82,7 @@ development_status:
   4-4-story-config-yaml-example-template-shipped-in-release: done  # PR #29
   4-5-publish-as-a-package-for-a-true-one-word-install: ready-for-dev  # opened 2026-07-14
   4-6-one-command-uninstall-uninstall-sh-uninstall-ps1: done  # PR #31, merged 063abb7
+  4-7-setup-hooks-crashes-on-a-bom-prefixed-settingsjson: review  # PR pending, opened 2026-07-14, real user-reported bug
   epic-4-retrospective: optional
   epic-5: done  # all 6 stories (5.1-5.6) complete as of 2026-07-14
   5-1-installmd-numbered-steps-no-prose: done  # PR #25, merged 9130a94

@@ -188,7 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     settings: dict[str, Any] = {}
     if settings_path.exists():
         try:
-            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            settings = json.loads(settings_path.read_text(encoding="utf-8-sig"))
         except json.JSONDecodeError as exc:
             return fail(f"{settings_path} is not valid JSON ({exc}) — fix it and re-run")
 

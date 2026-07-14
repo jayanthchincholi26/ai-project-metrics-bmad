@@ -226,6 +226,26 @@ def test_existing_settings_and_user_hooks_are_preserved(fake_repo, capsys):
     assert len(our_commands(settings, "SessionStart")) == 1
 
 
+def test_existing_settings_with_utf8_bom_is_tolerated(fake_repo, capsys):
+    # PowerShell's `Set-Content -Encoding utf8` (5.1) writes a real UTF-8 BOM --
+    # confirmed empirically after a real user hit this via uninstall.ps1's own
+    # settings.json rewrite step. json.loads() on a plain "utf-8" decode leaves
+    # a stray U+FEFF character that raises "Unexpected UTF-8 BOM".
+    settings_dir = fake_repo / ".claude"
+    settings_dir.mkdir()
+    existing = {"model": "opus", "hooks": {}}
+    (settings_dir / "settings.json").write_bytes(
+        b"\xef\xbb\xbf" + json.dumps(existing).encode("utf-8")
+    )
+
+    exit_code = run(fake_repo)
+
+    assert exit_code == 0
+    settings = settings_of(fake_repo)
+    assert settings["model"] == "opus"
+    assert len(our_commands(settings, "SessionStart")) == 1
+
+
 def test_malformed_settings_json_is_refused_and_untouched(fake_repo, capsys):
     settings_dir = fake_repo / ".claude"
     settings_dir.mkdir()

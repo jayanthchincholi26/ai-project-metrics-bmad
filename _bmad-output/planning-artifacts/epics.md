@@ -646,6 +646,12 @@ Story 4.3's `curl`/`irm` one-liner is only as short as a raw GitHub URL allows �
 
 Teardown counterpart to Story 4.3's install scripts: `uninstall.sh`/`uninstall.ps1` remove everything the install and `setup-hooks.py` added — the extracted `tools/`/skill/`INSTALL.md`/config template, the four `.git/hooks/` shims, this tooling's own entries in `.claude/settings.json` (surgically, never the whole file), and any capture-time artifacts (`.story.yaml`, `.story-events.jsonl`, `snapshots/`, `metrics-reports/`, etc.) if present. Prints what it's about to remove and asks for y/N confirmation first (a `--yes`/`-Yes` flag skips the prompt for scripted use) — this is destructive, unlike install. No automated test (shell/PowerShell scripts, same manual-E2E-only precedent as 4.3).
 
+### Story 4.7: `setup-hooks.py` Crashes on a BOM-Prefixed `settings.json`
+
+> ✅ **Complete** — opened 2026-07-14, a real bug hit live during pilot testing; PR pending
+
+`setup-hooks.py` read `.claude/settings.json` with plain `utf-8`, so a BOM-prefixed file crashed with "Unexpected UTF-8 BOM" — fixed to `utf-8-sig` (this project's established convention for exactly this class of bug, now the 4th instance). Root cause traced to `uninstall.ps1`'s own settings.json rewrite step using `Set-Content -Encoding utf8`, which writes a real BOM on Windows PowerShell 5.1 — fixed to write BOM-less UTF-8 directly via `.NET`'s `UTF8Encoding($false)`. Two-sided fix: the read is now defensive against any BOM-writing tool, and the actual source of the corruption (this project's own uninstall script) no longer introduces one.
+
 ---
 
 ## Epic 5: Leadership-Ready Reporting and Real Cost/Defect Tracking
