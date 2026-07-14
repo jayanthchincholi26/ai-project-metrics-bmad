@@ -108,6 +108,13 @@ folder), or Claude Code won't see the kickoff skill.
    Writes/overwrites `metrics-reports/metrics-<MMDDYYYY>.md` (grouped by the day each
    story closed) — safe to re-run any time, always fully regenerated from the
    (immutable) JSON snapshots, never appended to.
+10. *(optional)* Generate a single shareable leadership dashboard across every story:
+    ```
+    uv run tools/dashboard/main.py --repo-root .
+    ```
+    Writes/overwrites `metrics-reports/dashboard.html` — a self-contained file (no
+    server, no network calls) you can open by double-clicking or share directly.
+    Same regeneration contract as the report above.
 
 **Don't confuse `/opsx:archive` (the Claude Code slash command) with the wrapper command
 above.** The slash command only calls the underlying `openspec archive` — it produces no
@@ -144,6 +151,8 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
    uv run tools/metrics-report/main.py --repo-root .
    ```
    Same command as the docs-only flow — writes `metrics-reports/metrics-<MMDDYYYY>.md`.
+10. *(optional)* Generate the leadership dashboard: `uv run tools/dashboard/main.py --repo-root .`
+    — same command as the docs-only flow, writes `metrics-reports/dashboard.html`.
 
 **Why JIRA's step order differs from docs-only's:** `/opsx:propose` has no JIRA-fetching
 capability of its own — it only accepts a kebab-case name or a plain-text description you
@@ -171,9 +180,13 @@ don't ignore it: a tracked `.story-events.jsonl` silently forks and discards cap
 events every time you switch between story branches, with no error at all.
 
 `snapshots/` and `metrics-reports/` are different — both are meant to be **committed**,
-not ignored. They're generated *output* (an immutable JSON snapshot per story close, and
-a human-readable markdown rendering of it), shared with your team the same way any other
-tracked file is, unlike the genuinely-local `.story-events.jsonl` family above.
+not ignored. They're generated *output* (an immutable JSON snapshot per story close, a
+human-readable markdown rendering of it, and the self-contained `dashboard.html`), shared
+with your team the same way any other tracked file is, unlike the genuinely-local
+`.story-events.jsonl` family above. The dashboard specifically has **no publishing
+mechanism of its own** — it's a local file only; you decide whether and how to share it,
+same as any other file in your repo (worth a second thought before sharing outside the
+team, since it may summarize cost figures).
 
 ## Updating
 

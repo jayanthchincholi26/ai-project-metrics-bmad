@@ -84,5 +84,5 @@ development_status:
   5-2-real-cost-and-token-fields-per-story: done  # PR #26, merged 2593c02
   5-3-metrics-date-md-generator: done  # PR #27, merged 1339056
   5-4-bugdefect-review-efficiency-tracking: backlog  # blocked on user's capture-mechanism decision
-  5-5-leadership-html-dashboard: ready-for-dev
+  5-5-leadership-html-dashboard: review
   epic-5-retrospective: optional
