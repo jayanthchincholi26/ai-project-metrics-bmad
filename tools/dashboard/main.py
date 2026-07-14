@@ -108,6 +108,7 @@ def render_row(snapshot: dict) -> str:
     eng = snapshot.get("engineering_metrics") or {}
     est = snapshot.get("estimated_cost") or {}
     tok = snapshot.get("token_cost") or {}
+    defects = snapshot.get("defect_metrics") or {}
 
     name = pm.get("name") or snapshot.get("story_id", "unknown-story")
     date = (eng.get("last_event_at") or pm.get("created") or "")[:10] or "unknown"
@@ -125,8 +126,14 @@ def render_row(snapshot: dict) -> str:
         if tok.get("cost_usd") is not None
         else f"not tracked — {tok.get('reason') or 'no reason given'}"
     )
+    defects_cell = (
+        f"{defects['total_defects']} total "
+        f"(testing {defects['testing_efficiency']:.1f}% / review {defects['review_efficiency']:.1f}%)"
+        if defects.get("total_defects") is not None
+        else f"not tracked — {defects.get('reason') or 'no reason given'}"
+    )
 
-    cells = [name, date, str(points), duration, estimated_cost, token_cost, "not yet tracked"]
+    cells = [name, date, str(points), duration, estimated_cost, token_cost, defects_cell]
     return "<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>"
 
 

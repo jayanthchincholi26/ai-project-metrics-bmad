@@ -248,15 +248,64 @@ def test_reduced_confidence_reason_appears_in_notes(tmp_path):
     assert "no decision-narration producer implemented" in text
 
 
-def test_defect_fields_are_shown_as_not_yet_tracked(tmp_path):
+def test_defect_fields_fall_back_to_not_tracked_when_defect_metrics_is_absent(tmp_path):
+    # A snapshot predating Story 5.4 has no defect_metrics section at all.
     write_snapshot(tmp_path, "story-a", 1)
 
     run(tmp_path)
 
     text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
-    assert "Total Defects**: not yet tracked" in text
-    assert "Testing Efficiency**: not yet tracked" in text
-    assert "Review Efficiency**: not yet tracked" in text
+    assert "Total Defects**: not tracked — no reason given" in text
+    assert "Testing Efficiency**: not tracked — no reason given" in text
+    assert "Review Efficiency**: not tracked — no reason given" in text
+
+
+def test_defect_fields_show_reason_when_zero_defects_logged(tmp_path):
+    write_snapshot(
+        tmp_path,
+        "story-a",
+        1,
+        defect_metrics={
+            "total_defects": None,
+            "compile_defects": None,
+            "test_defects": None,
+            "review_defects": None,
+            "testing_efficiency": None,
+            "review_efficiency": None,
+            "reason": "no defects logged for this story",
+        },
+    )
+
+    run(tmp_path)
+
+    text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
+    assert "Total Defects**: not tracked — no defects logged for this story" in text
+    assert "Testing Efficiency**: not tracked — no defects logged for this story" in text
+    assert "Review Efficiency**: not tracked — no defects logged for this story" in text
+
+
+def test_defect_fields_render_real_values(tmp_path):
+    write_snapshot(
+        tmp_path,
+        "story-a",
+        1,
+        defect_metrics={
+            "total_defects": 4,
+            "compile_defects": 1,
+            "test_defects": 2,
+            "review_defects": 1,
+            "testing_efficiency": 75.0,
+            "review_efficiency": 25.0,
+            "reason": None,
+        },
+    )
+
+    run(tmp_path)
+
+    text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
+    assert "Total Defects**: 4" in text
+    assert "Testing Efficiency**: 75.0%" in text
+    assert "Review Efficiency**: 25.0%" in text
 
 
 # --- Task 3: idempotent regeneration ---

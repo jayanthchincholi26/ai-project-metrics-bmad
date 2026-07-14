@@ -22,10 +22,10 @@ here (unlike .story.yaml/the event log/a snapshot itself, where a partial
 write would corrupt kickoff-critical state — that risk doesn't apply to a
 file this tool can always regenerate identically on the next run).
 
-Total Defects / Testing Efficiency / Review Efficiency render as a fixed
-"not yet tracked" placeholder — no producer in this pipeline captures those
-signals yet (Story 5.4, not started). AD-10: never a fabricated 0, and never
-silently omitted.
+Total Defects / Testing Efficiency / Review Efficiency (Story 5.4) render real
+values from defect_metrics when present, or "not tracked — <reason>" when zero
+defects were ever logged for a story — AD-10: never a fabricated 0/100%, and
+never silently omitted.
 """
 
 from __future__ import annotations
@@ -134,6 +134,7 @@ def render_story(snapshot: dict) -> str:
     spc = snapshot.get("story_point_cost", {})
     tok = snapshot.get("token_cost", {})
     est = snapshot.get("estimated_cost", {})
+    defects = snapshot.get("defect_metrics", {})
 
     title = pm.get("name") or snapshot.get("story_id", "unknown-story")
     date = (pm.get("created") or "")[:10] or "unknown-date"
@@ -163,6 +164,16 @@ def render_story(snapshot: dict) -> str:
     else:
         token_cost_line = f"not tracked — {tok.get('reason') or 'no reason given'}"
 
+    if defects.get("total_defects") is not None:
+        total_defects_line = str(defects["total_defects"])
+        testing_efficiency_line = f"{defects['testing_efficiency']:.1f}%"
+        review_efficiency_line = f"{defects['review_efficiency']:.1f}%"
+    else:
+        not_tracked = f"not tracked — {defects.get('reason') or 'no reason given'}"
+        total_defects_line = not_tracked
+        testing_efficiency_line = not_tracked
+        review_efficiency_line = not_tracked
+
     notes_bits = [
         f"{eng.get('commits', 0)} commits",
         f"{eng.get('ai_sessions', 0)} AI sessions",
@@ -184,9 +195,9 @@ def render_story(snapshot: dict) -> str:
         f"- **Story Points**: {points_line}",
         f"- **Estimated Cost**: {estimated_cost_line}",
         f"- **AI Token Cost**: {token_cost_line}",
-        "- **Total Defects**: not yet tracked",
-        "- **Testing Efficiency**: not yet tracked",
-        "- **Review Efficiency**: not yet tracked",
+        f"- **Total Defects**: {total_defects_line}",
+        f"- **Testing Efficiency**: {testing_efficiency_line}",
+        f"- **Review Efficiency**: {review_efficiency_line}",
         f"- **Notes**: {notes}",
     ]
     return "\n".join(lines)

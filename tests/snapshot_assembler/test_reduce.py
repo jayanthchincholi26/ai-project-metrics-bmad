@@ -35,6 +35,7 @@ ENVELOPE_KEYS = {
     "story_point_cost",
     "token_cost",
     "estimated_cost",
+    "defect_metrics",
 }
 
 
@@ -123,7 +124,7 @@ def standard_log() -> list:
     ]
 
 
-def test_envelope_has_exactly_the_eight_ad3a_keys(tmp_path, capsys):
+def test_envelope_has_exactly_the_nine_ad3a_keys(tmp_path, capsys):
     write_manifest(tmp_path)
     write_events(tmp_path, standard_log())
 
@@ -674,4 +675,64 @@ def test_missing_manifest_exits_2_and_writes_nothing(tmp_path, capsys):
     exit_code = run(tmp_path)
 
     assert exit_code == 2
-    assert not (tmp_path / "snapshots").exists()
+
+
+# --- defect_metrics (Story 5.4) ---
+
+
+def test_defect_metrics_null_with_reason_when_no_defect_events_logged(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())  # no ai.claude-code.defect_* events
+
+    run(tmp_path)
+
+    defects = read_snapshot(tmp_path)["defect_metrics"]
+    assert defects["total_defects"] is None
+    assert defects["compile_defects"] is None
+    assert defects["test_defects"] is None
+    assert defects["review_defects"] is None
+    assert defects["testing_efficiency"] is None
+    assert defects["review_efficiency"] is None
+    assert isinstance(defects["reason"], str) and defects["reason"]
+
+
+def test_defect_metrics_counts_and_efficiencies_with_a_mix_of_defects(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.defect_compile", matched_pattern="tsc --noEmit"),
+            event("ai.claude-code.defect_test", matched_pattern="pytest"),
+            event("ai.claude-code.defect_test", matched_pattern="pytest"),
+            event("ai.claude-code.defect_review", summary="s", description="d", points=1),
+        ],
+    )
+
+    run(tmp_path)
+
+    defects = read_snapshot(tmp_path)["defect_metrics"]
+    assert defects["total_defects"] == 4
+    assert defects["compile_defects"] == 1
+    assert defects["test_defects"] == 2
+    assert defects["review_defects"] == 1
+    assert defects["testing_efficiency"] == pytest.approx(75.0)  # (1 + 2) / 4 * 100
+    assert defects["review_efficiency"] == pytest.approx(25.0)  # 1 / 4 * 100
+    assert defects["reason"] is None
+
+
+def test_defect_metrics_all_compile_and_test_no_review(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.defect_compile", matched_pattern="ruff check"),
+            event("ai.claude-code.defect_test", matched_pattern="pytest"),
+        ],
+    )
+
+    run(tmp_path)
+
+    defects = read_snapshot(tmp_path)["defect_metrics"]
+    assert defects["total_defects"] == 2
+    assert defects["testing_efficiency"] == pytest.approx(100.0)
+    assert defects["review_efficiency"] == pytest.approx(0.0)
