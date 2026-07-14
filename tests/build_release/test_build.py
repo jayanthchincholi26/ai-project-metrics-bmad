@@ -27,6 +27,7 @@ def names_of(artifact: Path) -> "list[str]":
 def test_artifact_contains_the_deployable_surface(tmp_path):
     names = names_of(build_zip(tmp_path))
     assert "INSTALL.md" in names
+    assert ".story-config.yaml.example" in names  # Story 4.4
     assert ".claude/skills/story-kickoff/SKILL.md" in names
     assert "tools/setup-hooks.py" in names
     assert "tools/hooks/_events.py" in names
@@ -37,6 +38,22 @@ def test_artifact_contains_the_deployable_surface(tmp_path):
     assert "tools/snapshot-assembler/main.py" in names
     assert "tools/opsx-wrapper/main.py" in names
     assert "tools/estimate-phase1/main.py" in names
+
+
+def test_story_config_example_contains_every_documented_key(tmp_path):
+    artifact = build_zip(tmp_path)
+    with zipfile.ZipFile(artifact) as zf:
+        content = zf.read(".story-config.yaml.example").decode("utf-8")
+    for key in (
+        "source_of_truth",
+        "ai_tool",
+        "jira_points_field",
+        "jira_sprint_field",
+        "hourly_rate",
+        "ai_input_rate",
+        "ai_output_rate",
+    ):
+        assert key in content, key
 
 
 def test_artifact_excludes_planning_repo_and_build_internals(tmp_path):
