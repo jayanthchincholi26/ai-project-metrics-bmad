@@ -640,6 +640,12 @@ A commented `.story-config.yaml.example` (every documented key, commented out, w
 
 Story 4.3's `curl`/`irm` one-liner is only as short as a raw GitHub URL allows — there's no name-resolution layer, so it must fully spell out host/org/repo/branch/path every time. `npx bmad-method install` is short specifically because npm's **registry** resolves the package name for you. The Python/`uv` equivalent is publishing this project as a real package (PyPI) with a console-script entry point, giving developers `uvx ai-metrics-capture install` (or similar) — no URL, no version/branch to think about, `uvx` resolves and runs the latest published version directly. This is the heavier distribution mechanism Story 4.3's Dev Notes explicitly named and deferred ("Do NOT build in this story: a PyPI package / `uvx ai-metrics-capture init` entry point"). Scope for this story: package metadata (`pyproject.toml` with a `[project.scripts]` entry point), a thin CLI wrapper around the existing `build-release`/install logic, a PyPI publish step (likely via a GitHub Actions release workflow, gated behind Story 4.2's `main`-promotion cadence), and updated `INSTALL.md` presenting the `uvx` command as the new primary path — Story 4.3's curl/irm scripts stay documented as a fallback for machines without `uv`, same additive precedent as 4.3 itself over 4.1's manual zip.
 
+### Story 4.6: One-Command Uninstall (`uninstall.sh` / `uninstall.ps1`)
+
+> ⏳ **Not started** — opened 2026-07-14, after the user asked how to reset a test repo back to a clean state between install tests
+
+Teardown counterpart to Story 4.3's install scripts: `uninstall.sh`/`uninstall.ps1` remove everything the install and `setup-hooks.py` added — the extracted `tools/`/skill/`INSTALL.md`/config template, the four `.git/hooks/` shims, this tooling's own entries in `.claude/settings.json` (surgically, never the whole file), and any capture-time artifacts (`.story.yaml`, `.story-events.jsonl`, `snapshots/`, `metrics-reports/`, etc.) if present. Prints what it's about to remove and asks for y/N confirmation first (a `--yes`/`-Yes` flag skips the prompt for scripted use) — this is destructive, unlike install. No automated test (shell/PowerShell scripts, same manual-E2E-only precedent as 4.3).
+
 ---
 
 ## Epic 5: Leadership-Ready Reporting and Real Cost/Defect Tracking
