@@ -4,7 +4,7 @@ baseline_commit: 937e0a1
 
 # Story 4.4: `.story-config.yaml.example` Template Shipped in the Release
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,21 +34,21 @@ so that I can copy and edit it instead of hand-typing every key from `INSTALL.md
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: write the template (AC: 1, 2)
-  - [ ] Subtask 1.1: create `tools/build-release/.story-config.yaml.example` (source lives alongside `INSTALL.md` in `build-release/`, same as that file — not inside `tools/` itself, since it's a repo-root artifact, not part of the capture tooling)
-  - [ ] Subtask 1.2: content mirrors exactly what `INSTALL.md`'s Install step 3 and JIRA setup section already document as the real key/value pairs (don't invent new keys or defaults not already documented elsewhere)
+- [x] Task 1: write the template (AC: 1, 2)
+  - [x] Subtask 1.1: create `tools/build-release/.story-config.yaml.example` (source lives alongside `INSTALL.md` in `build-release/`, same as that file — not inside `tools/` itself, since it's a repo-root artifact, not part of the capture tooling)
+  - [x] Subtask 1.2: content mirrors exactly what `INSTALL.md`'s Install step 3 and JIRA setup section already document as the real key/value pairs (don't invent new keys or defaults not already documented elsewhere)
 
-- [ ] Task 2: ship it in the build (AC: 1, 4)
-  - [ ] Subtask 2.1 (RED): add/update a test in `tests/build_release/test_build.py` asserting `.story-config.yaml.example` is present in the built artifact with the expected content (or at minimum, non-empty and containing each documented key as a commented line)
-  - [ ] Subtask 2.2 (GREEN): add the new file to `tools/build-release/main.py`'s `iter_entries()`, following the exact same pattern already used for `INSTALL.md` (a module-level path constant, yielded once at the top of the generator, not part of the `tools/` directory walk)
-  - [ ] Subtask 2.3: confirm the existing `test_artifact_excludes_planning_repo_and_build_internals` test still passes unmodified — the new file ships from `build-release/` (normally excluded) via the same explicit-yield exception `INSTALL.md` already uses, so this needs a quick check that the exclusion test's logic doesn't also have to special-case the new file the way `INSTALL.md` already needed a `name != "INSTALL.md"`-style carve-out (if it did; verify by reading the actual test before assuming)
+- [x] Task 2: ship it in the build (AC: 1, 4)
+  - [x] Subtask 2.1 (RED): add/update a test in `tests/build_release/test_build.py` asserting `.story-config.yaml.example` is present in the built artifact with the expected content (or at minimum, non-empty and containing each documented key as a commented line)
+  - [x] Subtask 2.2 (GREEN): add the new file to `tools/build-release/main.py`'s `iter_entries()`, following the exact same pattern already used for `INSTALL.md` (a module-level path constant, yielded once at the top of the generator, not part of the `tools/` directory walk)
+  - [x] Subtask 2.3: confirm the existing `test_artifact_excludes_planning_repo_and_build_internals` test still passes unmodified — the new file ships from `build-release/` (normally excluded) via the same explicit-yield exception `INSTALL.md` already uses, so this needs a quick check that the exclusion test's logic doesn't also have to special-case the new file the way `INSTALL.md` already needed a `name != "INSTALL.md"`-style carve-out (if it did; verify by reading the actual test before assuming)
 
-- [ ] Task 3: update the install instructions (AC: 3)
-  - [ ] Subtask 3.1: reword `INSTALL.md`'s Install step 3 from "create `.story-config.yaml` at the repo root: ```yaml ...```" to "copy `.story-config.yaml.example` to `.story-config.yaml`, then edit it to declare your project's PM tool" — keep the actual example content block shown inline too, so the instructions are still self-contained for someone reading `INSTALL.md` on GitHub without having extracted the artifact yet
+- [x] Task 3: update the install instructions (AC: 3)
+  - [x] Subtask 3.1: reword `INSTALL.md`'s Install step 3 from "create `.story-config.yaml` at the repo root: ```yaml ...```" to "copy `.story-config.yaml.example` to `.story-config.yaml`, then edit it to declare your project's PM tool" — keep the actual example content block shown inline too, so the instructions are still self-contained for someone reading `INSTALL.md` on GitHub without having extracted the artifact yet
 
-- [ ] Task 4: full regression and live E2E (AC: 1-4)
-  - [ ] Subtask 4.1: `uv run pytest` full suite green; `uv run ruff check .`; `uv run ruff format --check tools tests`
-  - [ ] Subtask 4.2: live E2E — actually build a real artifact (`uv run tools/build-release/main.py --version v0-test --out-dir <scratch>`), extract it into a scratch git repo, confirm `.story-config.yaml.example` is present and copy-able, `cp .story-config.yaml.example .story-config.yaml` works and produces a file `tools/adapters/resolve.py` correctly parses (a real end-to-end proof, not just "the zip contains a file with this name")
+- [x] Task 4: full regression and live E2E (AC: 1-4)
+  - [x] Subtask 4.1: `uv run pytest` full suite green; `uv run ruff check .`; `uv run ruff format --check tools tests`
+  - [x] Subtask 4.2: live E2E — actually build a real artifact (`uv run tools/build-release/main.py --version v0-test --out-dir <scratch>`), extract it into a scratch git repo, confirm `.story-config.yaml.example` is present and copy-able, `cp .story-config.yaml.example .story-config.yaml` works and produces a file `tools/adapters/resolve.py` correctly parses (a real end-to-end proof, not just "the zip contains a file with this name")
 
 ## Dev Notes
 
@@ -87,16 +87,28 @@ No conflicts — extends `tools/build-release/main.py`'s existing single-purpose
 
 ### Agent Model Used
 
-_to be filled by dev-story_
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### Debug Log References
 
-_to be filled by dev-story_
+- RED: 2 new/updated tests in `tests/build_release/test_build.py` — confirmed failing (`KeyError`: no such item in archive) before the template file existed
+- GREEN: `uv run pytest tests/build_release/test_build.py -q` → 7/7 passed after implementation
+- Full suite: `uv run pytest -q` → 290 passed; `uv run ruff check .` clean; `uv run ruff format --check tools tests` clean
+- Live E2E: built a real artifact (`uv run tools/build-release/main.py --version v0-test`), extracted it into a real scratch git repo, confirmed `.story-config.yaml.example` present, copied it to `.story-config.yaml`, edited `source_of_truth` to `jira`, and ran the **real** `tools/adapters/resolve.py` against it — confirmed it correctly resolved `"source_of_truth": "jira"` end to end, not just "the zip contains a file with this name"
 
 ### Completion Notes List
 
-_to be filled by dev-story_
+- Task 1: `tools/build-release/.story-config.yaml.example` created, mirroring exactly the keys already documented in `INSTALL.md` (no new keys invented).
+- Task 2: wired into `iter_entries()`/`build()`'s missing-input check via the same explicit-yield pattern already used for `INSTALL.md` — confirmed the existing exclusion test needed no changes (it asserts on archive names, and the new file's archive name doesn't contain "build-release").
+- Task 3: `INSTALL.md`'s Install steps 1 and 3 reworded — step 1 now mentions the new file ships too; step 3 now says "copy `.story-config.yaml.example` to `.story-config.yaml`, then edit it" instead of "create it," while keeping the actual key/value example block inline so the instructions stay self-contained for someone reading on GitHub without having extracted the artifact.
+- Task 4: full regression green; live E2E proved the real copy-and-edit path works against the real config parser, not just a filename-presence assertion.
+- No new dependencies. No deviation from the story's hard boundary: `.story-config.yaml` is never auto-created or auto-copied — only the `.example` file ships, and copying it into place stays an explicit developer action.
 
 ### File List
 
-_to be filled by dev-story_
+- tools/build-release/.story-config.yaml.example (new — the template shipped at the archive root)
+- tools/build-release/main.py (modified — new `STORY_CONFIG_EXAMPLE` constant, yielded in `iter_entries()`, included in the missing-input check)
+- tests/build_release/test_build.py (modified — existing artifact-contents test extended; new test asserting every documented key is present in the template's content)
+- tools/build-release/INSTALL.md (modified — Install steps 1 and 3 reworded for the copy-and-edit flow)
+- _bmad-output/implementation-artifacts/4-4-story-config-yaml-example-template-shipped-in-release.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)

@@ -1,0 +1,22 @@
+# Copy this file to .story-config.yaml at your repo root, then uncomment and
+# edit only what applies to your project. Everything below is optional; an
+# absent key always falls back to its documented default — never a fabricated
+# behavior. See INSTALL.md for the full explanation of each key.
+
+# Which PM tool kickoff should read from. Default when absent: docs-only.
+# source_of_truth: docs-only   # or: jira | confluence
+
+# Which AI coding tool's activity is being captured. Default when absent: claude-code.
+# ai_tool: claude-code
+
+# JIRA custom field overrides — only if your site's fields differ from the
+# Jira Cloud defaults shown below (only meaningful when source_of_truth: jira):
+# jira_points_field: customfield_10016
+# jira_sprint_field: customfield_10020
+
+# Optional cost tracking — all three are optional and absent by default; without
+# them, a snapshot's estimated_cost.usd and token_cost.cost_usd stay null
+# (never a fabricated number computed from a missing rate):
+# hourly_rate: 10        # USD/hr, used for estimated_cost
+# ai_input_rate: 1.25    # USD per 1,000,000 input tokens
+# ai_output_rate: 5.00   # USD per 1,000,000 output tokens

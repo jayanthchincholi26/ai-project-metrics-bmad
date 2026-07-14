@@ -27,8 +27,9 @@ See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/g
 
 ## Install (per repository, once)
 
-1. Extract this zip **at your repository root** (it adds `tools/` and
-   `.claude/skills/story-kickoff/`; nothing is overwritten).
+1. Extract this zip **at your repository root** (it adds `tools/`,
+   `.claude/skills/story-kickoff/`, and `.story-config.yaml.example`; nothing is
+   overwritten).
 2. From the repo root, run:
    ```
    uv run tools/setup-hooks.py --repo-root .
@@ -37,7 +38,10 @@ See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/g
    `.claude/settings.json` (merged additively — existing settings preserved), and
    auto-appends the local-capture-state entries to `.gitignore` (see below). Each
    developer runs this once per clone.
-3. Declare your project's PM tool **once**, in `.story-config.yaml` at the repo root:
+3. Declare your project's PM tool **once**: copy `.story-config.yaml.example` to
+   `.story-config.yaml` at the repo root, then uncomment and edit what applies
+   (this file is never created or copied for you automatically — its absence
+   defaults to docs-only, so declaring it stays your explicit choice):
    ```yaml
    source_of_truth: jira   # or: confluence | docs-only (default when absent)
    ai_tool: claude-code    # default when absent
