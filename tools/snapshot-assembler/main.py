@@ -406,6 +406,7 @@ def main(argv: "list[str] | None" = None) -> int:
         "story_id": story,
         "revision": next_revision(root / SNAPSHOTS_DIR, story),
         "pm_metrics": {
+            "name": manifest.get("name"),
             "points": as_number(manifest.get("points")),
             "goal": manifest.get("goal"),
             "sprint": manifest.get("sprint"),

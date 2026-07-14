@@ -167,6 +167,20 @@ def test_pm_metrics_come_from_the_manifest(tmp_path, capsys):
     assert pm["sprint"] == "S3"
     assert pm["source_of_truth"] == "docs-only"
     assert pm["ai_tool"] == "claude-code"
+    assert pm["name"] is None  # write_manifest() doesn't set one, matching JIRA/Confluence stories
+
+
+def test_pm_metrics_name_round_trips_from_the_manifest(tmp_path, capsys):
+    write_manifest(tmp_path)
+    (tmp_path / ".story.yaml").write_text(
+        (tmp_path / ".story.yaml").read_text(encoding="utf-8") + 'name: "Hello World"\n',
+        encoding="utf-8",
+    )
+    write_events(tmp_path, [])
+
+    run(tmp_path)
+
+    assert read_snapshot(tmp_path)["pm_metrics"]["name"] == "Hello World"
 
 
 def test_story_point_cost_keys_present_with_null_phase1_when_no_estimate(tmp_path, capsys):

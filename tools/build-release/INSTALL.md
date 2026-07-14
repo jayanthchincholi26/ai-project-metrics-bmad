@@ -101,6 +101,13 @@ folder), or Claude Code won't see the kickoff skill.
    uv run tools/snapshot-assembler/main.py --repo-root .
    ```
 8. Check `snapshots/<story-id>.v1.rev1.json`.
+9. *(optional)* Generate a human-readable report from all accumulated snapshots:
+   ```
+   uv run tools/metrics-report/main.py --repo-root .
+   ```
+   Writes/overwrites `metrics-reports/metrics-<MMDDYYYY>.md` (grouped by the day each
+   story closed) — safe to re-run any time, always fully regenerated from the
+   (immutable) JSON snapshots, never appended to.
 
 **Don't confuse `/opsx:archive` (the Claude Code slash command) with the wrapper command
 above.** The slash command only calls the underlying `openspec archive` — it produces no
@@ -132,6 +139,11 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
 7. Close the story: `uv run tools/opsx-wrapper/main.py archive <change-name>` (or, without
    openspec, `uv run tools/snapshot-assembler/main.py --repo-root .`).
 8. Check the resulting snapshot under `snapshots/`.
+9. *(optional)* Generate a human-readable report:
+   ```
+   uv run tools/metrics-report/main.py --repo-root .
+   ```
+   Same command as the docs-only flow — writes `metrics-reports/metrics-<MMDDYYYY>.md`.
 
 **Why JIRA's step order differs from docs-only's:** `/opsx:propose` has no JIRA-fetching
 capability of its own — it only accepts a kebab-case name or a plain-text description you
@@ -157,6 +169,11 @@ If any of these was already git-tracked from before this was automatic, the inst
 prints a `warning:` to stderr naming the file and the fix (`git rm --cached <file>`) —
 don't ignore it: a tracked `.story-events.jsonl` silently forks and discards captured
 events every time you switch between story branches, with no error at all.
+
+`snapshots/` and `metrics-reports/` are different — both are meant to be **committed**,
+not ignored. They're generated *output* (an immutable JSON snapshot per story close, and
+a human-readable markdown rendering of it), shared with your team the same way any other
+tracked file is, unlike the genuinely-local `.story-events.jsonl` family above.
 
 ## Updating
 
