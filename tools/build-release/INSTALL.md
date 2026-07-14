@@ -27,9 +27,10 @@ No third-party Python packages are needed at runtime — every script is standar
    ```
    uv run tools/setup-hooks.py --repo-root .
    ```
-   This installs the git hooks into `.git/hooks/` and wires the Claude Code hook entries
-   into `.claude/settings.json` (merged additively — your existing settings are preserved).
-   Each developer runs this once per clone.
+   Installs git hooks into `.git/hooks/`, wires the Claude Code hook entries into
+   `.claude/settings.json` (merged additively — existing settings preserved), and
+   auto-appends the local-capture-state entries to `.gitignore` (see below). Each
+   developer runs this once per clone.
 3. Declare your project's PM tool **once**, in `.story-config.yaml` at the repo root:
    ```yaml
    source_of_truth: jira   # or: confluence | docs-only (default when absent)
@@ -38,83 +39,99 @@ No third-party Python packages are needed at runtime — every script is standar
 4. Commit `tools/`, `.claude/skills/`, and `.story-config.yaml` so every teammate gets the
    same setup from a plain clone (they still each run step 2 once).
 
-**Important:** run step 2 *before* opening a Claude Code session in the repo — hooks wire
-up at session start (`SessionStart`) and won't retroactively apply to a session already in
-progress. If a Claude Code panel was already open in this window before you ran step 2 —
-even just to look at it — **reload the window** (Ctrl+Shift+P → "Developer: Reload Window")
-or start a brand-new session before continuing; don't reuse the old one. And open the repo
-folder itself as your editor's workspace root (not a parent folder), or Claude Code won't
-see the kickoff skill.
+**Important — do step 2 before opening a Claude Code session in this repo.** Hooks (and
+MCP server connections, and custom slash commands) are only discovered at a session's
+*start* — they never retroactively apply to a session already open. If a Claude Code
+panel was already open in this window before you ran step 2, **reload the window**
+(Ctrl+Shift+P → "Developer: Reload Window") or start a brand-new session; don't reuse the
+old one. Also open the repo folder itself as your editor's workspace root (not a parent
+folder), or Claude Code won't see the kickoff skill.
 
 ## JIRA setup (only for `source_of_truth: jira`)
 
-Connect the Atlassian Remote MCP Server once per machine:
+1. Connect the Atlassian Remote MCP Server — once per machine **and per project path**
+   (this is local-scope, it does not carry over to a different folder):
+   ```
+   claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp/authv2
+   ```
+2. Run `/mcp` inside the Claude Code session you'll use for kickoff, and authenticate —
+   a browser OAuth flow under your own JIRA account. No API token is created or stored
+   anywhere.
+3. If your JIRA site uses non-default custom fields for story points or sprint, override
+   them in `.story-config.yaml`:
+   ```yaml
+   jira_points_field: customfield_10016   # default
+   jira_sprint_field: customfield_10020   # default
+   ```
 
-```
-claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp/authv2
-```
+## Daily use — docs-only flow (`source_of_truth: docs-only`, or absent)
 
-Then run `/mcp` inside a Claude Code CLI session and authenticate — a browser OAuth flow
-under your own JIRA account. No API token is created or stored anywhere.
+1. `git checkout -b story/<branch-name>`.
+2. *(only if your project uses openspec SDD, and you want a real Phase-1 point
+   estimate)* `/opsx:propose <change-name>` — a name you choose, kebab-case; never the
+   story ID. Do this **before** kickoff for docs-only, so the Phase-1 estimator has a
+   real `tasks.md` to read.
+3. In chat: *"kick off this story"* — confirm the prompts (story name, points, goal,
+   milestone — say "none" if you don't track sprints/milestones). Writes `.story.yaml`;
+   capture runs silently from here.
+4. *(openspec only)* `/opsx:apply` — implements against the proposal.
+5. Work normally. Commits, checkouts, merges, AI sessions, and active time are captured
+   automatically. Nothing to start, stop, or report.
+6. Commit and push.
+7. Close the story — **one command**, archives the openspec change and produces the
+   snapshot:
+   ```
+   uv run tools/opsx-wrapper/main.py archive <change-name>
+   ```
+   Without openspec, just:
+   ```
+   uv run tools/snapshot-assembler/main.py --repo-root .
+   ```
+8. Check `snapshots/<story-id>.v1.rev1.json`.
 
-If your JIRA site uses non-default custom fields for story points or sprint, override them
-in `.story-config.yaml`:
+**Don't confuse `/opsx:archive` (the Claude Code slash command) with the wrapper command
+above.** The slash command only calls the underlying `openspec archive` — it produces no
+snapshot. `tools/opsx-wrapper/main.py archive <name>` wraps the same CLI call and
+*additionally* runs the snapshot assembler on success (failing loudly if that step
+breaks) — it's the one command to actually close out a story's metrics. If you already
+ran `/opsx:archive` and just want the snapshot, `uv run tools/snapshot-assembler/main.py
+--repo-root .` alone is fine too.
 
-```yaml
-jira_points_field: customfield_10016   # default
-jira_sprint_field: customfield_10020   # default
-```
+**The change name (step 2) and the story ID (step 3) are unrelated identifiers** —
+nothing links them by name; they coexist because a project normally has one story (and
+one openspec change) active per branch at a time.
 
-## Daily use
+**Step order (2 vs. 3) only matters for the point estimate, never for correctness** —
+kickoff works fine run before `/opsx:propose` too, it just falls back to a plain ask
+instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read).
 
-If your project uses **openspec SDD**, kickoff and the openspec/opsx workflow are two
-separate, independent steps — worth walking through once as a concrete example:
+## Daily use — JIRA flow (`source_of_truth: jira`)
 
-```
-1. git checkout -b story/add-user-auth
-2. /opsx:propose add-user-auth        <- a name YOU choose, kebab-case; NOT the story_id
-                                          (creates proposal.md/design.md/tasks.md)
-3. "kick off this story"              <- kickoff skill; with a real tasks.md already
-                                          present, the Phase-1 estimator gives a real
-                                          points suggestion instead of a blind ask
-4. ...normal work; commits/checkouts/AI sessions capture silently in the background...
-5. /opsx:apply                        <- implement against the proposal
-6. uv run tools/opsx-wrapper/main.py archive add-user-auth
-                                       <- ONE command: closes the openspec change AND
-                                          produces the metrics snapshot under snapshots/
-```
+1. `git checkout -b story/<branch-name>`.
+2. In chat: *"kick off this story \<issue-key\>"* — kickoff fetches points/goal/sprint
+   automatically via the connected Atlassian MCP tools; confirm or override the values.
+   Writes `.story.yaml`.
+3. *(only if your project uses openspec SDD)* `/opsx:propose <change-name>` — do this
+   **after** kickoff for JIRA (see note below), describing the work in your own words.
+4. *(openspec only)* `/opsx:apply`.
+5. Work normally — same silent capture as the docs-only flow.
+6. Commit and push.
+7. Close the story: `uv run tools/opsx-wrapper/main.py archive <change-name>` (or, without
+   openspec, `uv run tools/snapshot-assembler/main.py --repo-root .`).
+8. Check the resulting snapshot under `snapshots/`.
 
-**Don't confuse `/opsx:archive` (the Claude Code slash command) with the command above.**
-The slash command only calls the underlying `openspec archive` — it does not produce a
-snapshot. `tools/opsx-wrapper/main.py archive <name>` is a thin wrapper around the same
-underlying CLI call that *additionally* runs the snapshot assembler on success (and fails
-loudly if the snapshot step breaks) — it's the one command to use to actually close out a
-story's metrics. If you already ran `/opsx:archive` and want the snapshot afterward without
-re-running the archive, `uv run tools/snapshot-assembler/main.py --repo-root .` alone is
-still fine — the wrapper isn't required, just more convenient.
+**Why JIRA's step order differs from docs-only's:** `/opsx:propose` has no JIRA-fetching
+capability of its own — it only accepts a kebab-case name or a plain-text description you
+type. Give it a JIRA URL before kickoff has run and it will either fail or silently fall
+back to unauthenticated `WebFetch`, which can't reach an authenticated Atlassian page.
+The real Atlassian MCP fetch only exists inside `story-kickoff` itself. So for JIRA,
+kickoff must run first; Phase-1's estimate will still be null at that point (no
+`tasks.md` exists yet) — expected, not a bug.
 
-**The change name (step 2) and the story ID (step 3) are unrelated identifiers** — the
-change name is whatever you type after `/opsx:propose`; `story_id` is generated by kickoff
-and never derived from it. Nothing links them by name; they coexist because a project
-normally has one story (and one openspec change) active per branch at a time.
+## Local capture state (`.gitignore`)
 
-**Step order matters for the point estimate, not for correctness** — kickoff works fine
-run before `/opsx:propose` too, it just falls back to a plain ask instead of an
-auto-computed suggestion (Phase-1 needs a real `tasks.md` to read).
-
-If your project **doesn't** use openspec SDD:
-
-- **Start a story:** check out its branch, tell Claude Code *"kick off this story"*, and
-  confirm name/points/goal/milestone (JIRA projects: just give the issue key). This writes
-  `.story.yaml` — capture runs silently from here.
-- **Work normally.** Commits, checkouts, merges, AI sessions, and active time are captured
-  automatically to a local, append-only event log. Nothing to start, stop, or report.
-- **Close a story:** `uv run tools/opsx-wrapper/main.py archive <change-name>` (or, without
-  openspec SDD, just `uv run tools/snapshot-assembler/main.py --repo-root .`) produces the immutable,
-  versioned metrics snapshot under `snapshots/`.
-
-`uv run tools/setup-hooks.py --repo-root .` (step 2 of Install, above) automatically adds
-these lines to your `.gitignore` — local capture state, never committed:
+`uv run tools/setup-hooks.py --repo-root .` (Install step 2) automatically adds these
+lines to your `.gitignore`:
 
 ```
 .story-events.jsonl
@@ -124,9 +141,9 @@ these lines to your `.gitignore` — local capture state, never committed:
 ```
 
 If any of these was already git-tracked from before this was automatic, the installer
-prints a `warning:` to stderr naming the file and the fix (`git rm --cached <file>`) — this
-matters: a tracked `.story-events.jsonl` silently forks and discards captured events every
-time you switch between story branches, with no error at all. Don't ignore that warning.
+prints a `warning:` to stderr naming the file and the fix (`git rm --cached <file>`) —
+don't ignore it: a tracked `.story-events.jsonl` silently forks and discards captured
+events every time you switch between story branches, with no error at all.
 
 ## Updating
 
