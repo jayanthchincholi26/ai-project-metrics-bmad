@@ -27,18 +27,23 @@ See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/g
 
 ## Quick install (recommended)
 
+> **TEMPORARY:** the commands below point at the `enhancements-v2` branch, not
+> `main` — solo self-testing only while Story 4.2 (`develop`→`main` promotion)
+> is still pending. **Switch both URLs back to `main` before handing this to
+> any other developer.**
+
 One command, run once at your repository root — fetches the latest release and
 extracts it for you (equivalent to Install step 1 below, without the manual zip
 download):
 
 **macOS/Linux:**
 ```
-curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/install.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```
-irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/install.ps1 | iex
+irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/install.ps1 | iex
 ```
 
 Then continue at Install step 2 below. Prefer the manual zip download instead
