@@ -259,7 +259,7 @@ def update_active_story(root: Path, incoming_story_id: Optional[str]) -> None:
         if opened_at:
             try:
                 duration_seconds = (now - datetime.fromisoformat(opened_at)).total_seconds()
-            except ValueError:
+            except (ValueError, TypeError):
                 duration_seconds = None
         emit(
             "time",
@@ -304,7 +304,7 @@ def record_activity(root: Path) -> None:
     if last_activity_raw:
         try:
             gap_seconds = (now - datetime.fromisoformat(last_activity_raw)).total_seconds()
-        except ValueError:
+        except (ValueError, TypeError):
             gap_seconds = None
         if gap_seconds is not None and gap_seconds > IDLE_THRESHOLD_SECONDS:
             emit(
@@ -371,7 +371,7 @@ def close_active_story_slice(root: Path) -> None:
     if opened_at:
         try:
             duration_seconds = (now - datetime.fromisoformat(opened_at)).total_seconds()
-        except ValueError:
+        except (ValueError, TypeError):
             duration_seconds = None
 
     emit(
