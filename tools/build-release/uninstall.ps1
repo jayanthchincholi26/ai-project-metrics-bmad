@@ -94,7 +94,14 @@ if ($hasSettings) {
         if (@($settings.hooks.PSObject.Properties).Count -eq 0) {
             $settings.PSObject.Properties.Remove("hooks")
         }
-        ($settings | ConvertTo-Json -Depth 10) | Set-Content $settingsPath -Encoding utf8
+        # NOT `Set-Content -Encoding utf8` -- on Windows PowerShell 5.1 that writes a
+        # real UTF-8 BOM, which setup-hooks.py's settings.json reader previously choked
+        # on (a real user hit this exact crash after an uninstall->reinstall cycle).
+        # [System.Text.UTF8Encoding($false)] writes BOM-less UTF-8 on both 5.1 and 7+.
+        $json = $settings | ConvertTo-Json -Depth 10
+        [System.IO.File]::WriteAllText(
+            (Resolve-Path $settingsPath).Path, $json, (New-Object System.Text.UTF8Encoding($false))
+        )
     }
 }
 
