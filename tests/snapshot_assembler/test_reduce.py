@@ -34,7 +34,13 @@ ENVELOPE_KEYS = {
     "engineering_metrics",
     "story_point_cost",
     "token_cost",
+    "estimated_cost",
 }
+
+
+def write_story_config(root: Path, **rates) -> None:
+    lines = "".join(f"{key}: {value}\n" for key, value in rates.items())
+    (root / ".story-config.yaml").write_text(lines, encoding="utf-8")
 
 
 def write_manifest(root: Path, story_id: str = STORY_ID, points_estimated=None) -> None:
@@ -110,13 +116,14 @@ def standard_log() -> list:
             "ai.claude-code.session_end",
             ts="2026-07-10T10:09:00+05:30",
             session_id="s1",
-            token_cost=None,
-            token_cost_reason="claude-code hooks do not report token usage",
+            input_tokens=None,
+            output_tokens=None,
+            token_cost_reason="no transcript_path in hook payload",
         ),
     ]
 
 
-def test_envelope_has_exactly_the_seven_ad3a_keys(tmp_path, capsys):
+def test_envelope_has_exactly_the_eight_ad3a_keys(tmp_path, capsys):
     write_manifest(tmp_path)
     write_events(tmp_path, standard_log())
 
@@ -328,9 +335,176 @@ def test_token_cost_null_with_reason_propagates(tmp_path, capsys):
     run(tmp_path)
 
     token_cost = read_snapshot(tmp_path)["token_cost"]
-    assert token_cost["total_tokens"] is None
-    assert token_cost["reason"] == "claude-code hooks do not report token usage"
+    assert token_cost["input_tokens"] is None
+    assert token_cost["output_tokens"] is None
+    assert token_cost["reason"] == "no transcript_path in hook payload"
     assert token_cost["sessions_observed"] == 1
+    assert token_cost["cost_usd"] is None
+
+
+def test_token_cost_sums_real_tokens_across_sessions(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event(
+                "ai.claude-code.session_end",
+                session_id="s1",
+                input_tokens=100,
+                output_tokens=20,
+                token_cost_reason=None,
+            ),
+            event(
+                "ai.claude-code.session_end",
+                session_id="s2",
+                input_tokens=50,
+                output_tokens=10,
+                token_cost_reason=None,
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["input_tokens"] == 150
+    assert token_cost["output_tokens"] == 30
+    assert token_cost["sessions_observed"] == 2
+
+
+def test_cost_usd_computed_when_tokens_and_rates_are_both_known(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, ai_input_rate=1.25, ai_output_rate=5.00)
+    write_events(
+        tmp_path,
+        [
+            event(
+                "ai.claude-code.session_end",
+                session_id="s1",
+                input_tokens=180000,
+                output_tokens=18000,
+                token_cost_reason=None,
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["cost_usd"] == pytest.approx(0.315)
+
+
+def test_cost_usd_is_null_when_rates_are_not_configured(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event(
+                "ai.claude-code.session_end",
+                session_id="s1",
+                input_tokens=180000,
+                output_tokens=18000,
+                token_cost_reason=None,
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    assert read_snapshot(tmp_path)["token_cost"]["cost_usd"] is None
+
+
+def test_reason_is_not_shown_when_a_later_session_has_real_tokens(tmp_path, capsys):
+    # Found via live E2E (Story 5.2): a session that failed to report tokens must
+    # never leave a stale "reason" visible once another session's real tokens make
+    # input_tokens/output_tokens non-null overall.
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event(
+                "ai.claude-code.session_end",
+                session_id="s1",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason="no transcript_path in hook payload",
+            ),
+            event(
+                "ai.claude-code.session_end",
+                session_id="s2",
+                input_tokens=7111,
+                output_tokens=500,
+                token_cost_reason=None,
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["input_tokens"] == 7111
+    assert token_cost["output_tokens"] == 500
+    assert token_cost["reason"] is None
+
+
+def test_cost_usd_is_null_when_tokens_are_unknown_even_with_rates_configured(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, ai_input_rate=1.25, ai_output_rate=5.00)
+    write_events(tmp_path, standard_log())
+
+    run(tmp_path)
+
+    assert read_snapshot(tmp_path)["token_cost"]["cost_usd"] is None
+
+
+def test_estimated_cost_computed_when_hourly_rate_is_configured(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("git.commit", ts="2026-07-10T10:00:00+05:30"),
+            event("git.commit", ts="2026-07-10T10:30:00+05:30"),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] == pytest.approx(30.0)
+    assert estimated_cost["usd"] == pytest.approx(5.0)
+    assert estimated_cost["hourly_rate"] == 10
+    assert estimated_cost["reason"] is None
+
+
+def test_estimated_cost_is_null_with_reason_when_hourly_rate_absent(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("git.commit", ts="2026-07-10T10:00:00+05:30"),
+            event("git.commit", ts="2026-07-10T10:30:00+05:30"),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["usd"] is None
+    assert estimated_cost["hourly_rate"] is None
+    assert isinstance(estimated_cost["reason"], str) and estimated_cost["reason"]
+
+
+def test_estimated_cost_is_null_when_no_events_exist_even_with_hourly_rate(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(tmp_path, [])
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] is None
+    assert estimated_cost["usd"] is None
 
 
 def test_foreign_story_events_are_excluded(tmp_path, capsys):

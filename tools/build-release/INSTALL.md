@@ -41,6 +41,13 @@ See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/g
    ```yaml
    source_of_truth: jira   # or: confluence | docs-only (default when absent)
    ai_tool: claude-code    # default when absent
+
+   # Optional — real cost figures per story snapshot. All three are optional and
+   # absent by default; without them, token_cost.cost_usd and estimated_cost.usd
+   # stay null (never a fabricated number computed from a missing rate):
+   # hourly_rate: 10        # USD/hr, used for estimated_cost
+   # ai_input_rate: 1.25    # USD per 1,000,000 input tokens
+   # ai_output_rate: 5.00   # USD per 1,000,000 output tokens
    ```
 4. Commit `tools/`, `.claude/skills/`, and `.story-config.yaml` so every teammate gets the
    same setup from a plain clone (they still each run step 2 once).

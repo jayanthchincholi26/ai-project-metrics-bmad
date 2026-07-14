@@ -61,6 +61,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -72,6 +73,7 @@ import _events
 EVENTS_FILE = ".story-events.jsonl"
 PENDING_FILE = ".story-events.pending.jsonl"
 MANIFEST = ".story.yaml"
+CONFIG = ".story-config.yaml"
 SNAPSHOTS_DIR = "snapshots"
 SCHEMA_VERSION = 1
 DECISION_EVENTS_REASON = (
@@ -109,6 +111,25 @@ def read_manifest(path: Path) -> dict[str, Any]:
         is_bare_null = value == "null" and raw_value[:1] not in ("'", '"')
         manifest[key.strip()] = None if is_bare_null else value
     return manifest
+
+
+def read_story_config(root: Path) -> "dict[str, str]":
+    """Story 5.2: the optional cost-rate keys (hourly_rate, ai_input_rate,
+    ai_output_rate) from .story-config.yaml, reusing this file's own parse_scalar()
+    (already used for read_manifest()) - not tools/adapters/resolve.py, which is
+    scoped to kickoff-time source_of_truth/ai_tool resolution, not general config
+    reading (project-context.md §2 - no premature abstraction/extraction here)."""
+    path = root / CONFIG
+    if not path.is_file():
+        return {}
+    config: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or ":" not in stripped:
+            continue
+        key, raw = stripped.split(":", 1)
+        config[key.strip()] = parse_scalar(raw)
+    return config
 
 
 def as_number(value: Optional[str]) -> Any:
@@ -162,23 +183,95 @@ def reduce_events(events: "list[dict]") -> dict[str, Any]:
     }
 
 
-def token_cost_of(events: "list[dict]") -> dict[str, Any]:
+def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, Any]:
+    """Story 5.2: real input/output token sums (from session_end.py's transcript
+    parsing) plus a computed cost_usd - only when both token counts AND both rates
+    are known (AD-10: never a fabricated number from partial inputs)."""
     session_ends = [
         e
         for e in events
         if (e.get("type") or "").startswith("ai.") and e["type"].endswith(".session_end")
     ]
-    costs = [e.get("payload", {}).get("token_cost") for e in session_ends]
-    known = [c for c in costs if isinstance(c, (int, float))]
+    input_known = [
+        e.get("payload", {}).get("input_tokens")
+        for e in session_ends
+        if isinstance(e.get("payload", {}).get("input_tokens"), (int, float))
+    ]
+    output_known = [
+        e.get("payload", {}).get("output_tokens")
+        for e in session_ends
+        if isinstance(e.get("payload", {}).get("output_tokens"), (int, float))
+    ]
     reasons = [
         e.get("payload", {}).get("token_cost_reason")
         for e in session_ends
         if e.get("payload", {}).get("token_cost_reason")
     ]
+
+    input_tokens = sum(input_known) if input_known else None
+    output_tokens = sum(output_known) if output_known else None
+    input_rate = as_number(config.get("ai_input_rate"))
+    output_rate = as_number(config.get("ai_output_rate"))
+    cost_usd = None
+    if (
+        input_tokens is not None
+        and output_tokens is not None
+        and isinstance(input_rate, (int, float))
+        and isinstance(output_rate, (int, float))
+    ):
+        cost_usd = (input_tokens * input_rate / 1_000_000) + (
+            output_tokens * output_rate / 1_000_000
+        )
+
     return {
-        "total_tokens": sum(known) if known else None,
-        "reason": reasons[0] if reasons else None,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        # only surface a reason when token counts are actually null - real data from
+        # a later session must never be shadowed by a stale reason from an earlier,
+        # unrelated session that happened to fail (caught via live E2E, Story 5.2)
+        "reason": (reasons[0] if reasons else None) if input_tokens is None else None,
         "sessions_observed": len(session_ends),
+        "cost_usd": cost_usd,
+    }
+
+
+def estimated_cost_of(
+    engineering_metrics: "dict[str, Any]", config: "dict[str, str]"
+) -> dict[str, Any]:
+    """Story 5.2: hourly_rate x duration, both read at close time (not locked at
+    kickoff - a documented limitation, see the story's Dev Notes) - null-with-reason
+    whenever the rate is absent or duration can't be computed (AD-10)."""
+    first_at = engineering_metrics.get("first_event_at")
+    last_at = engineering_metrics.get("last_event_at")
+    duration_minutes = None
+    if first_at and last_at:
+        try:
+            start = datetime.fromisoformat(first_at)
+            end = datetime.fromisoformat(last_at)
+            duration_minutes = (end - start).total_seconds() / 60
+        except ValueError:
+            duration_minutes = None
+
+    hourly_rate = as_number(config.get("hourly_rate"))
+    if not isinstance(hourly_rate, (int, float)):
+        return {
+            "usd": None,
+            "hourly_rate": None,
+            "duration_minutes": duration_minutes,
+            "reason": "hourly_rate not configured in .story-config.yaml",
+        }
+    if duration_minutes is None:
+        return {
+            "usd": None,
+            "hourly_rate": hourly_rate,
+            "duration_minutes": None,
+            "reason": "no events to compute duration from",
+        }
+    return {
+        "usd": hourly_rate * (duration_minutes / 60),
+        "hourly_rate": hourly_rate,
+        "duration_minutes": duration_minutes,
+        "reason": None,
     }
 
 
@@ -302,6 +395,8 @@ def main(argv: "list[str] | None" = None) -> int:
     for pending in pending_events:
         pending["story_id"] = story
     ours = [e for e in log_events if e.get("story_id") == story] + pending_events
+    config = read_story_config(root)
+    engineering_metrics = reduce_events(ours)
 
     snapshot = {
         "schema_version": SCHEMA_VERSION,
@@ -315,9 +410,10 @@ def main(argv: "list[str] | None" = None) -> int:
             "ai_tool": manifest.get("ai_tool"),
             "created": manifest.get("created"),
         },
-        "engineering_metrics": reduce_events(ours),
+        "engineering_metrics": engineering_metrics,
         "story_point_cost": story_point_cost_of(root, ours, manifest),
-        "token_cost": token_cost_of(ours),
+        "token_cost": token_cost_of(ours, config),
+        "estimated_cost": estimated_cost_of(engineering_metrics, config),
     }
 
     snapshots_dir = root / SNAPSHOTS_DIR

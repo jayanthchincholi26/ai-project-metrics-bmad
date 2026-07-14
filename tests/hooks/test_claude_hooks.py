@@ -211,14 +211,95 @@ def test_activity_hooks_are_a_no_op_on_the_pointer_without_a_prior_session(repo,
     assert "time.slice_paused" not in types
 
 
-def test_session_end_token_cost_is_null_with_reason(repo, monkeypatch):
+def test_session_end_with_no_transcript_path_is_null_with_reason(repo, monkeypatch):
     feed_stdin(monkeypatch, {"session_id": "s-1"})
 
     session_end.main([])
 
     (event,) = read_events(repo)
     payload = event["payload"]
-    assert payload["token_cost"] is None
+    assert payload["input_tokens"] is None
+    assert payload["output_tokens"] is None
+    assert isinstance(payload["token_cost_reason"], str) and payload["token_cost_reason"]
+
+
+def write_transcript(tmp_path: Path, lines: list[dict]) -> str:
+    path = tmp_path / "transcript.jsonl"
+    path.write_text("\n".join(json.dumps(line) for line in lines) + "\n", encoding="utf-8")
+    return str(path)
+
+
+def test_session_end_sums_real_tokens_from_the_transcript(repo, monkeypatch, tmp_path):
+    transcript = write_transcript(
+        tmp_path,
+        [
+            {"type": "user", "message": {"content": "hi"}},
+            {"type": "assistant", "message": {"usage": {"input_tokens": 100, "output_tokens": 20}}},
+            {"type": "assistant", "message": {"usage": {"input_tokens": 50, "output_tokens": 10}}},
+        ],
+    )
+    feed_stdin(monkeypatch, {"session_id": "s-1", "transcript_path": transcript})
+
+    session_end.main([])
+
+    (event,) = read_events(repo)
+    payload = event["payload"]
+    assert payload["input_tokens"] == 150
+    assert payload["output_tokens"] == 30
+    assert payload["token_cost_reason"] is None
+
+
+def test_session_end_ignores_malformed_lines_in_the_transcript(repo, monkeypatch, tmp_path):
+    path = tmp_path / "transcript.jsonl"
+    path.write_text(
+        "not json at all\n"
+        + json.dumps(
+            {"type": "assistant", "message": {"usage": {"input_tokens": 5, "output_tokens": 1}}}
+        )
+        + "\n"
+        + json.dumps({"type": "assistant", "message": {}})
+        + "\n",  # assistant line with no usage - must not crash, contributes 0
+        encoding="utf-8",
+    )
+    feed_stdin(monkeypatch, {"session_id": "s-1", "transcript_path": str(path)})
+
+    exit_code = session_end.main([])
+
+    assert exit_code == 0
+    (event,) = read_events(repo)
+    assert event["payload"]["input_tokens"] == 5
+    assert event["payload"]["output_tokens"] == 1
+
+
+def test_session_end_transcript_path_pointing_nowhere_is_null_with_reason(
+    repo, monkeypatch, tmp_path
+):
+    missing = str(tmp_path / "does-not-exist.jsonl")
+    feed_stdin(monkeypatch, {"session_id": "s-1", "transcript_path": missing})
+
+    exit_code = session_end.main([])
+
+    assert exit_code == 0
+    (event,) = read_events(repo)
+    payload = event["payload"]
+    assert payload["input_tokens"] is None
+    assert payload["output_tokens"] is None
+    assert isinstance(payload["token_cost_reason"], str) and payload["token_cost_reason"]
+
+
+def test_session_end_transcript_with_no_assistant_usage_lines_is_null_with_reason(
+    repo, monkeypatch, tmp_path
+):
+    transcript = write_transcript(tmp_path, [{"type": "user", "message": {"content": "hi"}}])
+    feed_stdin(monkeypatch, {"session_id": "s-1", "transcript_path": transcript})
+
+    exit_code = session_end.main([])
+
+    assert exit_code == 0
+    (event,) = read_events(repo)
+    payload = event["payload"]
+    assert payload["input_tokens"] is None
+    assert payload["output_tokens"] is None
     assert isinstance(payload["token_cost_reason"], str) and payload["token_cost_reason"]
 
 
