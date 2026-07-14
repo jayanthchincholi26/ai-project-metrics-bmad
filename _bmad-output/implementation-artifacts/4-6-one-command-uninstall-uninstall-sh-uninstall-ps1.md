@@ -4,7 +4,7 @@ baseline_commit: 43bf4a9
 
 # Story 4.6: One-Command Uninstall (`uninstall.sh` / `uninstall.ps1`)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -42,26 +42,26 @@ so that I can reset a repo to a clean, pre-install state without hand-tracking e
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: write `uninstall.sh` (macOS/Linux) (AC: 1, 2, 3, 4)
-  - [ ] Subtask 1.1: git-repo precondition check (same `-e ".git"` pattern as Story 4.3's fixed `install.sh`, worktree/submodule-safe)
-  - [ ] Subtask 1.2: build the list of paths that exist and would be removed; print it; prompt `y/N` unless `--yes`/`-y` was passed
-  - [ ] Subtask 1.3: remove the install-time files/dirs (`tools/`, `.claude/skills/story-kickoff/`, `INSTALL.md`, `.story-config.yaml.example`) and the four git hooks under `.git/hooks/`
-  - [ ] Subtask 1.4: remove the capture-time artifacts (AC 2) if present
-  - [ ] Subtask 1.5: surgically remove only this tooling's entries from `.claude/settings.json` (AC 4) — read the JSON, drop hook array entries whose `command` references `tools/hooks/claude/`, write back only if the file still parses as valid JSON afterward; if `.claude/settings.json` doesn't exist, skip silently (nothing to do)
+- [x] Task 1: write `uninstall.sh` (macOS/Linux) (AC: 1, 2, 3, 4)
+  - [x] Subtask 1.1: git-repo precondition check (same `-e ".git"` pattern as Story 4.3's fixed `install.sh`, worktree/submodule-safe)
+  - [x] Subtask 1.2: build the list of paths that exist and would be removed; print it; prompt `y/N` unless `--yes`/`-y` was passed
+  - [x] Subtask 1.3: remove the install-time files/dirs (`tools/`, `.claude/skills/story-kickoff/`, `INSTALL.md`, `.story-config.yaml.example`) and the four git hooks under `.git/hooks/`
+  - [x] Subtask 1.4: remove the capture-time artifacts (AC 2) if present
+  - [x] Subtask 1.5: surgically remove only this tooling's entries from `.claude/settings.json` (AC 4) — read the JSON, drop hook array entries whose `command` references `tools/hooks/claude/`, write back only if the file still parses as valid JSON afterward; if `.claude/settings.json` doesn't exist, skip silently (nothing to do)
 
-- [ ] Task 2: write `uninstall.ps1` (Windows PowerShell) (AC: 1, 2, 3, 4)
-  - [ ] Subtask 2.1: same precondition check, same list-then-confirm UX, same `-Yes` switch to skip the prompt
-  - [ ] Subtask 2.2: same removal set as Task 1, PowerShell-native (`Remove-Item`, `ConvertFrom-Json`/`ConvertTo-Json` for the settings.json surgery)
-  - [ ] Subtask 2.3: every failure path uses `throw`, never `exit` — same `irm | iex` safety rule Story 4.3 established (an `exit` inside a piped-and-invoked script kills the caller's whole terminal session, not just the script)
+- [x] Task 2: write `uninstall.ps1` (Windows PowerShell) (AC: 1, 2, 3, 4)
+  - [x] Subtask 2.1: same precondition check, same list-then-confirm UX, same `-Yes` switch to skip the prompt
+  - [x] Subtask 2.2: same removal set as Task 1, PowerShell-native (`Remove-Item`, `ConvertFrom-Json`/`ConvertTo-Json` for the settings.json surgery)
+  - [x] Subtask 2.3: every failure path uses `throw`, never `exit` — same `irm | iex` safety rule Story 4.3 established (an `exit` inside a piped-and-invoked script kills the caller's whole terminal session, not just the script)
 
-- [ ] Task 3: document it (AC: 1-6)
-  - [ ] Subtask 3.1: add an "Uninstall" section to `tools/build-release/INSTALL.md`, after "Updating", presenting both commands (local-path invocation, since — like install.sh/ps1 — these aren't inside the release zip; same `raw.githubusercontent.com` fetch pattern as Story 4.3, same temporary-branch-pointer caveat already noted at the top of "Quick install")
+- [x] Task 3: document it (AC: 1-6)
+  - [x] Subtask 3.1: add an "Uninstall" section to `tools/build-release/INSTALL.md`, after "Updating", presenting both commands (local-path invocation, since — like install.sh/ps1 — these aren't inside the release zip; same `raw.githubusercontent.com` fetch pattern as Story 4.3, same temporary-branch-pointer caveat already noted at the top of "Quick install")
 
-- [ ] Task 4: live E2E, both platforms (AC: 1-6)
-  - [ ] Subtask 4.1: real scratch repo — install (Story 4.3's script), run `setup-hooks.py`, copy+edit `.story-config.yaml`, run a kickoff/close cycle to produce `snapshots/`/`metrics-reports/` artifacts, then run `uninstall.ps1` and confirm every listed path is gone and `.claude/settings.json` (if other, unrelated keys were present) keeps those keys intact
-  - [ ] Subtask 4.2: same for `uninstall.sh` via this environment's Bash tool
-  - [ ] Subtask 4.3: confirm the y/N prompt genuinely blocks deletion on "n", and `--yes`/`-Yes` skips it cleanly
-  - [ ] Subtask 4.4: confirm a clear failure message outside a git repo, and a graceful no-op (not a crash) when run against a repo where nothing was ever installed (nothing to remove)
+- [x] Task 4: live E2E, both platforms (AC: 1-6)
+  - [x] Subtask 4.1: real scratch repo — install (Story 4.3's script), run `setup-hooks.py`, copy+edit `.story-config.yaml`, run a kickoff/close cycle to produce `snapshots/`/`metrics-reports/` artifacts, then run `uninstall.ps1` and confirm every listed path is gone and `.claude/settings.json` (if other, unrelated keys were present) keeps those keys intact
+  - [x] Subtask 4.2: same for `uninstall.sh` via this environment's Bash tool
+  - [x] Subtask 4.3: confirm the y/N prompt genuinely blocks deletion on "n", and `--yes`/`-Yes` skips it cleanly
+  - [x] Subtask 4.4: confirm a clear failure message outside a git repo, and a graceful no-op (not a crash) when run against a repo where nothing was ever installed (nothing to remove)
 
 ## Dev Notes
 
@@ -108,16 +108,27 @@ Neither script ships inside the release zip (`EXCLUDED_DIR_NAMES` already exclud
 
 ### Agent Model Used
 
-_to be filled by dev-story_
+Claude Sonnet 5
 
 ### Debug Log References
 
-_to be filled by dev-story_
+Live E2E only (no pytest surface, per AC 5). Built a fully-populated scratch repo on both platforms: real install (v0.4.0 release) → `setup-hooks.py` → copied `.story-config.yaml.example` → fabricated capture artifacts (`.story.yaml`, `.story-events.jsonl`, `.active-story`, `snapshots/`, `metrics-reports/`) → injected an unrelated `.claude/settings.json` key and a foreign `Stop` hook entry (`my_backstop.py`) to prove surgical (not wholesale) removal.
+
+Verified on both `uninstall.sh` and `uninstall.ps1`: the y/N prompt genuinely aborts on "n" (nothing removed); `--yes`/`-Yes` (and, for `uninstall.ps1`'s `irm | iex` form specifically, `$env:AI_METRICS_UNINSTALL_YES`) skip the prompt; full removal deletes all 4 git hooks and every install/capture artifact; `.claude/settings.json` afterward retains `someOtherSetting` and the foreign `Stop` hook entry, while all 6 of this tooling's own events are gone entirely (each event array held nothing else, so the whole key was dropped, not left as `[]`); a repo with nothing installed reports "Nothing to remove" and exits 0 rather than erroring; outside a git repo both scripts fail clearly. Re-confirmed (same method as Story 4.3) that `uninstall.ps1`'s `throw` survives a real `Invoke-Expression`-piped invocation without killing the calling session.
+
+Real bug caught and fixed mid-implementation: `uninstall.sh`'s settings.json surgery originally shelled out to `uv run python3`, which on this Windows machine resolves to the Microsoft Store's `python3` alias stub and fails even under `uv run` ("Python was not found...") — `uv run python` (no `3`) works correctly. Fixed before completing E2E; re-verified after.
+
+**Review round 2** (PR #31): added a Python-availability fallback chain (`uv run python` → `python3` → `python`) for the settings.json surgery, so uninstall doesn't crash under `set -e` if `uv` itself has already been removed from the machine. Each candidate is verified to actually execute (`$candidate -c "pass"`), not just present on PATH — re-using the exact lesson from the bug above, since a `python3` alias can exist on PATH while being non-functional. Verified live with a real PATH manipulation hiding `uv`: the script correctly detected the broken `python3` stub via the executability check, found no working `python` either, and degraded to a graceful warning (leaving `.claude/settings.json` untouched, with clear by-hand instructions) rather than crashing — while still completing every other removal. Re-confirmed the normal `uv`-present path is unaffected.
 
 ### Completion Notes List
 
-_to be filled by dev-story_
+- `uninstall.sh`/`uninstall.ps1` mirror `install.sh`/`install.ps1`'s structure exactly: same git-repo precondition (`-e ".git"`, worktree/submodule-safe), same `throw`-not-`exit` rule in the PowerShell script.
+- Settings.json surgery matches on the `tools/hooks/claude/` path segment (not a bare filename) — safe because that whole path namespace is exclusively this tooling's own, unlike the bare-filename collision risk `setup-hooks.py`'s own `references_our_script()` guards against.
+- Git hooks are only removed if they actually contain the `installed by explore-jira-ai-metrics setup-hooks` marker — a hook this tooling didn't install is left alone (mirrors `setup-hooks.py`'s own `is_conflict()` check, in reverse).
+- `.gitignore` is deliberately left untouched, as scoped in Dev Notes — not worth the risk of rewriting a developer's own file for a few harmless leftover ignore entries.
 
 ### File List
 
-_to be filled by dev-story_
+tools/build-release/uninstall.sh (new)
+tools/build-release/uninstall.ps1 (new)
+tools/build-release/INSTALL.md (updated — new "Uninstall" section, broadened the temporary-branch-pointer note)
