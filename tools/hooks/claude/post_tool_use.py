@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         root = _events.repo_root()
         config = _events.read_story_config(root)
         command = data.get("tool_input", {}).get("command", "")
-        exit_code = data.get("tool_output", {}).get("exit_code")
+        exit_code = data.get("exit_code")
 
         if exit_code not in (None, 0):
             for config_key, event_type in (

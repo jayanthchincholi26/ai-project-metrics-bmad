@@ -239,7 +239,8 @@ def test_post_tool_use_emits_defect_test_on_matched_failing_command(repo, monkey
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/"},
-            "tool_output": {"exit_code": 1, "stdout": "FAILED", "stderr": "boom"},
+            "tool_output": {"stdout": "FAILED", "stderr": "boom"},
+            "exit_code": 1,
         },
     )
 
@@ -257,7 +258,7 @@ def test_post_tool_use_emits_defect_compile_on_matched_failing_build_command(rep
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "tsc --noEmit"},
-            "tool_output": {"exit_code": 2},
+            "exit_code": 2,
         },
     )
 
@@ -275,7 +276,8 @@ def test_post_tool_use_defect_payload_never_contains_command_text_or_output(repo
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/ -k secret_token_xyz"},
-            "tool_output": {"exit_code": 1, "stdout": "leaked stdout", "stderr": "leaked stderr"},
+            "tool_output": {"stdout": "leaked stdout", "stderr": "leaked stderr"},
+            "exit_code": 1,
         },
     )
 
@@ -295,7 +297,7 @@ def test_post_tool_use_no_defect_on_successful_matched_command(repo, monkeypatch
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/"},
-            "tool_output": {"exit_code": 0},
+            "exit_code": 0,
         },
     )
 
@@ -314,7 +316,7 @@ def test_post_tool_use_no_defect_on_unmatched_command(repo, monkeypatch):
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "echo hello"},
-            "tool_output": {"exit_code": 1},
+            "exit_code": 1,
         },
     )
 
@@ -325,7 +327,10 @@ def test_post_tool_use_no_defect_on_unmatched_command(repo, monkeypatch):
     assert "ai.claude-code.defect_compile" not in types
 
 
-def test_post_tool_use_no_defect_when_no_config_present(repo, monkeypatch):
+def test_post_tool_use_ignores_exit_code_nested_under_tool_output(repo, monkeypatch):
+    """Regression guard (Story 5.7): a nested tool_output.exit_code must never be
+    treated as the real exit code - Claude Code only ever sends it top-level."""
+    write_story_config(repo, test_commands="pytest")
     feed_stdin(
         monkeypatch,
         {
@@ -333,6 +338,23 @@ def test_post_tool_use_no_defect_when_no_config_present(repo, monkeypatch):
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/"},
             "tool_output": {"exit_code": 1},
+        },
+    )
+
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "ai.claude-code.defect_test" not in types
+
+
+def test_post_tool_use_no_defect_when_no_config_present(repo, monkeypatch):
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "pytest tests/"},
+            "exit_code": 1,
         },
     )
 

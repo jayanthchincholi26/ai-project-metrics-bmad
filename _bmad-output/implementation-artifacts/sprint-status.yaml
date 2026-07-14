@@ -92,5 +92,5 @@ development_status:
   5-4-bugdefect-review-efficiency-tracking: done  # PR #33, merged 934da7f
   5-5-leadership-html-dashboard: done  # PR #28, merged b958140
   5-6-token-cost-reason-is-bare-null-when-zero-sessions-observed: done  # PR #32, merged 52d47f9
-  5-7-post-tool-use-reads-exit-code-from-the-wrong-payload-location: ready-for-dev  # found live 2026-07-14, defect capture silently never fires
+  5-7-post-tool-use-reads-exit-code-from-the-wrong-payload-location: review  # PR pending, fixed 2026-07-14
   epic-5-retrospective: optional
