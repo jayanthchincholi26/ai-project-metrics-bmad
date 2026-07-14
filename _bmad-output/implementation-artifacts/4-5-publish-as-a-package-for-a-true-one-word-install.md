@@ -4,7 +4,7 @@ baseline_commit: b6327c7
 
 # Story 4.5: Publish as a Package for a True One-Word Install (`uvx ai-metrics-capture install`)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

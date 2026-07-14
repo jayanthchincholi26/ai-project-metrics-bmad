@@ -80,7 +80,7 @@ development_status:
   4-2-develop-promotes-to-main-on-a-defined-release-cadence: backlog  # gated on QA pass
   4-3-one-command-curl-irm-installer: done  # PR #30, merged 2a100e4
   4-4-story-config-yaml-example-template-shipped-in-release: done  # PR #29
-  4-5-publish-as-a-package-for-a-true-one-word-install: review  # PR pending, real PyPI publish gated behind Story 4.2
+  4-5-publish-as-a-package-for-a-true-one-word-install: done  # PR #37, merged 496645a; real PyPI publish gated behind Story 4.2
   4-6-one-command-uninstall-uninstall-sh-uninstall-ps1: done  # PR #31, merged 063abb7
   4-7-setup-hooks-crashes-on-a-bom-prefixed-settingsjson: done  # PR #34, merged ca9da4f
   4-8-story-config-template-missing-story-54s-defect-capture-keys: done  # PR #35, merged 111db78
