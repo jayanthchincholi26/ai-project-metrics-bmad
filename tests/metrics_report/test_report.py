@@ -149,6 +149,28 @@ def test_no_snapshots_directory_produces_no_reports(tmp_path):
     )
 
 
+def test_non_string_last_event_at_does_not_crash_report_generation(tmp_path):
+    # Review finding (PR #27): a corrupted/hand-edited snapshot could carry a
+    # non-string in last_event_at/created - must degrade to "unknown-date", not crash.
+    write_snapshot(tmp_path, "story-a", 1, engineering_metrics={"last_event_at": 12345})
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    assert (tmp_path / "metrics-reports" / "metrics-unknown-date.md").exists()
+
+
+def test_malformed_date_string_does_not_crash_report_generation(tmp_path):
+    # Review finding (PR #27): a date-like string that isn't actually YYYY-MM-DD
+    # (e.g. corrupted data) must not crash mmddyyyy()'s unpack.
+    write_snapshot(tmp_path, "story-a", 1, engineering_metrics={"last_event_at": "not-a-real-date"})
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    assert (tmp_path / "metrics-reports" / "metrics-unknown-date.md").exists()
+
+
 # --- Task 2: per-story rendering ---
 
 

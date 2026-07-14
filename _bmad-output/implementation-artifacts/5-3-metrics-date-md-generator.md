@@ -157,7 +157,17 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 - tools/snapshot-assembler/main.py (modified — Task 0: `pm_metrics` dict gains `"name": manifest.get("name")`)
 - tests/snapshot_assembler/test_reduce.py (modified — Task 0: updated the existing pm_metrics test, added a new name-round-trip test)
 - tools/metrics-report/main.py (new — the generator: discovery/revision-selection/date-grouping, per-story rendering, full-regeneration write)
-- tests/metrics_report/test_report.py (new — 13 tests covering discovery, revision selection, date grouping/fallback, per-story rendering including the Goal-line and old-schema-duration-fallback fixes found via live E2E, idempotent regeneration)
+- tests/metrics_report/test_report.py (new — 15 tests covering discovery, revision selection, date grouping/fallback, per-story rendering including the Goal-line and old-schema-duration-fallback fixes found via live E2E, idempotent regeneration, and 2 malformed-date-input regression tests from review)
 - tools/build-release/INSTALL.md (modified — optional `metrics-report` step added to both Daily-use flows; `metrics-reports/` documented as committed, not gitignored)
 - _bmad-output/implementation-artifacts/5-3-metrics-date-md-generator.md (this file — task checkboxes, Dev Agent Record, status)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
+
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #27) — 2026-07-14, 1 of 3 findings was stale/incorrect, 2 were genuine (this PR's own new code):
+
+- [ ] [AI-Review][Stale/Incorrect] "`estimated_cost_of()` in `tools/snapshot-assembler/main.py` still only catches `ValueError`, not `TypeError`, on the timestamp subtraction." **Verified false** — `git diff enhancements-v2..story/5.3-metrics-report-generator -- tools/snapshot-assembler/main.py` shows this PR's *only* change to that file is the one-line `pm_metrics.name` addition (Task 0); `estimated_cost_of()` is untouched and already catches `(ValueError, TypeError)`, fixed in Story 5.2's own review follow-up (PR #26) with a comment citing that PR. No action taken — the finding doesn't apply.
+- [x] [AI-Review][Low] `date_key_of()` assumed `last_event_at`/`created` would always be a string; a corrupted/hand-edited snapshot carrying a non-string there would raise `TypeError` from `len()`/slicing. Fixed: `isinstance(source, str)` guard, degrading to the existing "unknown-date" bucket instead of crashing.
+- [x] [AI-Review][Low] `mmddyyyy()` naively unpacked `date_key.split("-")` into 3 variables; a malformed date-like string (right length, wrong shape) would raise `ValueError: not enough/too many values to unpack`. Fixed differently from the reviewer's suggested `mmddyyyy()`-side patch — moved the validation into `date_key_of()` itself (exactly-3-numeric-parts check), so a malformed date is caught once, at the single point of truth, and falls into the same "unknown-date" bucket rather than producing a nonsense filename via a raw-string fallback.
+
+2 new regression tests added for both fixed cases. All 3 findings checked against the actual PR #27 diff before acting — the practice that caught the first one as stale paid off again.

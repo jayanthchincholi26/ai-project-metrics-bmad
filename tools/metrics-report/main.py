@@ -66,16 +66,24 @@ def discover_snapshots(root: Path) -> "list[dict[str, Any]]":
 
 
 def date_key_of(snapshot: dict) -> Optional[str]:
-    """YYYY-MM-DD grouping key — last_event_at, falling back to pm_metrics.created."""
+    """YYYY-MM-DD grouping key — last_event_at, falling back to pm_metrics.created.
+    A corrupted/hand-edited snapshot could carry a non-string here (review finding,
+    PR #27) — isinstance guards against a TypeError from len()/slicing on that."""
     last_at = snapshot.get("engineering_metrics", {}).get("last_event_at")
     created = snapshot.get("pm_metrics", {}).get("created")
     source = last_at or created
-    if not source or len(source) < 10:
+    if not isinstance(source, str) or len(source) < 10:
         return None
-    return source[:10]
+    date_key = source[:10]
+    parts = date_key.split("-")
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        return None
+    return date_key
 
 
 def mmddyyyy(date_key: str) -> str:
+    # date_key_of() already validated this splits into exactly 3 numeric parts
+    # (review finding, PR #27) - this unpack is safe given that precondition.
     year, month, day = date_key.split("-")
     return f"{month}{day}{year}"
 
