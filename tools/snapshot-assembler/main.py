@@ -223,13 +223,24 @@ def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, A
             output_tokens * output_rate / 1_000_000
         )
 
-    return {
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
+    if input_tokens is not None:
+        reason = None
+    elif session_ends:
         # only surface a reason when token counts are actually null - real data from
         # a later session must never be shadowed by a stale reason from an earlier,
         # unrelated session that happened to fail (caught via live E2E, Story 5.2)
-        "reason": (reasons[0] if reasons else None) if input_tokens is None else None,
+        reason = reasons[0] if reasons else None
+    else:
+        # distinct from the case above (AD-10, Story 5.6): zero session_end events
+        # means no AI session was ever observed closing cleanly for this story -
+        # e.g. the editor was closed abruptly instead of /exit or Ctrl+C - which is
+        # not the same gap as "a session ended but its own transcript read failed"
+        reason = "no AI session_end event observed for this story"
+
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "reason": reason,
         "sessions_observed": len(session_ends),
         "cost_usd": cost_usd,
     }

@@ -356,6 +356,28 @@ def test_token_cost_null_with_reason_propagates(tmp_path, capsys):
     assert token_cost["cost_usd"] is None
 
 
+def test_token_cost_reason_explains_zero_sessions_observed(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("git.commit", ts="2026-07-10T10:01:00+05:30"),
+            event("ai.claude-code.session_start", ts="2026-07-10T10:00:30+05:30", session_id="s1"),
+            # no matching session_end -- e.g. the developer closed the editor
+            # abruptly instead of running /exit or Ctrl+C first
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["input_tokens"] is None
+    assert token_cost["output_tokens"] is None
+    assert token_cost["sessions_observed"] == 0
+    assert token_cost["reason"]
+    assert token_cost["reason"] != "no transcript_path in hook payload"
+
+
 def test_token_cost_sums_real_tokens_across_sessions(tmp_path, capsys):
     write_manifest(tmp_path)
     write_events(

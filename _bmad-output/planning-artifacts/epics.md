@@ -696,6 +696,6 @@ A static, self-contained local HTML file presenting the accumulated `metrics-*.m
 
 ### Story 5.6: `token_cost.reason` Is Bare `null` When Zero Sessions Observed
 
-> ⏳ **Not started** — opened 2026-07-14, closing out the 2026-07-11 finding (see Story 2.4's finding note above), confirmed with a live repro during 2026-07-14 pilot testing
+> ✅ **Complete** — opened 2026-07-14, closing out the 2026-07-11 finding (see Story 2.4's finding note above), confirmed with a live repro during 2026-07-14 pilot testing; PR pending
 
 Narrow fix to `tools/snapshot-assembler/main.py`'s `token_cost_of()`: when zero `session_end` events exist (`sessions_observed: 0`), `reason` currently comes back bare `null` instead of an explanatory string, violating AD-10's null-with-reason rule — confirmed live (`ai_sessions: 1`, `sessions_observed: 0`, "not tracked — no reason given" rendered in both the dashboard and metrics report). Does **not** attempt to make `ai_sessions` and `sessions_observed` match — they measure genuinely different things (sessions *started* vs. sessions that *ended cleanly with token data*) and a mismatch is expected whenever a session doesn't end gracefully (e.g. the VS Code window closed abruptly instead of `/exit`/`Ctrl+C`).
