@@ -25,7 +25,22 @@ powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | ie
 ```
 See [docs.astral.sh/uv/getting-started/installation](https://docs.astral.sh/uv/getting-started/installation/) for other platforms, then restart your terminal.
 
-## Quick install (recommended)
+## Package install (`uvx`) — not yet published
+
+The most convenient path, once this package is actually published:
+```
+uvx ai-metrics-capture install
+```
+Run once at your repository root — no URL, branch name, or manual download to
+remember, same on-disk result as the other two paths below. **Not live yet**:
+Story 4.5 built the packaging (`pypi-package/`) but real publishing is
+intentionally gated behind Story 4.2 (`develop`→`main` promotion cadence) —
+publishing an unfinished/untested build to the real public PyPI index before
+that cadence exists risks shipping something that can't easily be corrected
+after the fact (unlike a GitHub Releases zip). Use one of the two paths below
+until this section is updated to say otherwise.
+
+## Quick install (recommended for now)
 
 > **TEMPORARY:** the commands below (and Uninstall's, further down) point at
 > the `enhancements-v2` branch, not `main` — solo self-testing only while
