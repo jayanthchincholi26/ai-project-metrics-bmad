@@ -648,7 +648,7 @@ Teardown counterpart to Story 4.3's install scripts: `uninstall.sh`/`uninstall.p
 
 ### Story 4.7: `setup-hooks.py` Crashes on a BOM-Prefixed `settings.json`
 
-> ✅ **Complete** — opened 2026-07-14, a real bug hit live during pilot testing; PR pending
+> ✅ **Complete** — opened 2026-07-14, a real bug hit live during pilot testing; PR #34, merged
 
 `setup-hooks.py` read `.claude/settings.json` with plain `utf-8`, so a BOM-prefixed file crashed with "Unexpected UTF-8 BOM" — fixed to `utf-8-sig` (this project's established convention for exactly this class of bug, now the 4th instance). Root cause traced to `uninstall.ps1`'s own settings.json rewrite step using `Set-Content -Encoding utf8`, which writes a real BOM on Windows PowerShell 5.1 — fixed to write BOM-less UTF-8 directly via `.NET`'s `UTF8Encoding($false)`. Two-sided fix: the read is now defensive against any BOM-writing tool, and the actual source of the corruption (this project's own uninstall script) no longer introduces one.
 
