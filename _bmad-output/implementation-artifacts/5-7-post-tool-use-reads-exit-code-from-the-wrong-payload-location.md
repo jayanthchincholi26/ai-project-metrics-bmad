@@ -4,7 +4,7 @@ baseline_commit: 94fbfa1
 
 # Story 5.7: `post_tool_use.py` Reads `exit_code` From the Wrong Payload Location
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

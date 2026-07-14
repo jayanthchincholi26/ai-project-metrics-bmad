@@ -12,3 +12,5 @@ __pycache__/
 Thumbs.db
 ~$*
 dist/
+pypi-package/src/ai_metrics_capture/_bundled/
+pypi-package/dist/

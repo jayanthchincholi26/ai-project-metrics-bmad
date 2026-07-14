@@ -4,7 +4,7 @@ baseline_commit: b6327c7
 
 # Story 4.5: Publish as a Package for a True One-Word Install (`uvx ai-metrics-capture install`)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -42,28 +42,28 @@ so that onboarding feels like `npx bmad-method install` or `uvx ruff`, not a ful
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: pre-flight — confirm the package name is actually available on PyPI (AC 1)
-  - [ ] Subtask 0.1: check `https://pypi.org/project/ai-metrics-capture/` (and 1-2 fallback name candidates) before writing any packaging code — a taken name blocks this story entirely until a name is chosen; surface this to the user rather than silently picking an alternate name
+- [x] Task 0: pre-flight — confirm the package name is actually available on PyPI (AC 1)
+  - [x] Subtask 0.1: attempted to check `https://pypi.org/project/ai-metrics-capture/` — pypi.org returns a bot-detection "Client Challenge" page (HTTP 200, no real content) for automated requests from this environment, so availability could not actually be confirmed programmatically. Proceeding with `ai-metrics-capture` (matches the existing release zip's name) but flagging plainly: **real availability must be confirmed by hand before any actual publish** — moot for this story anyway since AC 4/Task 3.2 gate real publishing behind Story 4.2.
 
-- [ ] Task 1: package scaffolding (AC 1, 5, 6)
-  - [ ] Subtask 1.1: add `pyproject.toml` at the repo root — `[build-system]` (hatchling recommended: zero-config for a single-package layout, already `uv`'s own default for new projects), `[project]` metadata (name, version — likely synced to the same version string Story 4.1's `--version` flag already bakes into release zips), `[project.scripts]` entry point (e.g. `ai-metrics-capture = "ai_metrics_capture.cli:main"`)
-  - [ ] Subtask 1.2: decide and document the package's importable module layout (a new small package, e.g. `src/ai_metrics_capture/cli.py`, that imports and calls Story 4.1's `tools/build-release/main.py` build/extract logic and Story 4.3's install logic as library calls — not a copy-paste duplicate)
-  - [ ] Subtask 1.3: confirm packaging-time-only dependency boundary holds — `ruff check`/`ruff format` still pass on `tools/`, no new runtime import appears in any file under `tools/`
+- [x] Task 1: package scaffolding (AC 1, 5, 6)
+  - [x] Subtask 1.1: added `pyproject.toml` — **not at the repo root** (see Dev Notes deviation below) but in a new `pypi-package/` subdirectory, to avoid colliding with the existing root `pyproject.toml` (this repo's own dev/test config, `[tool.uv] package = false`). `[build-system]` = hatchling, `[project]` metadata, `[project.scripts]` entry point `ai-metrics-capture = "ai_metrics_capture.cli:main"`
+  - [x] Subtask 1.2: `pypi-package/src/ai_metrics_capture/cli.py` — thin `install` subcommand; module layout is src-layout, first package this repo has shipped
+  - [x] Subtask 1.3: confirmed — `ruff check .` / `ruff format --check .` at the repo root pass clean including `pypi-package/`; no new runtime import appears anywhere under `tools/`
 
-- [ ] Task 2: the `install` subcommand (AC 1, 2, 3)
-  - [ ] Subtask 2.1: implement `ai-metrics-capture install` reusing the same logic Story 4.3's scripts already prove out (latest-release resolution — or, since this ships as a versioned package itself, consider: does `uvx` running version N of this package just install/extract version N's own bundled tooling directly, skipping the GitHub API call entirely? Resolve this design question explicitly in Dev Notes before implementing — it changes whether this needs network access to GitHub at all)
-  - [ ] Subtask 2.2: same git-repo precondition check, same next-step guidance printed at the end, consistent UX with Story 4.3
+- [x] Task 2: the `install` subcommand (AC 1, 2, 3)
+  - [x] Subtask 2.1: **Option A** (see Dev Notes) — the package bundles the capture tooling directly inside its own wheel; `install` makes no GitHub API call at all, just copies from the installed package's own `_bundled/` directory into cwd
+  - [x] Subtask 2.2: same git-repo precondition check (`.git` exists — file or dir, matching Story 4.3's `-e` fix), same "Installed. Next: uv run tools/setup-hooks.py --repo-root ." message, verbatim-matching Story 4.3's UX
 
-- [ ] Task 3: publish automation (AC 4)
-  - [ ] Subtask 3.1: GitHub Actions workflow, triggered on a tagged release (mirrors Story 4.1's tag-driven release cadence), running `uv build` + `uv publish` (or `twine upload`) against PyPI using a repo secret token
-  - [ ] Subtask 3.2: explicitly gate real publishing behind Story 4.2 — until `develop`→`main` promotion is a defined, working cadence, this workflow either targets TestPyPI only or stays unwired (manual trigger, never automatic) — do not let this story accidentally publish an unfinished capture tool to the real public index
+- [x] Task 3: publish automation (AC 4)
+  - [x] Subtask 3.1: `.github/workflows/publish-pypi.yml` — builds via `uv build`, publishes via `uv publish`
+  - [x] Subtask 3.2: gated exactly as required — `workflow_dispatch` only (no tag trigger), targets TestPyPI (`--publish-url https://test.pypi.org/legacy/`) via a `TEST_PYPI_API_TOKEN` secret that does not yet exist in this repo. Cannot publish anything, anywhere, until both Story 4.2 lands and a human deliberately wires a real secret and triggers it by hand.
 
-- [ ] Task 4: documentation (AC 2, 3)
-  - [ ] Subtask 4.1: add a new "Quick install" variant to `INSTALL.md` presenting `uvx ai-metrics-capture install` as the primary path once published; Story 4.3's `curl`/`irm` commands stay documented as the fallback for machines without `uv` (or before this package is actually published) — three tiers now: package install (primary) → curl/irm (fallback 1) → manual zip (fallback 2)
+- [x] Task 4: documentation (AC 2, 3)
+  - [x] Subtask 4.1: added a new "Package install (`uvx`) — not yet published" section to `INSTALL.md`, ahead of the existing "Quick install" (curl/irm) section, explicitly marked not-yet-live and explaining why (gated behind Story 4.2) — three tiers now exist in the doc, only two are actually usable today
 
-- [ ] Task 5: live E2E (AC 1, 2, 3)
-  - [ ] Subtask 5.1: build the package locally (`uv build`), install it into a scratch venv or run directly via `uvx --from <local wheel path> ai-metrics-capture install` against a real empty git repo, confirm the resulting file layout matches a manual zip extract exactly
-  - [ ] Subtask 5.2: confirm Story 4.1's zip path and Story 4.3's curl/irm scripts are both untouched and still pass their own existing tests/E2E
+- [x] Task 5: live E2E (AC 1, 2, 3)
+  - [x] Subtask 5.1: `uv build` in `pypi-package/` → real wheel; ran `uvx --from <local wheel path> ai-metrics-capture install` against a real empty scratch git repo; `diff -rq` against a real `tools/build-release/main.py`-built zip extracted into a separate scratch repo came back **empty** — byte-identical file layout. Also verified the git-repo precondition failure path (real non-git scratch dir → `exit 2`, same error message as Story 4.3's scripts).
+  - [x] Subtask 5.2: full suite 324 passed, `ruff check`/`ruff format --check` clean at repo root — Story 4.1's zip path and Story 4.3's curl/irm scripts are untouched by this story
 
 ## Dev Notes
 
@@ -94,16 +94,24 @@ Recommendation: Option A. Confirm with the user only if a real blocker surfaces 
 ### Source tree touched
 
 ```text
-pyproject.toml                          NEW    build-system + [project.scripts] entry point
-src/ai_metrics_capture/__init__.py      NEW    (or similar layout — confirm during Task 1.2)
-src/ai_metrics_capture/cli.py           NEW    thin wrapper calling tools/build-release/main.py's existing logic
-.github/workflows/publish.yml           NEW    tag-triggered build+publish, gated behind Story 4.2 (Task 3.2)
-tools/build-release/INSTALL.md          UPDATE new top-tier "Quick install (uvx)" section; curl/irm and manual zip stay as documented fallbacks
+pypi-package/pyproject.toml                     NEW    build-system + [project.scripts] entry point (own subdirectory - see deviation note)
+pypi-package/README.md                          NEW    PyPI project description
+pypi-package/sync_bundle.py                      NEW    pre-build step: regenerates _bundled/ from tools/build-release/main.py's iter_entries()
+pypi-package/src/ai_metrics_capture/__init__.py  NEW
+pypi-package/src/ai_metrics_capture/cli.py       NEW    thin install subcommand, copies from installed package's own _bundled/
+.github/workflows/publish-pypi.yml               NEW    workflow_dispatch-only, TestPyPI target, gated behind Story 4.2 (Task 3.2)
+tools/build-release/INSTALL.md                   UPDATE new top-tier "Package install (uvx)" section, marked not-yet-published
+.gitignore                                       UPDATE ignore pypi-package/src/.../  _bundled/ and pypi-package/dist/
 ```
 
 ### Project Structure Notes
 
 This is the first time this repo ships an importable Python *package* (as opposed to standalone PEP-723 scripts) — expect some genuine new-ground decisions here (src-layout vs flat, how `.claude/skills/` and `INSTALL.md` get included as package data). Flag any structural surprise found during Task 1 in this story's own Completion Notes for future reference, since nothing in this project has done this before.
+
+### Deviations found during implementation (recorded per the note above)
+
+1. **`pyproject.toml` location**: this story's own Source Tree section (below) said `pyproject.toml` NEW at the repo root — but a `pyproject.toml` **already exists** at the repo root, and it's this planning repo's own dev/test config (`[tool.uv] package = false`, pytest/ruff settings every other story's tooling depends on). Renaming its `[project]` name or adding `[build-system]`/`[project.scripts]` to it would change how `uv run pytest`/`uv run ruff` behave repo-wide. Resolved by putting the distributable package in its own `pypi-package/` subdirectory with its own independent `pyproject.toml` — fully isolated, zero risk to the existing dev workflow, `uv build` is simply run from inside that subdirectory.
+2. **Build hook reaching outside the package fails from an sdist**: the first implementation used a hatchling custom build hook that reached `../tools/build-release/main.py` at wheel-build time. This works for a direct wheel build but **fails when building the wheel from an sdist** (the normal `uv build`/PyPI path) — hatchling's sdist stage has no access to anything outside `pypi-package/`, so the hook's import of a file at `../tools/...` throws `FileNotFoundError` once running from the unpacked sdist. Fixed by moving the bundling logic to `pypi-package/sync_bundle.py`, an explicit **pre-build** step (not a build hook) that must run before `uv build`; the sdist target's `include` list then ships the resulting `_bundled/` directory explicitly (overriding hatchling's default VCS-tracked-files heuristic, since `_bundled/` is deliberately `.gitignore`'d as a generated artifact).
 
 ### References
 
@@ -117,16 +125,27 @@ This is the first time this repo ships an importable Python *package* (as oppose
 
 ### Agent Model Used
 
-_to be filled by dev-story_
+Claude Sonnet 5
 
 ### Debug Log References
 
-_to be filled by dev-story_
+Full suite: 324 passed. `ruff check .` / `ruff format --check .` clean at repo root (includes `pypi-package/`). Real `uv build` produced a working wheel + sdist. Real `uvx --from <wheel> ai-metrics-capture install` against a scratch git repo produced a file layout `diff -rq`-identical to a real `tools/build-release/main.py`-built zip extracted into a separate scratch repo. Confirmed the non-git-repo failure path exits 2 with the same message Story 4.3 uses.
 
 ### Completion Notes List
 
-_to be filled by dev-story_
+- Two genuine new-ground deviations from the story's original plan — both recorded in Dev Notes above: (1) the package's `pyproject.toml` had to live in its own `pypi-package/` subdirectory rather than the repo root, since a root `pyproject.toml` already exists for this repo's own dev/test tooling; (2) the bundling of capture-tooling files into the package had to be an explicit pre-build script (`sync_bundle.py`), not a hatchling build hook, because a build hook reaching outside the package directory breaks once hatchling builds the wheel from an sdist (no access to `../tools/`).
+- Chose Option A from Dev Notes (package bundles tooling directly, no GitHub API call at install time) — confirmed correct via the E2E diff coming back empty.
+- PyPI name availability (Task 0) could not be confirmed programmatically — pypi.org blocks automated requests with a bot-detection challenge page. Not a blocker for this story since real publishing doesn't happen here anyway (gated behind Story 4.2), but must be confirmed by hand before Story 4.2 unblocks a real publish.
+- No LICENSE file exists in this repo — `pyproject.toml`'s `license` field is intentionally omitted rather than asserting an unchosen license; this needs resolving before any real publish too.
+- `.github/workflows/publish-pypi.yml` references a `TEST_PYPI_API_TOKEN` secret that does not exist in this repo yet — the workflow is `workflow_dispatch`-only and cannot run automatically, so this is safe to leave unset until someone deliberately wires it up.
 
 ### File List
 
-_to be filled by dev-story_
+pypi-package/pyproject.toml (new)
+pypi-package/README.md (new)
+pypi-package/sync_bundle.py (new)
+pypi-package/src/ai_metrics_capture/__init__.py (new)
+pypi-package/src/ai_metrics_capture/cli.py (new)
+.github/workflows/publish-pypi.yml (new)
+tools/build-release/INSTALL.md (updated)
+.gitignore (updated)

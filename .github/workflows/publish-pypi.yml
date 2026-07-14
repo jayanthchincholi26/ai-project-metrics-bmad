@@ -1,0 +1,30 @@
+name: publish-pypi
+
+# Story 4.5, AC 4 / Task 3.2: intentionally NOT triggered by tag pushes like
+# release.yml is. Real PyPI publishing is explicitly gated behind Story 4.2
+# (develop -> main promotion cadence) - until that lands, this workflow is
+# manual-only (workflow_dispatch) and targets TestPyPI, never the real
+# public index, so an unfinished/untested build can never reach real users.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish-testpypi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Sync bundled tooling from tools/build-release
+        working-directory: pypi-package
+        run: uv run --no-project python sync_bundle.py
+      - name: Build package
+        working-directory: pypi-package
+        run: uv build
+      - name: Publish to TestPyPI
+        working-directory: pypi-package
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: uv publish --publish-url https://test.pypi.org/legacy/
