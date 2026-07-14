@@ -82,7 +82,7 @@ development_status:
   epic-5: in-progress  # opened 2026-07-13, work started 2026-07-14 on branch enhancements-v2
   5-1-installmd-numbered-steps-no-prose: done  # PR #25, merged 9130a94
   5-2-real-cost-and-token-fields-per-story: done  # PR #26, merged 2593c02
-  5-3-metrics-date-md-generator: backlog
+  5-3-metrics-date-md-generator: ready-for-dev
   5-4-bugdefect-review-efficiency-tracking: backlog  # blocked on user's capture-mechanism decision
   5-5-leadership-html-dashboard: backlog
   epic-5-retrospective: optional
