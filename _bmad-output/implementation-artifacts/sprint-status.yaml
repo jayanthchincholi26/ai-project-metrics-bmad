@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-14
+last_updated: 2026-07-14  # Story 4.8 merged
 project: explore-jira-ai-metrics
 project_key: NOKEY
 tracking_system: file-system
@@ -83,7 +83,7 @@ development_status:
   4-5-publish-as-a-package-for-a-true-one-word-install: ready-for-dev  # opened 2026-07-14
   4-6-one-command-uninstall-uninstall-sh-uninstall-ps1: done  # PR #31, merged 063abb7
   4-7-setup-hooks-crashes-on-a-bom-prefixed-settingsjson: done  # PR #34, merged ca9da4f
-  4-8-story-config-template-missing-story-54s-defect-capture-keys: review  # PR pending, opened 2026-07-14
+  4-8-story-config-template-missing-story-54s-defect-capture-keys: done  # PR #35, merged 111db78
   epic-4-retrospective: optional
   epic-5: done  # all 6 stories (5.1-5.6) complete as of 2026-07-14
   5-1-installmd-numbered-steps-no-prose: done  # PR #25, merged 9130a94

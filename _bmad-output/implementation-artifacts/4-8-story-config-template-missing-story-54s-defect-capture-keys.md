@@ -4,7 +4,7 @@ baseline_commit: dbf46f9
 
 # Story 4.8: `.story-config.yaml.example` Template Missing Story 5.4's Defect-Capture Keys
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

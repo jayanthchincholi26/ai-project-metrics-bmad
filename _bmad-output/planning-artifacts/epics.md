@@ -654,7 +654,7 @@ Teardown counterpart to Story 4.3's install scripts: `uninstall.sh`/`uninstall.p
 
 ### Story 4.8: `.story-config.yaml.example` Template Missing Story 5.4's Defect-Capture Keys
 
-> ✅ **Complete** — opened 2026-07-14, user noticed the shipped template never mentioned `test_commands`/`build_commands`; PR pending
+> ✅ **Complete** — 2026-07-14 · [PR #35](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/35) (squash-merged to `enhancements-v2`, 111db78). Gemini review's 4 "unpatched defects" were all stale/misattributed (none of the named files were even in this PR's diff) — verified and confirmed already fixed in prior stories.
 
 Story 5.4 added real, working `test_commands`/`build_commands` config keys but never updated the shipped `.story-config.yaml.example` template, `INSTALL.md`'s own embedded config example, or Story 4.4's template-completeness test's hardcoded key list — all three fixed. A real gap in Story 5.4's own Definition of Done that a stricter completeness check should have caught.
 
