@@ -42,30 +42,33 @@ def token_usage_from_transcript(
     if not transcript_path:
         return None, None, "no transcript_path in hook payload"
     path = Path(transcript_path)
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return None, None, f"transcript file not found or unreadable at {transcript_path}"
 
     input_total = 0
     output_total = 0
     found_usage = False
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            continue
-        try:
-            entry = json.loads(stripped)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(entry, dict) or entry.get("type") != "assistant":
-            continue
-        usage = entry.get("message", {}).get("usage")
-        if not isinstance(usage, dict):
-            continue
-        found_usage = True
-        input_total += usage.get("input_tokens") or 0
-        output_total += usage.get("output_tokens") or 0
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                # streamed line-by-line rather than read_text().splitlines() - a
+                # long-running session's transcript can be several MB (review
+                # finding, PR #26); this keeps peak memory O(1) instead of O(file size)
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    entry = json.loads(stripped)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(entry, dict) or entry.get("type") != "assistant":
+                    continue
+                usage = entry.get("message", {}).get("usage")
+                if not isinstance(usage, dict):
+                    continue
+                found_usage = True
+                input_total += usage.get("input_tokens") or 0
+                output_total += usage.get("output_tokens") or 0
+    except OSError:
+        return None, None, f"transcript file not found or unreadable at {transcript_path}"
 
     if not found_usage:
         return None, None, "no assistant usage data found in transcript"

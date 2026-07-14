@@ -507,6 +507,28 @@ def test_estimated_cost_is_null_when_no_events_exist_even_with_hourly_rate(tmp_p
     assert estimated_cost["usd"] is None
 
 
+def test_estimated_cost_degrades_gracefully_on_offset_naive_vs_aware_timestamps(tmp_path, capsys):
+    # Review finding (PR #26): subtracting an offset-naive datetime from an
+    # offset-aware one raises TypeError, not ValueError - a hand-edited or
+    # corrupted event log could produce exactly this mix. Must not crash.
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("git.commit", ts="2026-07-10T10:00:00"),  # naive - no offset
+            event("git.commit", ts="2026-07-10T10:30:00+05:30"),  # aware
+        ],
+    )
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] is None
+    assert estimated_cost["usd"] is None
+
+
 def test_foreign_story_events_are_excluded(tmp_path, capsys):
     write_manifest(tmp_path)
     log = standard_log() + [event("git.commit", story_id="story-other-999")]

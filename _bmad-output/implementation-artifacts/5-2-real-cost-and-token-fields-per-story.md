@@ -148,9 +148,18 @@ claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 - tools/hooks/claude/session_end.py (modified — reads `transcript_path`, sums real `input_tokens`/`output_tokens` from the transcript, degrades to null-with-reason on any failure)
 - tests/hooks/test_claude_hooks.py (modified — renamed/updated the null-reason test for the new field names; 4 new tests for real-token-sum, malformed-line tolerance, missing-file, and no-usage-lines cases)
-- tools/snapshot-assembler/main.py (modified — new `CONFIG`/`read_story_config()`; `token_cost_of()` takes `config`, sums real tokens, computes `cost_usd`, and no longer shows a stale `reason` when tokens are actually known; new `estimated_cost_of()`; `main()` wires both `config` and `estimated_cost` into the envelope)
-- tests/snapshot_assembler/test_reduce.py (modified — `ENVELOPE_KEYS` gains `estimated_cost`; `standard_log()`/existing token-cost test updated to new field names; 9 new tests covering token sums, `cost_usd` combinations, `estimated_cost` combinations, and the stale-reason regression)
+- tools/snapshot-assembler/main.py (modified — new `CONFIG`/`read_story_config()`; `token_cost_of()` takes `config`, sums real tokens, computes `cost_usd`, and no longer shows a stale `reason` when tokens are actually known; new `estimated_cost_of()`, now catching `(ValueError, TypeError)` around the timestamp subtraction; `main()` wires both `config` and `estimated_cost` into the envelope)
+- tests/snapshot_assembler/test_reduce.py (modified — `ENVELOPE_KEYS` gains `estimated_cost`; `standard_log()`/existing token-cost test updated to new field names; 10 new tests covering token sums, `cost_usd` combinations, `estimated_cost` combinations, the stale-reason regression, and the offset-naive/aware `TypeError` regression)
 - _bmad-output/planning-artifacts/architecture/architecture-explore-jira-ai-metrics-2026-07-02/ARCHITECTURE-SPINE.md (modified — AD-3a's envelope key list and `token_cost`/`estimated_cost` shape descriptions)
 - tools/build-release/INSTALL.md (modified — `.story-config.yaml` example gains the 3 optional rate keys)
 - _bmad-output/implementation-artifacts/5-2-real-cost-and-token-fields-per-story.md (this file — task checkboxes, Dev Agent Record, status)
 - _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
+
+### Review Follow-ups (AI)
+
+External LLM review (Gemini, via PR #26) — 2026-07-14, both findings genuine (this PR's own new code, no misattribution):
+
+- [x] [AI-Review][Critical] `estimated_cost_of()`'s timestamp subtraction only caught `ValueError`, but subtracting an offset-naive datetime from an offset-aware one raises `TypeError` instead — a hand-edited or corrupted event log with inconsistent timestamp formats would crash the whole snapshot assembler rather than degrading to null. Fixed: catch `(ValueError, TypeError)`. New regression test: `test_estimated_cost_degrades_gracefully_on_offset_naive_vs_aware_timestamps` — confirmed it reproduces the exact `TypeError` crash against the pre-fix code, then passes after the fix.
+- [x] [AI-Review][Minor] `token_usage_from_transcript()` loaded an entire transcript into memory via `read_text().splitlines()` before processing — wasteful for a long-running session's transcript (potentially several MB). Fixed: stream the file line-by-line via a plain file iterator instead, keeping peak memory O(1) rather than O(file size). Existing tests (fixture-based, small files) still pass unchanged — this is a pure efficiency fix with no behavior change.
+
+Both findings verified against the actual PR #26 diff before fixing (`git log --oneline -1 story/5.2-real-cost-token-fields -- tools/snapshot-assembler/main.py tools/hooks/claude/session_end.py` confirms both files are this PR's own new code) — no misattribution this round.

@@ -249,7 +249,10 @@ def estimated_cost_of(
             start = datetime.fromisoformat(first_at)
             end = datetime.fromisoformat(last_at)
             duration_minutes = (end - start).total_seconds() / 60
-        except ValueError:
+        except (ValueError, TypeError):
+            # TypeError: e.g. one timestamp offset-aware and the other offset-naive
+            # (a hand-edited or corrupted event log) - subtraction itself raises this,
+            # not fromisoformat(), so ValueError alone doesn't cover it (review finding, PR #26)
             duration_minutes = None
 
     hourly_rate = as_number(config.get("hourly_rate"))
