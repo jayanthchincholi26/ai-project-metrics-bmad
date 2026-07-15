@@ -48,7 +48,7 @@ tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
 
 development_status:
-  epic-1: in-progress  # reopened 2026-07-15; 1.8 found live during Confluence pilot testing
+  epic-1: in-progress  # 1.8 done+live-verified 2026-07-15; 1.9 (found during that same test) still in review
   1-1-create-the-story-manifest-via-docs-only-kickoff: done
   1-2-project-level-source-of-truth-configuration: done
   1-3-jira-adapter-auto-fills-kickoff: done
@@ -56,7 +56,7 @@ development_status:
   1-5-kickoff-manifest-declares-which-ai-tool-is-in-use: done
   1-6-jira-adapter-fetches-via-the-atlassian-remote-mcp-server: done  # supersedes 1-3; PR #19
   1-7-docs-only-kickoff-reads-a-requirements-doc-and-relaxes-sprint-for-ad-hoc-teams: done  # PR #21, merged da3b593
-  1-8-confluence-adapter-fetches-via-the-atlassian-remote-mcp-server: review  # PR pending, live verification (Subtask 3.1) still open
+  1-8-confluence-adapter-fetches-via-the-atlassian-remote-mcp-server: done  # PR #40, merged d47d4e8; live-verified 2026-07-15 (story-20260715-480790)
   epic-1-retrospective: optional
   epic-2: done  # all 11 stories (2.1-2.11) complete; 2.8/2.9 merged PR #39, 2026-07-15
   2-1-hook-installation-is-a-single-repeatable-setup-step: done
