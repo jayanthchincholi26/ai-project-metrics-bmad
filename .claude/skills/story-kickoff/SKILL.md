@@ -94,17 +94,27 @@ The JIRA fetch goes through **whichever JIRA MCP server this session has configu
    - **No JIRA MCP tools available in this session** → say so plainly ("no JIRA MCP server is connected — see prerequisites"). Then, only if `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` are all set in the environment, fall back to the Story 1.3 script (`uv run tools/adapters/jira/main.py --repo-root <repo-root> --issue <KEY>`, same normalized ack, surface stderr verbatim on failure). Otherwise fall back to the plain step-4 ask, unassisted.
 5. Proceed to step 5 with the confirmed values, `--source-of-truth jira`, and `--jira-issue-key <KEY>` (the manifest records the backend, not the transport — MCP vs fallback script makes no difference downstream; the issue key itself — Story 5.4 — is persisted so a later defect-logging step can attach a Jira subtask to the right parent).
 
-### 4b. Confluence variant: fetch, then confirm
+### 4b. Confluence variant: fetch via MCP, then confirm (Story 1.8; supersedes the script-only flow)
 
-Same flow as 4a with two differences — the reference is a **Confluence content id** (the number in the page URL), and the fetch command is:
+The Confluence fetch goes through **the same Atlassian MCP server as 4a**, when it exposes Confluence tools (`getConfluencePage` and related — check via tool search if deferred). The Story 1.4 subprocess adapter remains only as a fallback (step 4 below), same precedent as 4a.
 
-```
-uv run tools/adapters/confluence/main.py --repo-root <repo-root> --page <ID>
-```
-
-Credentials: `CONFLUENCE_BASE_URL` (including `/wiki` for Cloud sites), `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN` — same rules as JIRA (env only, never in chat).
-
-Confluence pages have no native points/sprint fields; the adapter reads **page labels** by convention: `points-<number>` (e.g. `points-5`) and `sprint-<name>` (e.g. `sprint-13`). Tell teams about this convention when fields come back `null` — labeled pages auto-fill, unlabeled pages just mean the developer confirms the values here (with the step-3 Phase-1 suggestion still available as a second data point). Points confirmation stays human either way (CAP-1), and nulls are elicited via the step-4 re-prompt rule. Proceed to step 5 with `--source-of-truth confluence`.
+1. Ask the developer for the **full Confluence page URL** — not a short link (`/wiki/x/...`). A short link's numeric page ID can't be resolved by the MCP tools themselves (a confirmed platform gap, not something this skill can fix); if a developer pastes one anyway, tell them plainly to open it in a browser and paste the resulting full URL instead (looks like `.../wiki/spaces/<SPACE>/pages/<NUMERIC-ID>/<Title>`) — don't attempt clever short-link resolution as part of this documented flow.
+2. Parse the numeric page ID out of the `/pages/<ID>/` segment of that URL.
+3. Fetch via the MCP tools:
+   1. `getAccessibleAtlassianResources` → `cloudId` (resolve once per kickoff, reuse across both JIRA and Confluence calls in the same kickoff if both happen to be used; same site-choice handling as 4a).
+   2. `getConfluencePage` with `cloudId` and the parsed page ID, requesting body content.
+4. Normalize the response to the AD-4 shape:
+   - **goal** ← the page title.
+   - **description** ← the page body, summarized (never pasted verbatim — same rule as step 4.1's requirements-doc read).
+   - **points** / **sprint** ← **always `null` via this MCP path.** Confluence page **labels** (`points-<number>`, `sprint-<name>` — this project's existing convention) are **not exposed by the Atlassian MCP server today** (a confirmed, currently-open platform gap — the server has no label-read capability at all). Tell the developer this plainly the first time it comes up: *"This project reads points/sprint from Confluence page labels, but the connected MCP tool can't read labels yet — enter these manually, or use the script fallback below if your team wants real label auto-fill."* Elicited via the step-4 re-prompt rule, exactly like an unlabeled page always has been.
+5. **Degradation chain — kickoff is never blocked** (FR5):
+   - Page ID not found / permission denied → tell the developer what the tool returned and re-ask for the URL.
+   - **No Confluence MCP tools available in this session** → say so plainly. Then, only if `CONFLUENCE_BASE_URL` (including `/wiki` for Cloud sites), `CONFLUENCE_EMAIL`, and `CONFLUENCE_API_TOKEN` are all set in the environment, fall back to the Story 1.4 script:
+     ```
+     uv run tools/adapters/confluence/main.py --repo-root <repo-root> --page <ID>
+     ```
+     same normalized ack, surface stderr verbatim on failure. **This script path is also the only way to get real points/sprint auto-fill from labels** — it reads them directly via the Confluence REST API, unaffected by the MCP gap above. Otherwise fall back to the plain step-4 ask, unassisted.
+6. Proceed to step 5 with the confirmed values and `--source-of-truth confluence` (the manifest records the backend, not the transport — MCP vs fallback script makes no difference downstream, same as 4a).
 
 ### 5. Write the manifest
 
