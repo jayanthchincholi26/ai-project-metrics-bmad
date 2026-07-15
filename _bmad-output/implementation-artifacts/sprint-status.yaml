@@ -76,7 +76,7 @@ development_status:
   3-1-active-story-pointer-tracks-time-automatically: done
   3-2-idle-time-doesnt-inflate-a-storys-active-time: done
   3-3-mid-session-checkout-doesnt-double-count-time: done
-  3-4-snapshot-assembler-reduces-idle-aware-time-slices-into-real-active-time-duration: backlog
+  3-4-snapshot-assembler-reduces-idle-aware-time-slices-into-real-active-time-duration: review
   epic-3-retrospective: optional
   epic-4: in-progress
   4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff

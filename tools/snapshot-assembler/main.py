@@ -285,25 +285,79 @@ def defect_metrics_of(events: "list[dict]") -> dict[str, Any]:
     }
 
 
+def active_time_seconds_of(events: "list[dict]") -> dict[str, Any]:
+    """Story 3.4: reduces Epic 3's time.slice_opened/paused/closed events into a
+    real, idle-excluded active-time total - the reducer half of AD-7 left
+    unwired when Story 3.3 completed the capture side. Walks all `time.*`
+    events for this story in chronological order, accumulating idle seconds
+    seen since the last slice_opened and subtracting them from each
+    slice_closed's own duration_seconds. A dangling slice_opened with no later
+    slice_closed contributes nothing yet - not lost, just not observable until
+    the session that owns it actually ends (same philosophy as token_cost's
+    session-boundary null). Malformed duration_seconds/idle_seconds degrade
+    that one contribution to 0 rather than raising."""
+    time_events = sorted(
+        (e for e in events if (e.get("type") or "").startswith("time.")),
+        key=lambda e: e.get("timestamp") or "",
+    )
+
+    total_active = 0.0
+    idle_since_open = 0.0
+    any_closed = False
+
+    for e in time_events:
+        event_type = e.get("type")
+        payload = e.get("payload") or {}
+        if event_type == "time.slice_opened":
+            idle_since_open = 0.0
+        elif event_type == "time.slice_paused":
+            idle = payload.get("idle_seconds")
+            if isinstance(idle, (int, float)):
+                idle_since_open += idle
+        elif event_type == "time.slice_closed":
+            any_closed = True
+            duration = payload.get("duration_seconds")
+            if isinstance(duration, (int, float)):
+                total_active += max(0.0, duration - idle_since_open)
+            idle_since_open = 0.0
+
+    if not any_closed:
+        return {
+            "active_seconds": None,
+            "reason": "no completed time slice observed for this story",
+        }
+    return {"active_seconds": total_active, "reason": None}
+
+
 def estimated_cost_of(
-    engineering_metrics: "dict[str, Any]", config: "dict[str, str]"
+    engineering_metrics: "dict[str, Any]", config: "dict[str, str]", events: "list[dict]"
 ) -> dict[str, Any]:
     """Story 5.2: hourly_rate x duration, both read at close time (not locked at
     kickoff - a documented limitation, see the story's Dev Notes) - null-with-reason
-    whenever the rate is absent or duration can't be computed (AD-10)."""
-    first_at = engineering_metrics.get("first_event_at")
-    last_at = engineering_metrics.get("last_event_at")
+    whenever the rate is absent or duration can't be computed (AD-10).
+
+    Story 3.4: duration prefers idle-excluded active time (active_time_seconds_of)
+    when at least one completed time.slice_closed exists for this story; falls
+    back to the original raw first/last-event span otherwise (older snapshots,
+    an ai_tool whose hooks don't emit time.slice_* yet, or a session still open
+    at story-close time) - silently, exactly as before this story existed."""
+    active_time = active_time_seconds_of(events)
     duration_minutes = None
-    if first_at and last_at:
-        try:
-            start = datetime.fromisoformat(first_at)
-            end = datetime.fromisoformat(last_at)
-            duration_minutes = (end - start).total_seconds() / 60
-        except (ValueError, TypeError):
-            # TypeError: e.g. one timestamp offset-aware and the other offset-naive
-            # (a hand-edited or corrupted event log) - subtraction itself raises this,
-            # not fromisoformat(), so ValueError alone doesn't cover it (review finding, PR #26)
-            duration_minutes = None
+    if active_time["active_seconds"] is not None:
+        duration_minutes = active_time["active_seconds"] / 60
+    else:
+        first_at = engineering_metrics.get("first_event_at")
+        last_at = engineering_metrics.get("last_event_at")
+        if first_at and last_at:
+            try:
+                start = datetime.fromisoformat(first_at)
+                end = datetime.fromisoformat(last_at)
+                duration_minutes = (end - start).total_seconds() / 60
+            except (ValueError, TypeError):
+                # TypeError: e.g. one timestamp offset-aware and the other offset-naive
+                # (a hand-edited or corrupted event log) - subtraction itself raises this,
+                # not fromisoformat(), so ValueError alone doesn't cover it (review finding, PR #26)
+                duration_minutes = None
 
     hourly_rate = as_number(config.get("hourly_rate"))
     if not isinstance(hourly_rate, (int, float)):
@@ -467,7 +521,7 @@ def main(argv: "list[str] | None" = None) -> int:
         "engineering_metrics": engineering_metrics,
         "story_point_cost": story_point_cost_of(root, ours, manifest),
         "token_cost": token_cost_of(ours, config),
-        "estimated_cost": estimated_cost_of(engineering_metrics, config),
+        "estimated_cost": estimated_cost_of(engineering_metrics, config, ours),
         "defect_metrics": defect_metrics_of(ours),
     }
 

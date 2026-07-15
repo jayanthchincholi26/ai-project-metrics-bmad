@@ -72,7 +72,11 @@ def event(
     source = (
         "git"
         if event_type.startswith("git.")
-        else ("ai" if event_type.startswith("ai.") else "opsx")
+        else (
+            "ai"
+            if event_type.startswith("ai.")
+            else ("time" if event_type.startswith("time.") else "opsx")
+        )
     )
     return {
         "story_id": story_id,
@@ -564,6 +568,157 @@ def test_estimated_cost_degrades_gracefully_on_offset_naive_vs_aware_timestamps(
     estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
     assert estimated_cost["duration_minutes"] is None
     assert estimated_cost["usd"] is None
+
+
+def test_active_time_seconds_of_sums_idle_excluded_duration_across_slices():
+    events = [
+        event(
+            "time.slice_opened",
+            ts="2026-07-10T10:00:00+05:30",
+            opened_at="2026-07-10T10:00:00+05:30",
+        ),
+        event(
+            "time.slice_paused",
+            ts="2026-07-10T10:05:00+05:30",
+            quiet_since="2026-07-10T09:45:00+05:30",
+            resumed_at="2026-07-10T10:05:00+05:30",
+            idle_seconds=300,
+        ),
+        event(
+            "time.slice_closed",
+            ts="2026-07-10T10:10:00+05:30",
+            opened_at="2026-07-10T10:00:00+05:30",
+            closed_at="2026-07-10T10:10:00+05:30",
+            duration_seconds=600,
+        ),
+        # a second, later run for the same story
+        event(
+            "time.slice_opened",
+            ts="2026-07-10T14:00:00+05:30",
+            opened_at="2026-07-10T14:00:00+05:30",
+        ),
+        event(
+            "time.slice_closed",
+            ts="2026-07-10T14:05:00+05:30",
+            opened_at="2026-07-10T14:00:00+05:30",
+            closed_at="2026-07-10T14:05:00+05:30",
+            duration_seconds=300,
+        ),
+    ]
+
+    result = assembler.active_time_seconds_of(events)
+
+    # first run: 600s duration - 300s idle = 300s; second run: 300s, no idle
+    assert result["active_seconds"] == pytest.approx(600.0)
+    assert result["reason"] is None
+
+
+def test_active_time_seconds_of_null_with_reason_when_no_slice_closed():
+    events = [event("git.commit"), event("ai.claude-code.tool_use", tool_name="Bash")]
+
+    result = assembler.active_time_seconds_of(events)
+
+    assert result["active_seconds"] is None
+    assert isinstance(result["reason"], str) and result["reason"]
+
+
+def test_active_time_seconds_of_ignores_dangling_open_slice():
+    events = [
+        event(
+            "time.slice_opened",
+            ts="2026-07-10T10:00:00+05:30",
+            opened_at="2026-07-10T10:00:00+05:30",
+        ),
+        event(
+            "time.slice_closed",
+            ts="2026-07-10T10:10:00+05:30",
+            opened_at="2026-07-10T10:00:00+05:30",
+            closed_at="2026-07-10T10:10:00+05:30",
+            duration_seconds=600,
+        ),
+        # a second run that never closed - session still open at story-close time
+        event(
+            "time.slice_opened",
+            ts="2026-07-10T14:00:00+05:30",
+            opened_at="2026-07-10T14:00:00+05:30",
+        ),
+    ]
+
+    result = assembler.active_time_seconds_of(events)
+
+    # only the completed first run counts; the dangling second run contributes 0
+    assert result["active_seconds"] == pytest.approx(600.0)
+    assert result["reason"] is None
+
+
+def test_active_time_seconds_of_degrades_malformed_duration_to_zero_without_raising():
+    events = [
+        event(
+            "time.slice_closed",
+            ts="2026-07-10T10:10:00+05:30",
+            opened_at="2026-07-10T10:00:00+05:30",
+            closed_at="2026-07-10T10:10:00+05:30",
+            duration_seconds="not-a-number",
+        ),
+    ]
+
+    result = assembler.active_time_seconds_of(events)
+
+    assert result["active_seconds"] == pytest.approx(0.0)
+    assert result["reason"] is None
+
+
+def test_estimated_cost_uses_active_time_when_time_slices_present(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            # raw first/last-event span would be 4 hours (10:00 to 14:00) -
+            # active time (idle-excluded) should be used instead: 10 minutes
+            event("git.commit", ts="2026-07-10T10:00:00+05:30"),
+            event(
+                "time.slice_opened",
+                ts="2026-07-10T10:00:00+05:30",
+                opened_at="2026-07-10T10:00:00+05:30",
+            ),
+            event(
+                "time.slice_closed",
+                ts="2026-07-10T10:10:00+05:30",
+                opened_at="2026-07-10T10:00:00+05:30",
+                closed_at="2026-07-10T10:10:00+05:30",
+                duration_seconds=600,
+            ),
+            event("git.commit", ts="2026-07-10T14:00:00+05:30"),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] == pytest.approx(10.0)
+    assert estimated_cost["usd"] == pytest.approx(10 * (10.0 / 60))
+    assert estimated_cost["reason"] is None
+
+
+def test_estimated_cost_falls_back_to_raw_span_when_no_time_slices(tmp_path, capsys):
+    # unchanged pre-Story-3.4 behavior: no time.slice_* events at all
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("git.commit", ts="2026-07-10T10:00:00+05:30"),
+            event("git.commit", ts="2026-07-10T10:30:00+05:30"),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] == pytest.approx(30.0)
+    assert estimated_cost["usd"] == pytest.approx(5.0)
+    assert estimated_cost["reason"] is None
 
 
 def test_foreign_story_events_are_excluded(tmp_path, capsys):
