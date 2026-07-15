@@ -597,23 +597,15 @@ So that adopting metrics capture doesn't require cloning or vendoring this plann
 
 ### Story 4.2: `develop` Promotes to `main` on a Defined Release Cadence
 
-> ⏳ **Not started** — opened 2026-07-10 from a live smoke-test failure
+> 🔁 **Superseded 2026-07-15** — the two-tier `develop`→`main` plan below is replaced by a simpler one: every story branch now opens its PR directly against `main` (no intermediate integration branch at all). See `project-context.md` §8/§10/§11 for the current rule. This entry is kept for history — the smoke-test failure it documents is exactly the class of bug the simpler flow prevents structurally (there's no second branch to fall behind).
 
 As a pilot developer cloning this repository,
 I want the default branch a fresh clone lands on to actually contain the shipped tooling,
 So that the documented install steps work on first contact instead of failing with "program not found."
 
-**What happened (2026-07-10):** the first real fresh-clone smoke test failed at `uv run pytest` → `Failed to spawn: pytest — program not found`. Root cause: `git clone` checks out `main` (the default branch), and `main` is **33 commits behind `develop`** — no `pyproject.toml`, no `uv.lock`, no `tools/`, no `tests/`. All 18 story PRs (Epics 1–3) merged to `develop`; nothing was ever promoted to `main`. A pilot rollout at that moment would have shipped an empty tool. Reproduced independently on a second fresh clone the same day.
+**What happened (2026-07-10):** the first real fresh-clone smoke test failed at `uv run pytest` → `Failed to spawn: pytest — program not found`. Root cause: `git clone` checks out `main` (the default branch), and `main` is **33 commits behind `develop`** — no `pyproject.toml`, no `uv.lock`, no `tools/`, no `tests/`. All 18 story PRs (Epics 1–3) merged to `develop`; nothing was ever promoted to `main`. A pilot rollout at that moment would have shipped an empty tool. Reproduced independently on a second fresh clone the same day, and again on 2026-07-15 in a separate testing repo (`ai-project-metrics-bmad-testing`) during Story 5.9's live verification — same root cause, different repo, which is what prompted dropping the two-tier branch model rather than continuing to patch around it.
 
-**Acceptance Criteria (draft):**
-
-**Given** all three implementation epics are complete on `develop` and CI is green
-**When** a release is cut
-**Then** `develop` merges to `main` via a reviewed PR (per project-context.md conventions), so a fresh clone's default checkout contains the complete tooling
-**And** the release rule is written down in `project-context.md`: what triggers a promotion (e.g. an epic completing, or a tagged release for Epic 4's artifact), and that `main` must never sit behind `develop` across a rollout boundary
-**And** once Story 4.1's release-artifact flow exists, tagging `main` is what produces the distributable — making "main is current" a hard precondition of every release rather than a convention
-
-**Relationship to Story 4.1:** independent and unblocking — this story is worth doing immediately (it's one PR plus a documented rule) even before the distribution mechanism is built, since anyone cloning the repo today gets a broken default branch.
+**Resolution:** rather than building a `develop`→`main` promotion mechanism, the team moved straight to `main` as the only trunk (§10 of `project-context.md`). Every story branch merges to `main` directly via the existing PR + human + LLM review gate — no separate promotion step to forget.
 
 ### Story 4.3: One-Command Curl/irm Installer (No Manual Zip Download)
 

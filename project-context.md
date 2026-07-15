@@ -82,6 +82,7 @@ Separate from, and in addition to, the mandatory LLM pass (§9):
 - **One branch per story**, never per epic — keeps PRs reviewable, matches the single-dev-agent story sizing already validated in the implementation readiness check.
 - **PR title:** `Story {N.M}: {story title}`, matching `epics.md`'s heading exactly, for traceability.
 - **PR description** must link the FR/AD IDs the story covers (copy straight from the story's AC).
+- **Target branch is `main`** (revised 2026-07-15, see §10) — a story branch opens its PR directly against `main`, not an intermediate integration branch.
 
 ## 9. LLM PR Review (Mandatory Before Merge)
 
@@ -95,18 +96,19 @@ Separate from, and in addition to, the mandatory LLM pass (§9):
   2. Then run `uv run tools/log-defect/main.py --repo-root . --type review --summary "<finding summary>" --description "<finding description>" [--jira-subtask-key <key from step 1>]` — this appends the local `ai.claude-code.defect_review` event the snapshot assembler reduces into `defect_metrics` at story close. This script never calls Jira itself (MCP tools are only reachable from a live assistant turn, never a subprocess) — step 1 must happen first, in the same turn, if applicable.
   A declined/stale finding is never logged this way — only a finding that was both confirmed real and actually fixed.
 
-## 10. PR Merge to `develop`
+## 10. PR Merge to `main` (revised 2026-07-15)
 
-- **Squash-merge to `develop`** — one commit per story keeps history readable.
+- **`main` is the trunk** — every story branch merges straight to `main` via a reviewed PR. There is no `develop`/integration branch; the earlier two-tier plan (§11 as originally written, Story 4.2 in `epics.md`) is superseded by this simpler flow now that the tooling is far enough along to self-host on `main` directly.
+- **Squash-merge to `main`** — one commit per story keeps history readable.
 - Merge commit message references the story ID and epic.
-- `develop` is the integration branch; `main` only receives merges from `develop` at a release boundary.
 - Delete the feature branch after merge.
+- Flow: `story/{epic}.{story}-{slug}` → PR against `main` → human + LLM review (§7, §9) → squash-merge → optionally tag a release (`v0.M.0`) once a meaningful slice is done → the one-click dashboard workflow (Story 5.9) can be run from `main` any time after.
 
 ## 11. Deployment
 
 Two different things share the word "deployment" here — keep them separate:
 
-- **This repo's own release process:** `develop` accumulates merged stories; a release to `main` is tagged with semantic versioning (`v0.1.0`, etc.) once an epic (or a meaningful slice of one) is complete and tested. A `CHANGELOG.md` entry accompanies each tag, referencing the epics/stories included.
+- **This repo's own release process:** `main` accumulates squash-merged stories directly (§10). A release is tagged with semantic versioning (`v0.1.0`, etc.) once an epic (or a meaningful slice of one) is complete and tested. A `CHANGELOG.md` entry accompanies each tag, referencing the epics/stories included.
 - **Deploying the *built tool* into other projects** is a separate concern, already decided in `APPROACH.md` § Delivery Path: Step 1 (repo starter kit copied into a target project, `tools/setup-hooks` run once) → Step 2 (scaffolding CLI) → Step 3 (VS Code extension), built and adopted in that order. This repo produces the artifacts; it doesn't run them.
 - No CI/CD pipeline exists yet for this repo. Add one (GitHub Actions running `ruff` + `pytest` on every PR) at the point Epic 2 implementation starts — not before, to avoid building automation before there's anything to automate against.
 
@@ -126,7 +128,7 @@ A story is not done until **all** of:
 
 Mirrors the "story close" concept this tool itself is designed to capture for its future users:
 
-- [ ] Story merged to `develop` (§10)
+- [ ] Story merged to `main` (§10)
 - [ ] `epics.md` updated to mark the story complete
 - [ ] Any deferred LLM-review or human-review findings logged as new tracked items
 - [ ] If the story was the epic's last, add a short epic-level retro note (what worked, what to adjust) — informal; a full `bmad-retrospective` is only for a large epic

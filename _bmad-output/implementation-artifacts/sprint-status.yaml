@@ -79,7 +79,7 @@ development_status:
   epic-3-retrospective: optional
   epic-4: in-progress
   4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff
-  4-2-develop-promotes-to-main-on-a-defined-release-cadence: backlog  # gated on QA pass
+  4-2-develop-promotes-to-main-on-a-defined-release-cadence: superseded  # 2026-07-15: dropped the develop/main two-tier plan in favor of story-branch -> main directly (see epics.md + project-context.md sec 10); real PyPI publish gate moves with it, no longer blocked on this story
   4-3-one-command-curl-irm-installer: done  # PR #30, merged 2a100e4
   4-4-story-config-yaml-example-template-shipped-in-release: done  # PR #29
   4-5-publish-as-a-package-for-a-true-one-word-install: done  # PR #37, merged 496645a; real PyPI publish gated behind Story 4.2

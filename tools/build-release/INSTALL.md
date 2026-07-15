@@ -33,19 +33,14 @@ uvx ai-metrics-capture install
 ```
 Run once at your repository root — no URL, branch name, or manual download to
 remember, same on-disk result as the other two paths below. **Not live yet**:
-Story 4.5 built the packaging (`pypi-package/`) but real publishing is
-intentionally gated behind Story 4.2 (`develop`→`main` promotion cadence) —
-publishing an unfinished/untested build to the real public PyPI index before
-that cadence exists risks shipping something that can't easily be corrected
-after the fact (unlike a GitHub Releases zip). Use one of the two paths below
-until this section is updated to say otherwise.
+Story 4.5 built the packaging (`pypi-package/`), but real PyPI publishing still
+needs a human to wire a publish secret and run it — that step, not a branch
+promotion cadence, is now the only thing gating it (Story 4.2's original
+`develop`→`main` premise was dropped 2026-07-15 in favor of `main` as the only
+trunk; see `project-context.md` §10). Use one of the two paths below until this
+section is updated to say otherwise.
 
 ## Quick install (recommended for now)
-
-> **TEMPORARY:** the commands below (and Uninstall's, further down) point at
-> the `enhancements-v3` branch, not `main` — solo self-testing only while
-> Story 4.2 (`develop`→`main` promotion) is still pending. **Switch all four
-> URLs back to `main` before handing this to any other developer.**
 
 One command, run once at your repository root — fetches the latest release and
 extracts it for you (equivalent to Install step 1 below, without the manual zip
@@ -53,12 +48,12 @@ download):
 
 **macOS/Linux:**
 ```
-curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/install.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```
-irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/install.ps1 | iex
+irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/install.ps1 | iex
 ```
 
 Then continue at Install step 2 below. Prefer the manual zip download instead
@@ -309,12 +304,12 @@ Install, they're fetched directly from the repo, not shipped inside the release 
 
 **macOS/Linux:**
 ```
-curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/uninstall.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/uninstall.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```
-irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/uninstall.ps1 | iex
+irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/main/tools/build-release/uninstall.ps1 | iex
 ```
 
 This is destructive — it prints exactly what it's about to remove and asks for a `y/N`
