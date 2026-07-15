@@ -27,10 +27,22 @@ the existing `ai.<tool>.*` namespace family (AD-1a) rather than a new
 top-level `defect.*` namespace. Absent config = unchanged behavior (no new
 event ever emitted). MCP tools (e.g. creating a Jira subtask) are NOT
 reachable from here - hooks are subprocesses, not a live assistant turn -
-so these defects stay local-only by design (see Story 5.4's Dev Notes)."""
+so these defects stay local-only by design (see Story 5.4's Dev Notes).
+
+Story 5.7 found the exit code isn't where the docs said (top-level vs
+nested) - Story 5.8 then found Claude Code's PostToolUse payload has NO
+structured exit-code field at all, for any Bash call, ever (a confirmed
+platform gap: anthropics/claude-code#33656, rohitg00/agentmemory#539). This
+hook now instead parses the `_events.DEFECT_EXIT_MARKER` value that
+pre_tool_use.py injects into the command (via its own `updatedInput`
+rewrite) back out of `tool_response.stdout` - never a structured field
+Claude Code doesn't actually provide. If no marker is present (e.g. the
+pre_tool_use rewrite didn't apply for some reason), this degrades silently
+to no defect capture, exactly like absent config does - never a crash."""
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -39,16 +51,20 @@ sys.path.insert(
 )  # bridge to the shared emitter (spine-sanctioned, Story 2.3)
 import _events
 
-
-def split_patterns(raw: str) -> "list[str]":
-    return [p.strip() for p in raw.split(",") if p.strip()]
+EXIT_MARKER_RE = re.compile(re.escape(_events.DEFECT_EXIT_MARKER) + r":(-?\d+)")
 
 
-def matched_pattern(command: str, patterns: "list[str]") -> "str | None":
-    for pattern in patterns:
-        if pattern in command:
-            return pattern
-    return None
+def extract_exit_code(stdout: str) -> "int | None":
+    """The marker may appear more than once if the command itself prints
+    something that happens to look similar; the LAST match is the one our
+    own injected suffix produced, since it always runs last."""
+    matches = EXIT_MARKER_RE.findall(stdout or "")
+    if not matches:
+        return None
+    try:
+        return int(matches[-1])
+    except ValueError:
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -63,15 +79,16 @@ def main(argv: list[str] | None = None) -> int:
         root = _events.repo_root()
         config = _events.read_story_config(root)
         command = data.get("tool_input", {}).get("command", "")
-        exit_code = data.get("exit_code")
+        stdout = (data.get("tool_response") or {}).get("stdout", "")
+        exit_code = extract_exit_code(stdout)
 
         if exit_code not in (None, 0):
             for config_key, event_type in (
                 ("test_commands", "ai.claude-code.defect_test"),
                 ("build_commands", "ai.claude-code.defect_compile"),
             ):
-                patterns = split_patterns(config.get(config_key, ""))
-                pattern = matched_pattern(command, patterns)
+                patterns = _events.split_config_patterns(config.get(config_key, ""))
+                pattern = _events.matched_config_pattern(command, patterns)
                 if pattern is not None:
                     _events.emit("ai", event_type, {"matched_pattern": pattern})
                     break  # test_commands wins over build_commands on a double match

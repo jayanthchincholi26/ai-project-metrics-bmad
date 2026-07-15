@@ -158,6 +158,29 @@ def read_story_config(root: Path) -> "dict[str, str]":
     return config
 
 
+DEFECT_EXIT_MARKER = "__AI_METRICS_EXIT__"
+"""Story 5.8: Claude Code's PostToolUse payload never exposes a Bash exit
+code (confirmed platform gap, not fixable in this project - see
+anthropics/claude-code#33656 / rohitg00/agentmemory#539). Worked around by
+having pre_tool_use.py rewrite a matched command to echo this marker plus its
+own exit code to stdout, which post_tool_use.py then parses back out - never
+relying on a structured exit-code field that Claude Code doesn't send."""
+
+
+def split_config_patterns(raw: str) -> "list[str]":
+    """test_commands/build_commands are comma-separated substring patterns
+    (e.g. "pytest, npm test") - shared between pre_tool_use.py (command
+    rewriting) and post_tool_use.py (defect matching) so both stay in sync."""
+    return [p.strip() for p in raw.split(",") if p.strip()]
+
+
+def matched_config_pattern(command: str, patterns: "list[str]") -> "str | None":
+    for pattern in patterns:
+        if pattern in command:
+            return pattern
+    return None
+
+
 def story_id(root: Path) -> Optional[str]:
     """The manifest is the sole source of story identity (AD-5); absent → None."""
     path = root / MANIFEST
