@@ -2,9 +2,16 @@
 
 Execution metrics for each story of the metrics-capture pipeline, dogfooded on itself. Story numbering refers to `_bmad-output/planning-artifacts/epics.md`.
 
-Conventions:
+> **Hand-maintained log, stops at Story 2.6 (2026-07-10).** Stories 2.7 onward (Epics 2-5) are not
+> logged here — this manual, per-story format was superseded by Story 5.3's automated
+> `tools/metrics-report` generator, which produces `metrics-reports/metrics-<date>.md` from real
+> committed snapshots instead of a hand-written entry per story. See that generator's output, or
+> `tools/dashboard/main.py`'s HTML rollup, for current metrics. This file is kept as-is for the
+> real per-story numbers it already recorded (Epics 1-2), not retroactively rewritten.
 
-- **Estimated Cost and AI Token Cost are intentionally omitted for now** — capturing them automatically is exactly what Epic 2 of this project builds; they'll be filled from pipeline snapshots once Stories 2.3/2.4 land.
+Conventions (applied to the entries below, Epics 1-2 only):
+
+- **Estimated Cost and AI Token Cost were genuinely omitted for these entries** — real automatic capture of both (Story 5.2, 2026-07-14) postdates every story logged in this file; these numbers were never available for Epics 1-2 and are not backfilled here.
 - **Story Points** are retroactive AD-6 Phase-1 estimates (this project's own formula), with the arithmetic shown — the kickoff flow didn't exist yet when these stories started.
 - **Duration** is wall-clock from story creation to merge, grounded in git commit timestamps.
 - **Defect counts** include only true confirmed defects; applied improvements and declined review findings are noted but not counted.

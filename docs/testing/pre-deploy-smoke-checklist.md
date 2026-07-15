@@ -14,9 +14,11 @@ real git repo and real hook invocations, not mocked unit tests.
 
 - **`cd` into the cloned folder** — `git clone <url>` creates a subfolder; running `uv` from the
   parent gives `No pyproject.toml found`.
-- **`git checkout develop`** — until Story 4.2 promotes `develop` to `main`, a fresh clone's
-  default branch (`main`) has no `pyproject.toml`/`tools/`/`tests/` at all; `uv run pytest` fails
-  with `Failed to spawn: pytest — program not found`.
+- ~~**`git checkout develop`** — until Story 4.2 promotes `develop` to `main`, a fresh clone's
+  default branch (`main`) has no `pyproject.toml`/`tools/`/`tests/` at all~~ — **resolved
+  2026-07-15**: the planned `develop`/`main` two-tier promotion (Story 4.2) was dropped in favor
+  of `main` as the only trunk (see `project-context.md` §10). A fresh clone's default branch now
+  contains everything directly; no `checkout` step is needed for this anymore.
 - **Windows: `git config core.longpaths true` before cloning** (or clone to a short path like
   `C:\w\`) — this repo's `_bmad-output/` paths exceed the 260-char limit from deep destinations
   and the clone fails with `Filename too long`.

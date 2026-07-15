@@ -7,7 +7,7 @@ paradigm: 'event-sourced pipes-and-filters'
 scope: 'Capturing PM, engineering, story-point-cost, and token-cost metrics as a byproduct of the AI-accelerated engineering flow (openspec/speckit), without manual double-entry, rolled up to a leadership dashboard.'
 status: final
 created: '2026-07-02'
-updated: '2026-07-10'
+updated: '2026-07-15'
 binds: []
 sources: ['_bmad-output/brainstorming/brainstorm-pm-metrics-ai-engineering-flow-2026-07-01/brainstorm-intent.md']
 companions: []
@@ -128,7 +128,7 @@ Layer → directory mapping:
 | Concern | Convention |
 | --- | --- |
 | Naming (entities, files, interfaces, events) | Manifest: `.story.yaml`. Event log: `.story-events.jsonl`. Active pointer: `.active-story`. Snapshot: versioned, e.g. `snapshot.v1`. |
-| Data & formats (ids, dates, error shapes, envelopes) | Event envelope: `{story_id, source, type, timestamp, payload}`. Snapshot envelope: `{schema_version, story_id, pm_metrics, engineering_metrics, story_point_cost, token_cost}`. Story ID always sourced from `.story.yaml`, never parsed from branch/ticket naming. |
+| Data & formats (ids, dates, error shapes, envelopes) | Event envelope: `{story_id, source, type, timestamp, payload}`. Snapshot envelope: `{schema_version, story_id, revision, pm_metrics, engineering_metrics, story_point_cost, token_cost, estimated_cost, defect_metrics}` (per AD-3a; `estimated_cost` added by Story 5.2, `defect_metrics` by Story 5.4). Story ID always sourced from `.story.yaml`, never parsed from branch/ticket naming. |
 | State & cross-cutting (mutation, errors, logging, config, auth) | Producers (AD-1) only append; only the snapshot assembler reduces/writes a snapshot. Only the snapshot (AD-3), never the raw event log, crosses the local↔central boundary. Source-of-truth is project-level config, read-only per story (AD-4). |
 
 ## Stack

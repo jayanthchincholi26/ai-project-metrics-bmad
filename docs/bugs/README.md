@@ -37,7 +37,7 @@ Bugs fixed → feature branch pushed → PR raised
 Second LLM reviews PR → review defects found → log to review-bugs/
       │
       ▼
-Review defects fixed → PR approved → merged to develop
+Review defects fixed → PR approved → merged to main
 ```
 
 ## Severity

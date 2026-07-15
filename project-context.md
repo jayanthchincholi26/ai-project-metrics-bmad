@@ -1,7 +1,7 @@
 ---
 project: explore-jira-ai-metrics
 purpose: AI-accelerated engineering metrics capture pipeline (see SPEC.md / ARCHITECTURE-SPINE.md for the what/how)
-updated: 2026-07-09
+updated: 2026-07-15
 ---
 
 # Project Context — Engineering Standards
