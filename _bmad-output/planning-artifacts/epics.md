@@ -410,13 +410,13 @@ This only resolves correctly if the hook is invoked with the repo root as cwd. C
 
 ### Story 2.8: Git Commit Hooks Never Abort a Commit if `uv` Is Unavailable
 
-> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid finding, but about `tools/hooks/git/commit-msg.sh`, a file Story 2.7 never touched; PR pending
+> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid finding, but about `tools/hooks/git/commit-msg.sh`, a file Story 2.7 never touched; [PR #39](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/39) (squash-merged to `enhancements-v2`, 1338f2a)
 
 `tools/hooks/git/commit-msg.py` is deliberately written to always exit 0, but that guarantee only held once Python was actually running — `commit-msg.sh` invoked it via a bare `uv run ...`, and if `uv` itself wasn't on the invoking process's PATH, the **shell** failed before Python ever started, which git treats as a real abort signal for `commit-msg` specifically. Fixed with a `command -v uv` guard plus an unconditional `exit 0`, with a visible stderr warning on miss (AD-9). Applied the same guard to `post-commit`/`post-checkout`/`post-merge` too, for consistent messaging — though confirmed via `_events.py`'s own documented exit-code table that those three were never actually at risk (git ignores their exit codes already), so this is a UX polish for them, not a correctness fix. Verified live: a real scratch repo, real hook install, real `git commit` with `uv` stripped from `PATH` — commit succeeded with visible warnings, not blocked.
 
 ### Story 2.9: `repo_root()` Falls Back to a Parent-Directory Walk, Not Just Cwd
 
-> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid hardening suggestion, but about `tools/hooks/_events.py`, a file Story 2.7 never touched; PR pending
+> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid hardening suggestion, but about `tools/hooks/_events.py`, a file Story 2.7 never touched; [PR #39](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/39) (squash-merged to `enhancements-v2`, 1338f2a)
 
 `repo_root()` used to fall back straight to `Path.cwd()` if `git rev-parse --show-toplevel` failed for any reason (timeout, `git` unavailable, OS-level limits). Story 2.7 already fixed the *primary* way a session's cwd can drift into a subdirectory; this story adds a smarter intermediate step for the rarer residual case: now walks up from cwd looking for a `.git` directory-or-file (worktrees/submodules use a file) before falling back to bare cwd. Verified with real-filesystem tests exercising the actual function directly (not monkeypatched away, unlike most other tests in this suite).
 

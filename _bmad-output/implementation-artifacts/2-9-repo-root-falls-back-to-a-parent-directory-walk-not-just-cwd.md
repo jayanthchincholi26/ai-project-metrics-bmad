@@ -4,7 +4,7 @@ baseline_commit: 00328db
 
 # Story 2.9: `repo_root()` Falls Back to a Parent-Directory Walk, Not Just Cwd
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

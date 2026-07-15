@@ -4,7 +4,7 @@ baseline_commit: 00328db
 
 # Story 2.8: Git Commit Hooks Never Abort a Commit if `uv` Is Unavailable
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
