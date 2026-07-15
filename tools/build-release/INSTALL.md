@@ -242,6 +242,30 @@ mechanism of its own** — it's a local file only; you decide whether and how to
 same as any other file in your repo (worth a second thought before sharing outside the
 team, since it may summarize cost figures).
 
+## Known limitations
+
+**`token_cost` is accurate per-story only when AI sessions and stories stay 1:1.**
+`session_end.py` sums an entire Claude Code session's transcript, start to finish, only
+once `SessionEnd` actually fires — it has no concept of which story was active during
+which part of that session. This is exactly right for the intended pattern this tool is
+built around (one branch per story: kick off, work, close, move on, closing or reloading
+the AI session somewhere around when the story closes). It silently degrades once that
+assumption breaks:
+
+- **The AI session never closes/reloads at all** (e.g. the developer keeps one long-running
+  session open across many unrelated stories for days): `token_cost` stays `null` with an
+  honest reason for every story worked during that time, until the session finally does
+  end — not lost, just absent until then. Everything else (commits, checkouts, tool uses,
+  active-time tracking, defect capture) is captured live regardless and is unaffected.
+- **One continuous session spans multiple stories** (work on Story A, `git checkout` to
+  Story B, all without closing/reloading the AI session in between, then eventually close):
+  the *entire* session's token total gets attributed to whichever story is active at that
+  final moment (Story B) — Story A's `token_cost` just shows `null`, never a fair split.
+
+Bottom line: close or reload the AI session at least roughly once per story for `token_cost`
+to mean what it looks like it means. This isn't enforced or detected today — a future story
+would need to track transcript byte-offsets per story boundary to do better.
+
 ## Updating
 
 Download the newer release zip, extract it at the repo root (overwriting `tools/` and the
