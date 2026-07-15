@@ -43,7 +43,7 @@ until this section is updated to say otherwise.
 ## Quick install (recommended for now)
 
 > **TEMPORARY:** the commands below (and Uninstall's, further down) point at
-> the `enhancements-v2` branch, not `main` — solo self-testing only while
+> the `enhancements-v3` branch, not `main` — solo self-testing only while
 > Story 4.2 (`develop`→`main` promotion) is still pending. **Switch all four
 > URLs back to `main` before handing this to any other developer.**
 
@@ -53,12 +53,12 @@ download):
 
 **macOS/Linux:**
 ```
-curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/install.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```
-irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/install.ps1 | iex
+irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/install.ps1 | iex
 ```
 
 Then continue at Install step 2 below. Prefer the manual zip download instead
@@ -309,12 +309,12 @@ Install, they're fetched directly from the repo, not shipped inside the release 
 
 **macOS/Linux:**
 ```
-curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/uninstall.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/uninstall.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```
-irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v2/tools/build-release/uninstall.ps1 | iex
+irm https://raw.githubusercontent.com/jayanthchincholi26/ai-project-metrics-bmad/enhancements-v3/tools/build-release/uninstall.ps1 | iex
 ```
 
 This is destructive — it prints exactly what it's about to remove and asks for a `y/N`
