@@ -21,10 +21,15 @@
 # ai_input_rate: 1.25    # USD per 1,000,000 input tokens
 # ai_output_rate: 5.00   # USD per 1,000,000 output tokens
 
-# Optional automatic compile/test defect capture (Story 5.4) — comma-separated
-# command-name patterns. A Bash tool call whose command contains one of these
-# AND exits non-zero is logged as a defect automatically; absent by default
-# (no defect capture happens without this opt-in). Only the matched pattern
-# name is ever recorded — never the full command, its output, or stderr.
+# Optional automatic compile/test defect capture (Story 5.4/5.8) — comma-
+# separated command-name patterns. A Bash tool call whose command contains
+# one of these gets silently rewritten (a harmless exit-code marker appended)
+# so its success/failure becomes observable — Claude Code itself doesn't
+# expose a command's exit code to hooks, so this project works around that
+# rather than relying on a field that doesn't exist. A matched command that
+# exits non-zero is logged as a defect automatically; absent by default (no
+# defect capture, no command rewriting, without this opt-in). Only the
+# matched pattern name is ever recorded — never the full command, its
+# output, or stderr.
 # test_commands: pytest, npm test
 # build_commands: tsc --noEmit, ruff check

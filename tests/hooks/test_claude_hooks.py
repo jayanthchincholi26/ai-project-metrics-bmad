@@ -223,12 +223,24 @@ def test_session_end_with_no_transcript_path_is_null_with_reason(repo, monkeypat
     assert isinstance(payload["token_cost_reason"], str) and payload["token_cost_reason"]
 
 
-# --- compile/test defect capture (Story 5.4) ---
+# --- compile/test defect capture (Story 5.4, redesigned Story 5.8) ---
+#
+# Story 5.7 found the exit code isn't where the docs said (top-level vs
+# nested); Story 5.8 then found Claude Code's PostToolUse payload has NO
+# exit-code field at all, ever, confirmed via a real captured payload. The
+# real response key is `tool_response`, not `tool_output` either. Detection
+# now works via pre_tool_use.py rewriting a matched command to also echo
+# `_events.DEFECT_EXIT_MARKER:<code>`, which post_tool_use.py parses back out
+# of `tool_response.stdout` - these fixtures use that real shape throughout.
 
 
 def write_story_config(repo_root: Path, **rates) -> None:
     lines = "".join(f"{key}: {value}\n" for key, value in rates.items())
     (repo_root / ".story-config.yaml").write_text(lines, encoding="utf-8")
+
+
+def marker_stdout(exit_code: int, extra: str = "") -> str:
+    return f"{extra}\n{events.DEFECT_EXIT_MARKER}:{exit_code}\n"
 
 
 def test_post_tool_use_emits_defect_test_on_matched_failing_command(repo, monkeypatch):
@@ -239,8 +251,7 @@ def test_post_tool_use_emits_defect_test_on_matched_failing_command(repo, monkey
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/"},
-            "tool_output": {"stdout": "FAILED", "stderr": "boom"},
-            "exit_code": 1,
+            "tool_response": {"stdout": marker_stdout(1, "FAILED"), "stderr": "boom"},
         },
     )
 
@@ -258,7 +269,7 @@ def test_post_tool_use_emits_defect_compile_on_matched_failing_build_command(rep
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "tsc --noEmit"},
-            "exit_code": 2,
+            "tool_response": {"stdout": marker_stdout(2)},
         },
     )
 
@@ -276,8 +287,10 @@ def test_post_tool_use_defect_payload_never_contains_command_text_or_output(repo
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/ -k secret_token_xyz"},
-            "tool_output": {"stdout": "leaked stdout", "stderr": "leaked stderr"},
-            "exit_code": 1,
+            "tool_response": {
+                "stdout": marker_stdout(1, "leaked stdout"),
+                "stderr": "leaked stderr",
+            },
         },
     )
 
@@ -287,6 +300,7 @@ def test_post_tool_use_defect_payload_never_contains_command_text_or_output(repo
     assert "secret_token_xyz" not in raw
     assert "leaked stdout" not in raw
     assert "leaked stderr" not in raw
+    assert events.DEFECT_EXIT_MARKER not in raw
 
 
 def test_post_tool_use_no_defect_on_successful_matched_command(repo, monkeypatch):
@@ -297,7 +311,7 @@ def test_post_tool_use_no_defect_on_successful_matched_command(repo, monkeypatch
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/"},
-            "exit_code": 0,
+            "tool_response": {"stdout": marker_stdout(0)},
         },
     )
 
@@ -316,7 +330,7 @@ def test_post_tool_use_no_defect_on_unmatched_command(repo, monkeypatch):
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "echo hello"},
-            "exit_code": 1,
+            "tool_response": {"stdout": marker_stdout(1)},
         },
     )
 
@@ -327,9 +341,14 @@ def test_post_tool_use_no_defect_on_unmatched_command(repo, monkeypatch):
     assert "ai.claude-code.defect_compile" not in types
 
 
-def test_post_tool_use_ignores_exit_code_nested_under_tool_output(repo, monkeypatch):
-    """Regression guard (Story 5.7): a nested tool_output.exit_code must never be
-    treated as the real exit code - Claude Code only ever sends it top-level."""
+def test_post_tool_use_ignores_a_bare_exit_code_field_since_it_doesnt_exist_in_real_payloads(
+    repo, monkeypatch
+):
+    """Regression guard (Story 5.8): Claude Code never sends a structured
+    exit_code field at all (top-level or nested) - confirmed via a real
+    captured payload. Even if one is present (e.g. stale test data, or a
+    future payload shape change this project hasn't verified), it must never
+    be trusted on its own - only the marker in tool_response.stdout counts."""
     write_story_config(repo, test_commands="pytest")
     feed_stdin(
         monkeypatch,
@@ -337,6 +356,8 @@ def test_post_tool_use_ignores_exit_code_nested_under_tool_output(repo, monkeypa
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/"},
+            "tool_response": {"stdout": "no marker here"},
+            "exit_code": 1,
             "tool_output": {"exit_code": 1},
         },
     )
@@ -354,7 +375,7 @@ def test_post_tool_use_no_defect_when_no_config_present(repo, monkeypatch):
             "session_id": "s-1",
             "tool_name": "Bash",
             "tool_input": {"command": "pytest tests/"},
-            "exit_code": 1,
+            "tool_response": {"stdout": marker_stdout(1)},
         },
     )
 
@@ -373,6 +394,104 @@ def test_post_tool_use_non_bash_tool_never_emits_a_defect(repo, monkeypatch):
     types = [event["type"] for event in read_events(repo)]
     assert "ai.claude-code.defect_test" not in types
     assert "ai.claude-code.defect_compile" not in types
+
+
+def test_extract_exit_code_takes_the_last_marker_occurrence(repo):
+    stdout = f"{events.DEFECT_EXIT_MARKER}:0 (a decoy inside command output)\n" + marker_stdout(1)
+    assert post_tool_use.extract_exit_code(stdout) == 1
+
+
+def test_extract_exit_code_returns_none_without_a_marker(repo):
+    assert post_tool_use.extract_exit_code("plain output, no marker") is None
+    assert post_tool_use.extract_exit_code("") is None
+
+
+# --- pre_tool_use command rewriting (Story 5.8) ---
+
+
+def test_pre_tool_use_rewrites_a_matched_command_with_the_exit_marker(repo, monkeypatch, capsys):
+    write_story_config(repo, build_commands="tsc --noEmit")
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "tsc --noEmit", "description": "type-check"},
+        },
+    )
+
+    pre_tool_use.main([])
+
+    out = json.loads(capsys.readouterr().out)
+    updated = out["hookSpecificOutput"]["updatedInput"]
+    assert updated["command"].startswith("tsc --noEmit")
+    assert events.DEFECT_EXIT_MARKER in updated["command"]
+    assert updated["description"] == "type-check"  # other tool_input fields preserved
+    assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+
+def test_pre_tool_use_does_not_rewrite_an_unmatched_command(repo, monkeypatch, capsys):
+    write_story_config(repo, build_commands="tsc --noEmit")
+    feed_stdin(
+        monkeypatch,
+        {"session_id": "s-1", "tool_name": "Bash", "tool_input": {"command": "echo hello"}},
+    )
+
+    pre_tool_use.main([])
+
+    assert capsys.readouterr().out == ""
+
+
+def test_pre_tool_use_does_not_rewrite_when_no_config_present(repo, monkeypatch, capsys):
+    feed_stdin(
+        monkeypatch,
+        {"session_id": "s-1", "tool_name": "Bash", "tool_input": {"command": "tsc --noEmit"}},
+    )
+
+    pre_tool_use.main([])
+
+    assert capsys.readouterr().out == ""
+
+
+def test_pre_tool_use_never_rewrites_non_bash_tools(repo, monkeypatch, capsys):
+    write_story_config(repo, build_commands="tsc --noEmit")
+    feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Edit"})
+
+    pre_tool_use.main([])
+
+    assert capsys.readouterr().out == ""
+
+
+def test_pre_tool_use_rewrite_then_post_tool_use_round_trip_emits_a_defect(
+    repo, monkeypatch, capsys
+):
+    """Full loop, matching real Claude Code behavior: pre_tool_use rewrites the
+    command, the (simulated) shell actually runs the rewritten command and
+    produces marker-suffixed stdout, post_tool_use reads that back out."""
+    write_story_config(repo, build_commands="tsc --noEmit")
+    tool_input = {"command": "tsc --noEmit"}
+    feed_stdin(monkeypatch, {"session_id": "s-1", "tool_name": "Bash", "tool_input": tool_input})
+
+    pre_tool_use.main([])
+    rewritten_command = json.loads(capsys.readouterr().out)["hookSpecificOutput"]["updatedInput"][
+        "command"
+    ]
+
+    # simulate the rewritten command actually failing when run for real
+    simulated_stdout = "error TS2322: ...\n" + marker_stdout(2)
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": rewritten_command},
+            "tool_response": {"stdout": simulated_stdout},
+        },
+    )
+    post_tool_use.main([])
+
+    types = [event["type"] for event in read_events(repo)]
+    assert "ai.claude-code.defect_compile" in types
 
 
 def write_transcript(tmp_path: Path, lines: list[dict]) -> str:

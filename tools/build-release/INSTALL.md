@@ -94,9 +94,12 @@ below is the manual alternative to this command.
    # ai_output_rate: 5.00   # USD per 1,000,000 output tokens
 
    # Optional — automatic compile/test defect capture. Comma-separated command
-   # patterns; a Bash call matching one that exits non-zero is logged as a
-   # defect automatically. Absent by default (no capture without this opt-in).
-   # Only the matched pattern name is ever recorded, never the command/output:
+   # patterns; a matching Bash command gets a harmless exit-code marker
+   # silently appended (Claude Code doesn't expose a command's exit code to
+   # hooks on its own) so a failure can be detected and logged as a defect
+   # automatically. Absent by default (no capture, no command rewriting,
+   # without this opt-in). Only the matched pattern name is ever recorded,
+   # never the command/output:
    # test_commands: pytest, npm test
    # build_commands: tsc --noEmit, ruff check
    ```
