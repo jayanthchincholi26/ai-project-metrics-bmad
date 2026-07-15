@@ -72,11 +72,11 @@ development_status:
   2-10-a-closed-storys-manifest-doesnt-block-the-next-storys-kickoff: done  # PR #24, merged 05c29fa
   2-11-setup-enforces-gitignore-for-local-capture-state: done  # PR #23, merged 8397b95
   epic-2-retrospective: optional
-  epic-3: in-progress  # reopened 2026-07-15 for 3.4, found during leadership Q&A prep
+  epic-3: done  # 3.4 merged PR #44, 2ddf985 - completes the reducer half of AD-7
   3-1-active-story-pointer-tracks-time-automatically: done
   3-2-idle-time-doesnt-inflate-a-storys-active-time: done
   3-3-mid-session-checkout-doesnt-double-count-time: done
-  3-4-snapshot-assembler-reduces-idle-aware-time-slices-into-real-active-time-duration: review
+  3-4-snapshot-assembler-reduces-idle-aware-time-slices-into-real-active-time-duration: done  # PR #44 merged 2ddf985
   epic-3-retrospective: optional
   epic-4: in-progress
   4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff

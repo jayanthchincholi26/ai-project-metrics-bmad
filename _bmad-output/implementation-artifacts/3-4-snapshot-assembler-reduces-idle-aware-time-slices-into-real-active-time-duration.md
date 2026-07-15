@@ -4,7 +4,7 @@ baseline_commit: eca6162962847ef3ae2efe5db4d7d5efda8f3611
 
 # Story 3.4: Snapshot Assembler Reduces Idle-Aware Time Slices into Real Active-Time Duration
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
