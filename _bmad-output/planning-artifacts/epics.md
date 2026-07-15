@@ -546,6 +546,30 @@ So that my time attribution stays accurate even when I context-switch quickly.
 **Then** the live session's `SessionStart`/`SessionEnd` boundaries govern time-slice accounting
 **And** the checkout re-points which story current activity counts toward, without itself opening or closing a session-level slice (AD-7 precedence rule)
 
+### Story 3.4: Snapshot Assembler Reduces Idle-Aware Time Slices into Real Active-Time Duration
+
+> 🆕 **Opened 2026-07-15** — found during leadership Q&A prep: `estimated_cost_of()` in `tools/snapshot-assembler/main.py` computes `duration_minutes` as a raw `last_event_at - first_event_at` span, with no idle/pause subtraction at all — meaning Stories 3.1-3.3's own `time.slice_opened`/`time.slice_paused`/`time.slice_closed` events are captured but never actually consumed by the one place that turns them into a number leadership sees. Documented as a known limitation in `INSTALL.md` (v0.9.1) pending this fix.
+
+As someone reviewing the dashboard,
+I want a story's reported duration to reflect actual active work time, not the calendar span between its first and last commit,
+So that a story left open across days (or interleaved with meetings/other stories) doesn't report a wildly inflated duration and cost.
+
+**Acceptance Criteria:**
+
+**Given** a story's event log contains one or more `time.slice_opened` → `time.slice_paused`(0+) → `time.slice_closed` sequences
+**When** the snapshot assembler reduces the story at close time
+**Then** `estimated_cost.duration_minutes` is computed from the sum of each slice's `duration_seconds` minus that slice's own `slice_paused.idle_seconds` — not the raw first/last-event span
+
+**Given** a story is closed while an AI session is still open (a dangling `slice_opened` with no matching `slice_closed` yet)
+**When** the assembler runs
+**Then** it falls back to the existing raw-span calculation with an honest `reason` explaining why (AD-10 null-with-reason pattern) — never a fabricated or silently-wrong active-time number
+
+**Given** an older snapshot or an `ai_tool` whose hooks don't emit `time.slice_*` events
+**When** the assembler reduces it
+**Then** behavior is unchanged from today (raw span, no reason needed) — this story only improves the calculation when the richer signal exists, it never removes the existing fallback
+
+**And** `INSTALL.md`'s "Known limitations" entry for `Duration`/`estimated_cost` is narrowed to describe only the remaining caveat (a mid-session story switch via `repoint_active_story()` still attributes a slice's whole time to whichever story was active when the AI session finally closes — the same session-vs-story blending `token_cost` already has, for time instead of dollars)
+
 ---
 
 ## Epic 4: Package and Distribute the Capture Tooling to a Target Repo
