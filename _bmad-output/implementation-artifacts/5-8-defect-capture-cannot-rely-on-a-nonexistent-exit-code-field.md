@@ -4,7 +4,7 @@ baseline_commit: 40a81d8
 
 # Story 5.8: Automatic Defect Capture Cannot Rely on a Nonexistent `exit_code` Field
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -61,7 +61,7 @@ This is a confirmed, currently-unfixed Claude Code platform gap, not something f
 - [x] Task 5: verify
   - [x] Subtask 5.1: full test suite green, `ruff check`/`ruff format --check` clean
   - [x] Subtask 5.2: live E2E — real subprocess run of `pre_tool_use.py` confirming the exact rewritten command JSON shape; that rewritten command then actually executed in a real shell, confirming the marker mechanism itself works (real non-zero exit surfaced correctly); the resulting real stdout fed into a real subprocess run of `post_tool_use.py`, confirming `defect_compile` fires; a zero-exit case confirmed to emit nothing
-  - [ ] Subtask 5.3: **real Claude Code session verification (AC 5)** — pending; requires the user to test a real matched command in their live JIRA test session and confirm the rewrite actually took effect end-to-end, before this story is considered fully closed
+  - [x] Subtask 5.3: **real Claude Code session verification (AC 5)** — confirmed 2026-07-15 in a real v0.8.0 JIRA test session (`story-20260715-ebfe10`): a real `npx tsc --noEmit` against a genuinely broken `hello-complie-error.ts` produced the injected `__AI_METRICS_EXIT__:2` marker in real stdout, and `.story-events.jsonl` shows 3 real `ai.claude-code.defect_compile` events (`matched_pattern: "tsc --noEmit"`) across the session's 3 failing compile runs. `PreToolUse`'s `updatedInput` mechanism is confirmed to actually work live, not just per documentation/research.
 
 ## Dev Notes
 
@@ -103,7 +103,7 @@ Full suite: 331 passed (up from 324 — 7 new tests: 4 `pre_tool_use` rewrite te
 
 ### Completion Notes List
 
-- Story is functionally complete and locally verified, but **not fully closed** — Subtask 5.3 (real Claude Code session verification) is the actual proof this design works end-to-end, since the `updatedInput` command-rewrite claim came from documentation/research, not yet a live test, and this project has already found Claude Code's own hook docs wrong twice this week.
+- Story is now fully verified end-to-end, including live: real subprocess E2E (2026-07-15 dev round) plus a real v0.8.0 Claude Code session (2026-07-15, `story-20260715-ebfe10`) confirming Claude Code's `PreToolUse` `updatedInput` mechanism genuinely rewrites the executed command and 3 real `defect_compile` events were captured from real failing `tsc` runs.
 - Chose to keep `test_commands`/`build_commands` config format completely unchanged — only the detection mechanism changed, so no user-facing config migration is needed.
 
 ### File List
