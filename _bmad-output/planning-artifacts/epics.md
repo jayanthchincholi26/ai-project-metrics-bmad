@@ -263,7 +263,7 @@ So that I don't need a personal `JIRA_API_TOKEN` just to run kickoff — auth is
 
 ### Story 1.8: Confluence Adapter Fetches via the Atlassian Remote MCP Server
 
-> 🆕 **Built 2026-07-15** — found live during Confluence pilot testing: step 4b never got the MCP upgrade Story 1.6 gave JIRA. [PR #40](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/40) (squash-merged to `enhancements-v2`, d47d4e8). **Not fully closed** — a real live kickoff test using the updated instructions (Subtask 3.1) is still outstanding, and its own first live attempt surfaced Story 1.9 below.
+> ✅ **Complete** — 2026-07-15 · [PR #40](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/40) (squash-merged to `enhancements-v2`, d47d4e8), found live during Confluence pilot testing: step 4b never got the MCP upgrade Story 1.6 gave JIRA. **Live-verified same day** (`story-20260715-480790`): a real kickoff against a real Confluence page correctly fetched via `getAccessibleAtlassianResources` → `getConfluencePage`, gave the honest labels-gap explanation, and wrote the manifest correctly. That same live test surfaced Story 1.9 below.
 
 ### Story 1.9: JIRA/Confluence Kickoff's Plain-Ask Fallback Wrongly Offered the Docs-Only "None" Sprint Option
 

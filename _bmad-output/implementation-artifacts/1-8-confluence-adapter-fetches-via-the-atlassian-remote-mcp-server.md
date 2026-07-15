@@ -4,7 +4,7 @@ baseline_commit: c2d7476
 
 # Story 1.8: Confluence Adapter Fetches via the Atlassian Remote MCP Server
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -49,7 +49,7 @@ Also found: the MCP server cannot resolve Confluence short-links (`/wiki/x/...`)
   - [x] Subtask 2.3: points/sprint always null via the MCP path, with the explicit one-time explanation text
   - [x] Subtask 2.4: degradation chain preserved — script fallback (real label reading) → plain ask, kickoff never blocked
 - [x] Task 3: verify
-  - [ ] Subtask 3.1: **live verification pending** — this is a skill-instruction-only change with no pytest surface (same precedent as Stories 1.6/2.10); needs a real kickoff run in the user's live session against a real Confluence page (ideally one with `points-`/`sprint-` labels, to confirm the MCP path correctly nulls them out and the honest explanation is given) before considered fully done
+  - [x] Subtask 3.1: **confirmed live 2026-07-15** (`story-20260715-480790`) — a real kickoff against `https://my-sg-custom-dashboard.atlassian.net/wiki/spaces/.../pages/22020097/Fibonacci+Series` correctly called `getAccessibleAtlassianResources` → `getConfluencePage`, fetched the real page title/body, gave the honest labels-gap explanation, and wrote the manifest with `source_of_truth: confluence`. The test page had no `points-`/`sprint-` labels, matching the expectation that most real Confluence pages won't use that convention regardless of transport. (Required first resolving an environment-side issue unrelated to this project's own code: the developer's `atlassian` MCP server had a conflicting duplicate registration across `user`/`local` scopes with different endpoints, from earlier ad-hoc testing — fixed via `claude mcp remove atlassian --scope local` + re-authenticating the correct HTTP-transport entry.)
 
 ## Dev Notes
 
@@ -79,7 +79,8 @@ Research: confirmed via a general-purpose research agent against Atlassian's own
 
 ### Completion Notes List
 
-- This story is functionally complete but **not fully closed** — Subtask 3.1 (a real live kickoff run using the updated skill instructions) is the actual proof, same "verify live before declaring done" discipline as Story 5.8's Subtask 5.3.
+- Confirmed live end-to-end, closing out this story — same "verify live before declaring done" discipline as Story 5.8's Subtask 5.3.
+- During this same live test, a real bug in the fallback-path wording was found and split into its own story (Story 1.9) rather than fixed inline, since it affects both 4a and 4b and wasn't specific to this story's own changes.
 - The labels gap is a genuine Atlassian platform limitation (open, unanswered upstream issue), not something this project can work around cleanly — documented honestly rather than silently degraded.
 
 ### File List
