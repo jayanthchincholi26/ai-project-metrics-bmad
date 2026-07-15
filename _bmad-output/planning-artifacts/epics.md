@@ -261,6 +261,12 @@ So that I don't need a personal `JIRA_API_TOKEN` just to run kickoff — auth is
 - Decide whether the API-token path (Story 1.3) stays as a documented fallback long-term, or is deprecated/removed once MCP is proven out in the pilot.
 - Server-agnostic wording (decided 2026-07-11): the skill's step 4a should target *whichever JIRA MCP server the session has configured* (official Atlassian remote recommended as default; community `mcp-atlassian` also exists but registers zero tools without env credentials — observed live). Which server a project uses is a deployment/prerequisites choice, not skill logic.
 
+### Story 1.8: Confluence Adapter Fetches via the Atlassian Remote MCP Server
+
+> 🆕 **Built 2026-07-15** — found live during Confluence pilot testing: step 4b never got the MCP upgrade Story 1.6 gave JIRA. PR pending; **not fully closed** — a real live kickoff test using the updated instructions (Subtask 3.1) is still outstanding.
+
+Researched the real MCP capability before implementing, not assumed: the Atlassian MCP server does expose Confluence tools (`getConfluencePage` and related) — confirmed live in the user's own session, fetching a real page ("Fibonacci Series", ID 22020097). But it has two confirmed, currently-open platform gaps of its own: **no Confluence page-label read capability at all** (this project's points/sprint auto-fill has always worked via `points-<number>`/`sprint-<name>` labels), and **no short-link resolution** (`/wiki/x/...` URLs can't be turned into a page ID by the MCP tools). Unlike Story 1.6's clean win for JIRA, this is an honest tradeoff, not a strict upgrade: `story-kickoff/SKILL.md` step 4b now fetches via MCP by default (no personal token, asks for the full page URL and parses the numeric ID itself), but points/sprint always fall back to a plain manual ask over that path, with an explicit explanation of why — the script fallback (real Confluence REST API, personal token) remains the only way to get genuine label-based auto-fill. Skill-instruction-only change, no pytest surface (same precedent as Stories 1.6/2.10) — verified so far via research plus one real live MCP page fetch; a full live kickoff run against the updated instructions is the remaining proof point.
+
 ---
 
 ## Epic 2: Metrics Appear Automatically When You Close a Story
