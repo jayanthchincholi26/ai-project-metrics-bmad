@@ -410,32 +410,15 @@ This only resolves correctly if the hook is invoked with the repo root as cwd. C
 
 ### Story 2.8: Git Commit Hooks Never Abort a Commit if `uv` Is Unavailable
 
-> ⏳ **Not started** — opened 2026-07-11, split out from PR #22's review (Gemini) — a real, valid finding, but about `tools/hooks/git/commit-msg.sh`, a file Story 2.7 never touched
+> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid finding, but about `tools/hooks/git/commit-msg.sh`, a file Story 2.7 never touched; PR pending
 
-As a developer,
-I want a commit to never be blocked just because my git client's environment can't find `uv`,
-so that a minimal-PATH environment (some GUI git clients: VS Code's built-in git, SourceTree, GitHub Desktop) never silently breaks my ability to commit.
-
-**Context:** `tools/hooks/git/commit-msg.py` is deliberately written to always exit 0 (documented in its own docstring: "a non-zero commit-msg exit ABORTS the developer's commit, and a metrics-capture failure must never do that"). But that guarantee only holds once Python is actually running — `tools/hooks/git/commit-msg.sh` invokes it via `uv run tools/hooks/git/commit-msg.py "$@"`, and if `uv` itself isn't on the invoking process's PATH, the **shell** fails before Python ever starts, with its own non-zero exit code (typically 127) — which git treats as a real abort signal, defeating the "never block a commit" guarantee `commit-msg.py` itself provides.
-
-**Acceptance Criteria (draft):**
-
-1. **Given** `uv` is not available on the PATH of the process invoking git (e.g. a GUI git client with a minimal environment)
-   **When** a commit is made
-   **Then** the `commit-msg` hook (and, by the same reasoning, `post-commit`/`post-checkout`/`post-merge`) does not abort the commit — either by checking for `uv`'s availability before invoking it, or by suppressing the shell-level exit code (e.g. `|| true`), consistent with AD-9's "surface visibly, never fail silently" rule (the failure should still be *visible* somewhere, just never block the commit)
-2. **Given** this fix
-   **When** the existing `post-commit`/`post-checkout`/`post-merge` shims are reviewed
-   **Then** apply the same fix consistently if they share the same risk (they invoke `uv run` the same way) — though note their current documented exit-code contract already tolerates non-zero (per `_events.py`'s docstring table: "git post-commit/post-checkout/post-merge → 1 on final failure — git ignores post-hook exits"), so confirm whether they're actually at risk before assuming they need the same change as `commit-msg`
+`tools/hooks/git/commit-msg.py` is deliberately written to always exit 0, but that guarantee only held once Python was actually running — `commit-msg.sh` invoked it via a bare `uv run ...`, and if `uv` itself wasn't on the invoking process's PATH, the **shell** failed before Python ever started, which git treats as a real abort signal for `commit-msg` specifically. Fixed with a `command -v uv` guard plus an unconditional `exit 0`, with a visible stderr warning on miss (AD-9). Applied the same guard to `post-commit`/`post-checkout`/`post-merge` too, for consistent messaging — though confirmed via `_events.py`'s own documented exit-code table that those three were never actually at risk (git ignores their exit codes already), so this is a UX polish for them, not a correctness fix. Verified live: a real scratch repo, real hook install, real `git commit` with `uv` stripped from `PATH` — commit succeeded with visible warnings, not blocked.
 
 ### Story 2.9: `repo_root()` Falls Back to a Parent-Directory Walk, Not Just Cwd
 
-> ⏳ **Not started** — opened 2026-07-11, split out from PR #22's review (Gemini) — a real, valid hardening suggestion, but about `tools/hooks/_events.py`, a file Story 2.7 never touched
+> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid hardening suggestion, but about `tools/hooks/_events.py`, a file Story 2.7 never touched; PR pending
 
-As a developer,
-I want event capture to still find the correct repo root even in the rare case `git rev-parse --show-toplevel` itself fails,
-so that a transient git/subprocess failure never silently writes capture files into the wrong (possibly nested) directory.
-
-**Context:** `repo_root()` currently falls back to `Path.cwd()` if the `git rev-parse --show-toplevel` subprocess call fails for any reason (timeout, `git` unavailable, OS-level process limits). Story 2.7 already fixed the *primary* way a session's cwd can drift into a subdirectory (the hook command's own path was the actual bug); this story addresses the residual, rarer case where `git` itself can't be asked and the fallback needs to be smarter than "wherever we happen to be."
+`repo_root()` used to fall back straight to `Path.cwd()` if `git rev-parse --show-toplevel` failed for any reason (timeout, `git` unavailable, OS-level limits). Story 2.7 already fixed the *primary* way a session's cwd can drift into a subdirectory; this story adds a smarter intermediate step for the rarer residual case: now walks up from cwd looking for a `.git` directory-or-file (worktrees/submodules use a file) before falling back to bare cwd. Verified with real-filesystem tests exercising the actual function directly (not monkeypatched away, unlike most other tests in this suite).
 
 **Acceptance Criteria (draft):**
 

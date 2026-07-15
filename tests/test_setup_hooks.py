@@ -282,6 +282,26 @@ def test_all_ten_hook_scripts_exist():
     assert len(sorted((REPO / "tools" / "hooks" / "claude").glob("*.py"))) == 6
 
 
+# Story 2.8: a minimal-PATH git client (some GUI clients) can't find `uv` -
+# every git shell shim must guard against that rather than letting the shell
+# itself fail before Python runs.
+
+
+def test_every_git_hook_shim_guards_against_uv_missing_from_path():
+    for name in GIT_HOOKS:
+        content = (REPO / "tools" / "hooks" / "git" / f"{name}.sh").read_text(encoding="utf-8")
+        assert "command -v uv" in content, name
+
+
+def test_commit_msg_shim_unconditionally_exits_zero():
+    """commit-msg is the one git hook whose non-zero exit actually aborts the
+    commit (post-commit/post-checkout/post-merge are advisory only, per
+    _events.py's own documented exit-code table) - it must force exit 0
+    regardless of whether `uv` was found."""
+    content = (REPO / "tools" / "hooks" / "git" / "commit-msg.sh").read_text(encoding="utf-8")
+    assert content.strip().endswith("exit 0")
+
+
 # Story 2.11: .gitignore enforcement for local capture state (prevents silent
 # cross-branch event-log forking found during 2026-07-13 pilot testing).
 

@@ -93,8 +93,20 @@ def git_out(*args: str, cwd: Optional[Path] = None) -> Optional[str]:
 
 
 def repo_root() -> Path:
+    """Story 2.9: when `git rev-parse` itself fails (git unavailable, a
+    transient subprocess failure, etc. - Story 2.7 already fixed the far more
+    common cause of cwd drift, a hook command's own relative path), walk up
+    from cwd looking for a `.git` directory-or-file (worktrees/submodules use
+    a file) before giving up - smarter than blindly trusting cwd, which could
+    be a subdirectory of the real repo. Only falls back to bare cwd if no
+    `.git` is found anywhere in the parent chain (genuinely not in a repo)."""
     top = git_out("rev-parse", "--show-toplevel")
-    return Path(top) if top else Path.cwd()
+    if top:
+        return Path(top)
+    for candidate in (Path.cwd(), *Path.cwd().parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return Path.cwd()
 
 
 def read_stdin_json() -> dict[str, Any]:
