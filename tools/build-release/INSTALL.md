@@ -263,6 +263,28 @@ mechanism of its own** — it's a local file only; you decide whether and how to
 same as any other file in your repo (worth a second thought before sharing outside the
 team, since it may summarize cost figures).
 
+## Data use and privacy
+
+This tool captures **team/process-level metrics only** — time on a story, AI cost,
+points planned vs. used, defect counts. It is not intended for, and should not be used
+for, individual performance evaluation. If your team is piloting this tool, confirm this
+framing with participants before relying on the data in any review or reporting context.
+
+What is captured, precisely:
+- Git activity (commits, checkouts, merges) and timestamps.
+- AI-session duration, token counts, and cost — **never prompt or response content**.
+  `tools/hooks/claude/user_prompt_submit.py` emits only a prompt's character count, and
+  `session_end.py` reads only the transcript's `usage.input_tokens`/`output_tokens`
+  fields — the actual conversation text is never read, stored, or transmitted anywhere.
+- Story metadata pulled from JIRA/Confluence (ticket title, points, sprint) — see "JIRA
+  setup" above for what that connection can read and write.
+
+What the Atlassian connection can write: creating a JIRA sub-task when a bug is logged
+against a JIRA-tracked story is the only write this tool performs. The OAuth grant itself
+is scoped by your own existing JIRA permissions, not narrowed to a single project by this
+tool — if you can already create issues in a project through JIRA's own UI, this
+connection can too, for that same project.
+
 ## Known limitations
 
 **`token_cost` is accurate per-story only when AI sessions and stories stay 1:1.**
@@ -286,6 +308,29 @@ assumption breaks:
 Bottom line: close or reload the AI session at least roughly once per story for `token_cost`
 to mean what it looks like it means. This isn't enforced or detected today — a future story
 would need to track transcript byte-offsets per story boundary to do better.
+
+**`Duration` and `estimated_cost` are a wall-clock span, not active work time.**
+`tools/snapshot-assembler/main.py`'s `estimated_cost_of()` computes duration as
+`last_event_at - first_event_at` — the time between the very first and very last git/AI
+event recorded for a story — then multiplies by the configured `hourly_rate`. Nothing is
+subtracted for idle time, nights, weekends, or time spent on something else in between.
+
+This is exactly right when a story is worked in one continuous sitting (the common pilot
+case so far). It overstates duration once that assumption breaks:
+
+- **A story left open across days** (started Monday, resumed Wednesday, no other event in
+  between): the reported duration spans the entire Monday-to-Wednesday range, not the hours
+  actually spent working.
+- **Meetings, discovery, manual QA, or deployment work that isn't a git or AI-tool action**:
+  invisible to this tool either way. If it happens between the story's first and last
+  recorded event, it gets swept into the duration and inflates it; if it happens before the
+  first or after the last event, it isn't counted at all.
+
+Underlying idle-aware tracking already exists in the event log (`time.slice_opened`,
+`time.slice_paused`, `time.slice_closed` — emitted per session, gap threshold 15 minutes by
+default) but is not yet read by the snapshot assembler; wiring it in is a scoped follow-up,
+not a capture gap. Until then, read `Duration`/`estimated_cost` as "elapsed time between
+first and last recorded activity," not "time actually worked."
 
 ## Updating
 
