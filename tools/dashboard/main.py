@@ -44,6 +44,12 @@ def format_usd(value: float) -> str:
     return f"${value:.2f}"
 
 
+def format_token_usd(value: float) -> str:
+    """AI token cost is often fractions of a cent - 2 decimals would collapse
+    small-but-real values to a misleading $0.00, so this stays at 4."""
+    return f"${value:.4f}"
+
+
 def aggregate_stats(snapshots: "list[dict]") -> "dict[str, Any]":
     total_stories = len(snapshots)
 
@@ -91,7 +97,7 @@ def render_stat_tiles(stats: "dict[str, Any]") -> str:
         ),
         (
             "Total AI Token Cost",
-            stat_value(total, stats["token_sum"], stats["token_known"], format_usd),
+            stat_value(total, stats["token_sum"], stats["token_known"], format_token_usd),
         ),
     ]
     cards = "\n".join(
@@ -122,7 +128,7 @@ def render_row(snapshot: dict) -> str:
         else f"not tracked — {est.get('reason') or 'no reason given'}"
     )
     token_cost = (
-        format_usd(tok["cost_usd"])
+        format_token_usd(tok["cost_usd"])
         if tok.get("cost_usd") is not None
         else f"not tracked — {tok.get('reason') or 'no reason given'}"
     )

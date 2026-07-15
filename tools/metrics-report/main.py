@@ -112,6 +112,12 @@ def format_usd(value: Optional[float]) -> str:
     return f"${value:.2f}"
 
 
+def format_token_usd(value: Optional[float]) -> str:
+    """AI token cost is often fractions of a cent - 2 decimals would collapse
+    small-but-real values to a misleading $0.00, so this stays at 4."""
+    return f"${value:.4f}"
+
+
 def duration_minutes_of(eng: dict) -> Optional[float]:
     """A fallback used when estimated_cost.duration_minutes is unavailable — e.g.
     a snapshot from before Story 5.2 added that section at all (found via live
@@ -158,7 +164,7 @@ def render_story(snapshot: dict) -> str:
 
     if tok.get("cost_usd") is not None:
         token_cost_line = (
-            f"{format_usd(tok['cost_usd'])} "
+            f"{format_token_usd(tok['cost_usd'])} "
             f"({tok.get('input_tokens')} in, {tok.get('output_tokens')} out)"
         )
     else:
