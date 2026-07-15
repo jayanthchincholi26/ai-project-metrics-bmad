@@ -6,7 +6,7 @@ steps change, update this file too.
 ## Docs-only flow (`source_of_truth: docs-only`, or absent)
 
 ```mermaid
-flowchart LR
+flowchart
     A["git checkout -b story/&lt;name&gt;"] --> B{"openspec SDD?"}
     B -- yes --> C["/opsx:propose &lt;change&gt;<br/>(before kickoff, for a real<br/>Phase-1 point estimate)"]
     B -- no --> D
@@ -28,7 +28,7 @@ flowchart LR
 ## JIRA flow (`source_of_truth: jira`)
 
 ```mermaid
-flowchart LR
+flowchart
     A["git checkout -b story/&lt;name&gt;"] --> B["'kick off this story &lt;ISSUE-KEY&gt;'<br/>→ Atlassian MCP fetches points/goal/sprint<br/>→ writes .story.yaml"]
     B --> C{"openspec SDD?"}
     C -- yes --> D["/opsx:propose &lt;change&gt;<br/>(AFTER kickoff — no JIRA-fetch<br/>capability of its own)"]

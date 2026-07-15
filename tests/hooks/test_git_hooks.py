@@ -325,3 +325,47 @@ def test_commit_msg_total_failure_surfaces_but_never_blocks_the_commit(repo, mon
 
     assert exit_code == 0
     assert "METRICS CAPTURE FAILED" in capsys.readouterr().err
+
+
+# --- repo_root() parent-directory-walk fallback (Story 2.9) ---
+# Real filesystem, real cwd - `repo_root` itself is under test here, so it
+# must NOT be monkeypatched away like the `repo` fixture above does.
+
+
+def test_repo_root_walks_up_to_a_real_dot_git_when_git_rev_parse_fails(tmp_path, monkeypatch):
+    (tmp_path / ".git").mkdir()
+    nested = tmp_path / "sub" / "deeper"
+    nested.mkdir(parents=True)
+    monkeypatch.setattr(events, "git_out", lambda *args, **kwargs: None)
+    monkeypatch.chdir(nested)
+
+    assert events.repo_root() == tmp_path
+
+
+def test_repo_root_accepts_a_dot_git_file_not_just_a_directory(tmp_path, monkeypatch):
+    """Worktrees/submodules use a `.git` file, not a directory - same `-e`
+    (not `-d`) precedent as install.sh's own git-check fix."""
+    (tmp_path / ".git").write_text("gitdir: ../real/.git\n", encoding="utf-8")
+    monkeypatch.setattr(events, "git_out", lambda *args, **kwargs: None)
+    monkeypatch.chdir(tmp_path)
+
+    assert events.repo_root() == tmp_path
+
+
+def test_repo_root_falls_back_to_cwd_when_no_dot_git_anywhere_in_the_chain(tmp_path, monkeypatch):
+    nested = tmp_path / "sub"
+    nested.mkdir()
+    monkeypatch.setattr(events, "git_out", lambda *args, **kwargs: None)
+    monkeypatch.chdir(nested)
+
+    assert events.repo_root() == nested
+
+
+def test_repo_root_prefers_git_rev_parse_when_it_succeeds(tmp_path, monkeypatch):
+    (tmp_path / ".git").mkdir()
+    nested = tmp_path / "sub"
+    nested.mkdir()
+    monkeypatch.setattr(events, "git_out", lambda *args, **kwargs: str(tmp_path))
+    monkeypatch.chdir(nested)
+
+    assert events.repo_root() == tmp_path
