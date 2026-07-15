@@ -4,7 +4,7 @@ baseline_commit: 65e22d5
 
 # Story 5.9: One-Click Team Dashboard via GitHub Actions
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -53,7 +53,7 @@ This story automates that same mechanism via GitHub Actions, discussed and scope
   - [x] Subtask 5.1: full suite green, `ruff check`/`ruff format --check` clean
   - [x] Subtask 5.2: real release build, confirmed the workflow YAML lands at the correct path with correct content
   - [x] Subtask 5.3: ran the exact commands the workflow's own step runs (`metrics-report` then `dashboard`) against a real multi-story `snapshots/` directory (the same 7 real pilot snapshots used for the earlier live demo), confirming they produce exactly what `upload-artifact` would package
-  - [ ] Subtask 5.4: **live verification pending** — this workflow has not yet actually been triggered inside a real GitHub Actions run (would require merging this PR first, then a real `workflow_dispatch` click); local command verification (5.3) proves the underlying logic, not the CI wiring itself
+  - [x] Subtask 5.4: **confirmed live 2026-07-15**, in `ai-project-metrics-bmad-testing` — a real `workflow_dispatch` run ("generate-dashboard #2") completed successfully in 14s and produced a downloadable `metrics-dashboard` artifact containing a correct `dashboard.html` (1 story, real cost/defect figures matching the committed snapshot). Two benign warnings only (Node.js 20 deprecation notice, no `uv.lock` cache) — neither a real problem. Required first discovering and fixing a real gap: `workflow_dispatch` requires the workflow file to exist on the repo's **default branch** to even be listed (confirmed via GitHub's own docs), and separately, the target test repo had never actually committed `tools/`/`snapshots/` to any branch — both fixed live as part of this verification.
 
 ## Dev Notes
 
@@ -90,7 +90,8 @@ Full suite: 337 passed. `ruff check`/`ruff format --check` clean. Real release b
 
 ### Completion Notes List
 
-- Not fully closed — Subtask 5.4 (an actual GitHub Actions `workflow_dispatch` run) is the real proof of the CI wiring itself, since local command verification can't exercise the YAML/environment-gating machinery.
+- Confirmed live end-to-end in a real GitHub Actions run — closing this story out fully.
+- Two real environment gaps found and fixed during live verification, worth documenting for anyone else adopting this: (1) `workflow_dispatch` workflows must exist on the repo's default branch to be listed/runnable at all — a genuine GitHub platform requirement, not a bug; (2) this specific test repo had never actually committed `tools/`/`snapshots/` to any branch across the whole pilot (everything had only ever existed locally), so the first run failed with the tooling simply missing from the CI checkout. Neither gap is specific to this story's own code — both are real "first real usage of a shared repo" discoveries.
 - CI-on-every-merge (the "B" option discussed alongside this "C" one-click option) was deliberately deferred, per the user's own call, to a later story once real team merge cadence is understood.
 
 ### File List
