@@ -57,6 +57,7 @@ development_status:
   1-6-jira-adapter-fetches-via-the-atlassian-remote-mcp-server: done  # supersedes 1-3; PR #19
   1-7-docs-only-kickoff-reads-a-requirements-doc-and-relaxes-sprint-for-ad-hoc-teams: done  # PR #21, merged da3b593
   1-8-confluence-adapter-fetches-via-the-atlassian-remote-mcp-server: done  # PR #40, merged d47d4e8; live-verified 2026-07-15 (story-20260715-480790)
+  1-9-jira-confluence-plain-ask-fallback-wrongly-offered-none-sprint: review  # PR pending, found live during 1.8's own verification
   epic-1-retrospective: optional
   epic-2: done  # all 11 stories (2.1-2.11) complete; 2.8/2.9 merged PR #39, 2026-07-15
   2-1-hook-installation-is-a-single-repeatable-setup-step: done
