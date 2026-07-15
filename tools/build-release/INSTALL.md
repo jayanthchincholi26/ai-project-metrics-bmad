@@ -309,28 +309,24 @@ Bottom line: close or reload the AI session at least roughly once per story for 
 to mean what it looks like it means. This isn't enforced or detected today — a future story
 would need to track transcript byte-offsets per story boundary to do better.
 
-**`Duration` and `estimated_cost` are a wall-clock span, not active work time.**
-`tools/snapshot-assembler/main.py`'s `estimated_cost_of()` computes duration as
-`last_event_at - first_event_at` — the time between the very first and very last git/AI
-event recorded for a story — then multiplies by the configured `hourly_rate`. Nothing is
-subtracted for idle time, nights, weekends, or time spent on something else in between.
+**`Duration` and `estimated_cost` reflect active work time, with one remaining edge case
+(Story 3.4).** `estimated_cost_of()` prefers real, idle-excluded active time — reduced from
+the event log's `time.slice_opened`/`time.slice_paused`/`time.slice_closed` events (gap
+threshold 15 minutes by default) — falling back to a raw first/last-event span only when no
+completed time slice was ever observed (an older snapshot, an `ai_tool` whose hooks don't
+emit `time.slice_*`, or a story closed while its AI session is still open).
 
-This is exactly right when a story is worked in one continuous sitting (the common pilot
-case so far). It overstates duration once that assumption breaks:
+The one case this doesn't yet handle: **a mid-session story switch.** If a developer works
+Story A, then `git checkout`s to Story B without closing or reloading the AI session in
+between, the whole session's active time lands on whichever story was active when the
+session finally closes (Story B) — Story A gets none of it from that session. This is the
+same session-vs-story blending `token_cost` already has above, just for time instead of
+dollars. Close or reload the AI session at least roughly once per story to avoid it — same
+guidance as `token_cost`'s bottom line.
 
-- **A story left open across days** (started Monday, resumed Wednesday, no other event in
-  between): the reported duration spans the entire Monday-to-Wednesday range, not the hours
-  actually spent working.
-- **Meetings, discovery, manual QA, or deployment work that isn't a git or AI-tool action**:
-  invisible to this tool either way. If it happens between the story's first and last
-  recorded event, it gets swept into the duration and inflates it; if it happens before the
-  first or after the last event, it isn't counted at all.
-
-Underlying idle-aware tracking already exists in the event log (`time.slice_opened`,
-`time.slice_paused`, `time.slice_closed` — emitted per session, gap threshold 15 minutes by
-default) but is not yet read by the snapshot assembler; wiring it in is a scoped follow-up,
-not a capture gap. Until then, read `Duration`/`estimated_cost` as "elapsed time between
-first and last recorded activity," not "time actually worked."
+Meetings, discovery, manual QA, or deployment work that isn't a git or AI-tool action stays
+invisible to this tool either way — captured neither as active time nor as idle time, since
+nothing here observes it happening at all.
 
 ## Updating
 
