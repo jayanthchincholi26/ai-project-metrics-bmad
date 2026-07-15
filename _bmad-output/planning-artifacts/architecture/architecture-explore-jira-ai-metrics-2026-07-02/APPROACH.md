@@ -37,6 +37,8 @@ All three append to a local `.story-events.jsonl` (namespaced event types: `git.
 
 **A failed hook never fails silently**: if a hook can't append an event, it retries up to 3 times, then shows the developer a visible error — closing the "quiet data loss" gap rather than leaving it as an open risk.
 
+**See it as a diagram:** [docs/architecture-diagram-leadership.html](../../../../docs/architecture-diagram-leadership.html) — a single-page view of this section, sized for a leadership audience (light on jargon, includes the "why it's trustworthy / low-risk / scales" framing below the pipeline itself).
+
 ## Developer Experience Flow
 
 What a developer actually sees is much simpler than the architecture behind it — confirm at the start, work normally, close at the end:
@@ -65,6 +67,8 @@ What a developer actually sees is much simpler than the architecture behind it �
                                                                      (velocity, cost,
                                                                       token trends)
 ```
+
+This flow assumes hooks are already installed on the developer's machine (Step 1 of Delivery Path, below, and AD-8). **See what that one-time setup actually looks like:** [docs/new-machine-onboarding.html](../../../../docs/new-machine-onboarding.html) — the one-time install a developer does once per machine, versus the story loop above that repeats every time (they're two different rhythms, easy to conflate). A simpler version of the story-loop half alone is also at [developer-flow.html](developer-flow.html) (this folder).
 
 ## Delivery Path
 
@@ -135,4 +139,5 @@ This system captures some sensitive-feeling signals — active time, AI token co
 - Architecture spine (all AD invariants): `ARCHITECTURE-SPINE.md` (this folder)
 - Canonical spec (capabilities/constraints): `_bmad-output/specs/spec-pm-metrics-ai-engineering-flow/SPEC.md`
 - Epic/story breakdown: `_bmad-output/planning-artifacts/epics.md`
-- Presentation decks: `architecture-walkthrough.html` / `architecture-walkthrough-light.html` (this folder)
+- Presentation decks: `architecture-walkthrough.html` / `architecture-walkthrough-light.html` (this folder, full 13-slide deep-dive)
+- Single-page diagrams: `docs/architecture-diagram-leadership.html` (the pipeline, leadership-pitched) · `docs/new-machine-onboarding.html` (one-time machine setup vs. the per-story loop) · `developer-flow.html` (this folder — the per-story loop alone)

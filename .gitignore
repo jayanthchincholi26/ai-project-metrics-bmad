@@ -1,6 +1,16 @@
 .claude/settings.local.json
 _bmad/config.user.toml
 _bmad/custom/*.user.toml
+.venv/
+__pycache__/
+.story-events.jsonl
+.story-events.pending.jsonl
+.active-story
+.active-claude-session
 *.log
 .DS_Store
 Thumbs.db
+~$*
+dist/
+pypi-package/src/ai_metrics_capture/_bundled/
+pypi-package/dist/

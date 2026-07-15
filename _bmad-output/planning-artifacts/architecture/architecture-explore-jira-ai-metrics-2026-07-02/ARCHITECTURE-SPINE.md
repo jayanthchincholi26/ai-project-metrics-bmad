@@ -7,7 +7,7 @@ paradigm: 'event-sourced pipes-and-filters'
 scope: 'Capturing PM, engineering, story-point-cost, and token-cost metrics as a byproduct of the AI-accelerated engineering flow (openspec/speckit), without manual double-entry, rolled up to a leadership dashboard.'
 status: final
 created: '2026-07-02'
-updated: '2026-07-09'
+updated: '2026-07-10'
 binds: []
 sources: ['_bmad-output/brainstorming/brainstorm-pm-metrics-ai-engineering-flow-2026-07-01/brainstorm-intent.md']
 companions: []
@@ -73,7 +73,7 @@ Layer → directory mapping:
 
 - **Binds:** the snapshot assembler, any consumer of a snapshot
 - **Prevents:** one builder nesting Phase-1/Phase-2/variance fields under `story_point_cost` while another nests them under `pm_metrics.points` — and a re-close silently overwriting history that a downstream trend (AD-6, token-cost-per-point over time) depends on
-- **Rule:** The snapshot envelope's top-level keys are exactly `{schema_version, story_id, revision, pm_metrics, engineering_metrics, story_point_cost, token_cost}`. `story_point_cost` is the only home for the Phase-1 estimate, Phase-2 actual, and their variance (`{phase1_points, phase2_points, variance}`) — no other family repeats these fields. Every `opsx archive` on the same story produces a **new immutable revision** (`revision` increments; nothing overwrites in place), so a re-close never destroys a prior snapshot a consumer already read.
+- **Rule:** The snapshot envelope's top-level keys are exactly `{schema_version, story_id, revision, pm_metrics, engineering_metrics, story_point_cost, token_cost, estimated_cost, defect_metrics}` (the `estimated_cost` key added by Story 5.2; `defect_metrics` added by Story 5.4). `story_point_cost` is the only home for the Phase-1 estimate, Phase-2 actual, and their variance (`{phase1_points, phase2_points, variance}`) — no other family repeats these fields. `token_cost` holds `{input_tokens, output_tokens, reason, sessions_observed, cost_usd}` — real per-session token counts (read from the session's own local transcript, Story 5.2) summed across the story, with `cost_usd` computed only when both token counts and both configured rates (`ai_input_rate`/`ai_output_rate` in `.story-config.yaml`) are known, else `null`. `estimated_cost` holds `{usd, hourly_rate, duration_minutes, reason}` — `hourly_rate` (also from `.story-config.yaml`) is read at **close time**, not locked in at kickoff (a documented simplification, not an oversight — see Story 5.2). `defect_metrics` holds `{total_defects, compile_defects, test_defects, review_defects, testing_efficiency, review_efficiency, reason}` — reduced from `ai.claude-code.defect_{compile,test,review}` events (kept within the existing `ai.<tool>.*` namespace family, AD-1a, rather than a new top-level namespace); `testing_efficiency`/`review_efficiency` are `null` with a `reason` when zero defect events exist for the story, never a fabricated default. Every `opsx archive` on the same story produces a **new immutable revision** (`revision` increments; nothing overwrites in place), so a re-close never destroys a prior snapshot a consumer already read.
 
 ### AD-4 — Source-of-truth adapter pattern
 
@@ -98,9 +98,12 @@ Layer → directory mapping:
 
 ### AD-7 — Time-on-task via an explicit active-story pointer
 
-- **Binds:** `local-store/.active-story`, git `post-checkout` hook, Claude Code `SessionStart`/`PostToolUse`
+- **Binds:** `local-store/.active-story`, `local-store/.active-claude-session` (Story 3.3), git `post-checkout` hook, Claude Code `SessionStart`/`SessionEnd`/`PostToolUse`/`UserPromptSubmit`
 - **Prevents:** silently inferring time-on-task from file edits alone (unreliable, mis-attributes time when a developer switches context)
 - **Rule:** One local pointer file tracks the currently active story, updated automatically on `git checkout` and Claude Code `SessionStart` — never a manual command. Changing the pointer closes the outgoing story's time slice and opens a new one for the incoming story. An idle timeout (~15 min with no `PostToolUse`/prompt activity) auto-pauses the active slice. This relies on the confirmed team convention of **branch-per-story** (one branch = one story = one active context); there is currently no manual-override path for a developer working multiple stories on one branch. **Precedence when both triggers could fire** (a `git checkout` happens while a Claude Code session is already live): the live session's boundaries govern time-slice accounting — a mid-session checkout switches which story the *current* session's activity is attributed to, but does not itself close/reopen a session-level slice. A session-level slice only opens/closes on `SessionStart`/`SessionEnd`. This prevents double-counting or truncating time when both signals land close together.
+- **Wire format (Story 3.1):** `.active-story` is a plain JSON object at repo root (not flat-YAML, since it is machine-only and never hand-edited): `{"story_id": <str>, "opened_at": <iso8601>}`. Changing the pointer emits two new namespaced events via the shared emitter — `time.slice_closed` (`{opened_at, closed_at, duration_seconds}`, attributed to the *outgoing* story_id) followed by `time.slice_opened` (`{opened_at}`, attributed to the *incoming* story_id) — reusing the same append-only/pending-spool/retry mechanics as every other producer (AD-1/AD-1b/AD-9). A pointer update is a no-op (no file write, no events) when the incoming story_id already matches the current pointer, or when the incoming story_id is unknown (`None`) — mirrors AD-1b's buffer-rather-than-corrupt philosophy. Only `git post-checkout` (branch checkouts only, not file checkouts) update the pointer this way; see Story 3.3 below for what happens when a Claude Code session is already live.
+- **Idle detection (Story 3.2):** `.active-story` gains an optional `last_activity_at` field, stamped by Claude Code `PostToolUse` and `UserPromptSubmit` (the two signals AD-7 names). Idle detection is **retrospective, not a running timer** — this architecture has no background service (AD-2), so "N minutes of silence" is only discoverable the next time an activity signal fires, by diffing "now" against the pointer's `last_activity_at` (or `opened_at` if no activity has been recorded yet). A gap exceeding the threshold emits `time.slice_paused` (`{quiet_since, resumed_at, idle_seconds}`, attributed to the pointer's current story_id) — this never changes the pointer's `story_id` and never emits `time.slice_closed`/`time.slice_opened`; pausing is independent of switching stories. The threshold defaults to 900 seconds (15 min) and is configurable via the `STORY_IDLE_THRESHOLD_SECONDS` environment variable (a project-level config file was judged premature abstraction for a single tuning knob — env var is stdlib-only and trivially testable).
+- **Mid-session checkout precedence (Story 3.3):** a second, git-ignored marker file, `.active-claude-session` (`{"session_id": <str>}`), tracks whether a Claude Code session is currently live. `SessionStart` writes it (alongside its existing `update_active_story()` call, unchanged) and `SessionEnd` removes it. `git post-checkout` now branches on this marker: if **no** session is live, a branch checkout behaves exactly as Story 3.1 (`update_active_story()` — full slice close/open); if a session **is** live, it calls `repoint_active_story()` instead — this rewrites only the pointer's `story_id`, leaving `opened_at`/`last_activity_at` untouched and emitting no `time.*` event, so the ongoing session's activity now counts toward the new story without the checkout itself opening or closing a slice. The slice is instead conclusively closed by `SessionEnd`'s new `close_active_story_slice()` call, which emits `time.slice_closed` for whatever story the pointer names *at that moment* (i.e. the last story it was repointed to, if any mid-session checkouts happened) and then deletes the pointer — completing the "a session-level slice only opens/closes on `SessionStart`/`SessionEnd`" rule stated above, which Story 3.1 alone had left only half-wired (opening only; nothing previously closed a slice except a later, unrelated pointer change).
 
 ### AD-8 — Hook installation is git-versioned, not per-machine
 
@@ -132,7 +135,7 @@ Layer → directory mapping:
 
 | Name | Version |
 | --- | --- |
-| Python | 3.8+, run via `uv run` (no venv management) — ratifies the existing convention used by `_bmad/scripts/*.py` in this repo. All hook logic, the CLI wrapper, and the snapshot assembler are single-file Python scripts. |
+| Python | 3.8+, run via `uv run` (no venv management) — ratifies the existing convention used by `_bmad/scripts/*.py` in this repo. All hook logic, the CLI wrapper, and the snapshot assembler are single-file Python scripts. One sanctioned exception (amended Story 2.3): hook scripts share a single event emitter (`tools/hooks/_events.py`) reached via a one-line documented `sys.path` bridge, so the AD-1/AD-1b/AD-9 mechanics exist exactly once across producer families. |
 | git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`) | native git, no added dependency; verified stable, no staleness risk. Each is a thin shell/batch shim (git requires a directly executable file) that calls `uv run tools/hooks/git/<name>.py` |
 | Claude Code hooks — wired via `hooks` entries in `.claude/settings.json` (event → matcher → command), **not** auto-discovered by folder/filename | this spine uses six of the available events: `SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`; more events exist (e.g. `SubagentStop`, `PreCompact`, `Notification`) and are out of scope here. Each configured command invokes `uv run tools/hooks/claude/<name>.py` |
 | openspec ([Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec)) / speckit ([github/spec-kit](https://github.com/github/spec-kit)) CLI | existing project tooling, wrapped not modified; verified current and maintained |
@@ -144,6 +147,7 @@ Layer → directory mapping:
   .story.yaml              # kickoff manifest — story identity + PM metadata (AD-5)
   .story-events.jsonl       # append-only local event log, git-ignored (AD-2)
   .active-story             # current active-story pointer, git-ignored (AD-7)
+  .active-claude-session    # live-session marker for mid-session checkout precedence, git-ignored (AD-7, Story 3.3)
   .claude/
     settings.json            # hook entries (event -> matcher -> command) point at tools/hooks/claude/* (AD-8)
     skills/
@@ -151,6 +155,7 @@ Layer → directory mapping:
       story-close/          # human bookend: actual-vs-blockers note
   tools/
     hooks/
+      _events.py             # shared event emitter (AD-1/AD-1b/AD-9), source-parameterized; hooks reach it via a one-line documented sys.path bridge (amended Story 2.3)
       git/                  # post-commit.sh etc. — thin shims calling `uv run tools/hooks/git/*.py` (AD-8)
         post-commit.sh
         post-commit.py
@@ -170,7 +175,7 @@ Layer → directory mapping:
 
 - **Capture side runs entirely on the developer's machine** — no server, no network dependency (AD-2). The only environment concern is that `tools/setup-hooks` has run for that clone (AD-8).
 - **Central presentation layer's deployment target, hosting, and provider are Deferred** — only its input contract (the versioned snapshot, AD-3/AD-3a) is fixed here.
-- Local-only files (`.story-events.jsonl`, `.active-story`) are `.gitignore`d; `.story.yaml` and any produced snapshot files *are* intended to be committed/shared (they carry no credentials — see AD-4).
+- Local-only files (`.story-events.jsonl`, `.active-story`, `.active-claude-session`) are `.gitignore`d; `.story.yaml` and any produced snapshot files *are* intended to be committed/shared (they carry no credentials — see AD-4).
 
 ## Deferred
 

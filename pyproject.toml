@@ -1,0 +1,27 @@
+[project]
+name = "explore-jira-ai-metrics"
+version = "0.0.0"
+description = "Capture-side tooling: PM metrics as a byproduct of the AI-accelerated engineering flow"
+requires-python = ">=3.8"
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.5",
+    "ruff==0.9.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+extend-exclude = ["_bmad", ".claude"]
+
+[tool.ruff.lint.per-file-ignores]
+# Hook scripts use the spine-sanctioned one-line sys.path bridge to the shared
+# emitter (Story 2.3), which necessarily precedes `import _events`.
+"tools/hooks/**" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

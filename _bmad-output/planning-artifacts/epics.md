@@ -53,8 +53,8 @@ No UX design contract exists for this project; this section is not applicable.
 | Requirement | Epic |
 | --- | --- |
 | FR1 (CAP-1) | Epic 2, Epic 3 |
-| FR2 (CAP-2) | Epic 4 |
-| FR3 (CAP-3) | Epic 5 |
+| FR2 (CAP-2) | Epic 2 (Stories 2.5, 2.6) |
+| FR3 (CAP-3) | Epic 3 |
 | FR4 (CAP-4) | Epic 1 |
 | FR5 (CAP-5) | Epic 1 |
 | FR6 (CAP-6) | Epic 2 |
@@ -65,11 +65,14 @@ No UX design contract exists for this project; this section is not applicable.
 | NFR4 | Epic 1 |
 | NFR5 | Epic 3 |
 
+*(Updated 2026-07-10: this table originally referenced "Epic 4"/"Epic 5" from an earlier planning draft; the actual build folded FR2 and FR3 into Epics 2 and 3 respectively — those Epic 4/5 references were stale and have been superseded. Epics 1–3 cover the original SPEC capabilities (CAP-1..7) and are complete. Epic 4 below is a genuinely new addition, opened 2026-07-10 during pre-deploy smoke testing — it covers a distribution gap the original SPEC never addressed, not a resurrection of the old draft's Epic 4.)*
+
 ## Epic List
 
 1. Epic 1: Start a Story With Zero Manual PM Setup
 2. Epic 2: Metrics Appear Automatically When You Close a Story
 3. Epic 3: Time Tracked Without Logging Hours
+4. Epic 4: Package and Distribute the Capture Tooling to a Target Repo
 
 ### Epic 1: Start a Story With Zero Manual PM Setup
 A developer can kick off a story without re-typing PM data, whatever tool (or lack of one) the project uses.
@@ -93,7 +96,15 @@ Switching between stories never corrupts time attribution, and nobody manually s
 
 A developer can kick off a story without re-typing PM data, whatever tool (or lack of one) the project uses.
 
+> ✅ **Epic complete** — 2026-07-09, all 5 stories done (PRs #1, #4, #6, #8, #9).
+>
+> **Retro note (§13):** *What worked* — fetch-only adapters composed with one manifest writer kept NFR4 trivially provable; test-first + manual E2E caught what green suites missed (the UTF-8 BOM bug); external-LLM review found one real defect per early story, then zero by 1.5 as its lessons (URL encoding, format-over-membership validation, resilient parsing) got pre-applied; duration fell 60→13 min/story as patterns stabilized. *What to adjust* — squash-merge discipline slipped once (PR #1, merge commit); LLM review produced one hallucinated finding (nonexistent `import math`) — keep grep-verifying before acting; the duplicated flat-YAML parser (2 copies) is fine for now, but revisit at spine level if Epic 2's hooks need it too (Issue #7).
+>
+> 🔓 **Reopened 2026-07-10** — real-world pilot deployment surfaced that individual developers on an existing JIRA-backed project will not realistically have (or want to manage) a personal `JIRA_API_TOKEN`. Story 1.3's direct-REST-with-token adapter is superseded by **Story 1.6**, which fetches via the already-configured Atlassian Remote MCP Server instead. Story 1.3 is left below for history; do not delete it or its PR.
+
 ### Story 1.1: Create the Story Manifest via Docs-Only Kickoff
+
+> ✅ **Complete** — 2026-07-09 · [PR #1](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/1) (merged to `develop`, 9ab68f8)
 
 As a developer,
 I want to kick off a story and have my points/goal/sprint captured into a manifest, even when my project has no PM tool,
@@ -109,6 +120,8 @@ So that every downstream capture mechanism has a story identity to attach to.
 
 ### Story 1.2: Project-Level Source-of-Truth Configuration
 
+> ✅ **Complete** — 2026-07-09 · [PR #4](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/4)
+
 As a developer,
 I want my project to declare its PM tool once,
 So that I'm never asked which tool applies on every single story.
@@ -121,6 +134,10 @@ So that I'm never asked which tool applies on every single story.
 **And** an unset config defaults to the docs-only behavior from Story 1.1
 
 ### Story 1.3: JIRA Adapter Auto-Fills Kickoff
+
+> ⚠️ **Superseded by Story 1.6** (2026-07-10) — the token-based `urllib` fetch below still exists in `tools/adapters/jira/main.py` and works, but real-world pilot rollout means developers won't have a personal `JIRA_API_TOKEN` to put in their environment. Kept here for history; do not delete.
+>
+> ✅ **Complete** — 2026-07-09 · [PR #6](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/6)
 
 As a developer on a JIRA-backed project,
 I want my story's points/goal/sprint pulled automatically from a JIRA issue key,
@@ -135,6 +152,8 @@ So that I don't retype what JIRA already knows.
 
 ### Story 1.4: Confluence Adapter Auto-Fills Kickoff
 
+> ✅ **Complete** — 2026-07-09 · [PR #8](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/8)
+
 As a developer on a Confluence-backed project,
 I want the same automatic fill as JIRA,
 So that both PM tools are supported identically.
@@ -148,6 +167,8 @@ So that both PM tools are supported identically.
 
 ### Story 1.5: Kickoff Manifest Declares Which AI Tool Is In Use
 
+> ✅ **Complete** — 2026-07-09 · [PR #9](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/9)
+
 As a developer,
 I want my project to declare which AI tool it uses,
 So that the capture side knows which adapter to activate without asking me on every story.
@@ -160,13 +181,113 @@ So that the capture side knows which adapter to activate without asking me on ev
 **And** AI-session capture producers (Story 2.3) read this field to know which adapter's event namespace to emit under
 **And** an unset `ai_tool` config defaults to `claude-code`
 
+### Story 1.7: Docs-Only Kickoff Reads a Requirements Doc and Relaxes Sprint for Ad Hoc Teams
+
+> ✅ **Complete** — 2026-07-11 · [PR #21](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/21) (squash-merged to `enhancements`, da3b593). Manual E2E of the skill-flow scenarios deferred to the user's own post-release testing pass, by explicit instruction.
+
+As a developer on a project with no PM tool,
+I want kickoff to optionally read a requirements document I point it to, and to not force a fake sprint number on a team that doesn't run sprints,
+So that docs-only kickoff is genuinely adapted to "no PM tool," not just "no JIRA/Confluence," and points/goal aren't guessed blind when a PRD already describes the work.
+
+**Context:** raised during live testing of the release artifact (2026-07-11). Docs-only kickoff currently never reads any document — it's a pure conversational ask, and `sprint` is a required field for every backend including docs-only, forcing ad hoc teams to invent a sprint number they don't have. Both are real gaps in CAP-4's "adapts to whatever tool or lack of tool" premise, not implementation bugs.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `source_of_truth: docs-only` at kickoff
+   **When** the skill runs
+   **Then** it asks whether the developer has a requirements document (PRD) and, if so, its path
+   **And** it reads `.md`/`.txt`/`.pdf`/`.docx` directly; a legacy binary `.doc` or unreadable file is not fatal — the skill says so plainly and falls back to the plain ask
+   **And** the document's content is summarized, never dumped verbatim into the manifest or chat
+2. **Given** a requirements document was read
+   **When** the skill elicits points and goal
+   **Then** it presents a **document-derived suggestion** for both, as a second advisory signal alongside any Phase-1 estimate (never silently written — same "suggest, human confirms" pattern as Phase-1; CAP-1 points confirmation stays human)
+3. **Given** the skill elicits points, goal, and sprint
+   **When** it prompts the developer
+   **Then** it uses `AskUserQuestion` (structured options + freeform "Other") for **points** and **sprint**; **goal** is asked as free text (optionally pre-filled with a document-derived candidate) since a one-line objective doesn't fit a small options set
+   **And** the "goal" question is phrased in plain language (e.g. "What does done look like for this story?"), not the bare word "Goal"
+4. **Given** `source_of_truth: docs-only` specifically (JIRA/Confluence unaffected — they have a real sprint concept to pull from)
+   **When** the developer has no milestone/release/sprint concept to give
+   **Then** an explicit "none"/"N/A" answer is accepted as valid — the skill does not re-prompt forever demanding a fabricated value
+   **And** the elicitation wording reflects this (e.g. "Milestone, release, or time period this belongs to — say 'none' if you don't track this")
+   **And** the manifest's `sprint` field itself stays named `sprint` regardless of backend (AD-4 normalized shape unchanged) — only the docs-only question wording and requiredness change; JIRA/Confluence keep `sprint` required exactly as today
+5. **Given** `source_of_truth: docs-only` (decided 2026-07-11: docs-only-only, not a cross-backend AD-4 change — see Held for later)
+   **When** the skill elicits the required fields
+   **Then** it also asks for a short human-readable **Story Name** (e.g. "Auth Module Implementation") as free text, before goal/points/sprint
+   **And** the manifest gains a new optional `name` field (`null` for JIRA/Confluence, which don't ask for it in this story), positioned right after `story_id`
+   **And** the kickoff completion summary shows **Name** right after **Story ID** — directly fixes the "opaque `story_id`-only summary" gap found in testing
+6. **Given** a developer just completed docs-only kickoff and isn't sure what's next
+   **When** they read `INSTALL.md`
+   **Then** it documents the real sequence with a concrete example: `/opsx:propose <change-name>` (developer-chosen kebab-case, **never** `story_id` — verified against `.claude/commands/opsx/propose.md`) ideally before kickoff for a real Phase-1 estimate, then normal work, then `/opsx:apply`, then `/opsx:archive`
+   **And** when Phase-1 comes back null because no openspec change was found, the skill adds a one-line non-blocking nudge toward `/opsx:propose` (FR5 — informational only)
+
+> 🔍 **Post-implementation finding (2026-07-13, live pilot testing):** during the no-MCP fallback path (JIRA MCP tools unavailable, kickoff degrading to manual elicitation per CAP-4/AD-10), the first `AskUserQuestion` call threw a visible `InputValidationError` (partial payload: `"origin": "array"...`) before silently retrying and succeeding — the developer saw a raw tool-use error flash by, though kickoff still completed correctly. Not reproduced on the JIRA-success path (which only asks a single confirm/override question), so it appears isolated to the fallback path's multi-field elicitation (points + sprint asked together, per AC 3 above). Low severity — self-recovered, no bad data written — but a real, reproducible error worth a look: likely a malformed multi-question payload (missing/incorrect field on one of the two questions) in that specific branch of the skill's instructions.
+
+**Held for later (decided 2026-07-11):** a `name` field for JIRA/Confluence too (JIRA's `summary` already maps to `goal` today — extending `name` cross-backend changes the AD-4 shape for all three adapters and needs its own design pass on whether `goal` then means something different for JIRA; revisit as its own story if wanted). Actually parsing structured data out of a PRD (e.g. extracting a formal task list) — this story only supports summarization to inform a human's own estimate, not automated extraction. Extending the same doc-read capability to JIRA/Confluence kickoffs, if ever wanted.
+
+### Story 1.6: JIRA Adapter Fetches via the Atlassian Remote MCP Server
+
+> ✅ **Complete** — 2026-07-11 · [PR #19](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/19) (squash-merged to `enhancements`, 9eddf90) — supersedes Story 1.3. E2E scenario A verified live pre-merge; scenarios B/C/D pending a convenient test window (tracked in `docs/testing/story-1.6-e2e.md`). Review note: 4th consecutive PR with a misattributed/hallucinated reviewer finding (this time crediting base-branch commits and an untouched `APPROACH.md` to the PR) — grep-verify discipline held.
+
+As a developer on a JIRA-backed project,
+I want kickoff to fetch my story's points/goal/sprint through the team's already-configured JIRA connection,
+So that I don't need a personal `JIRA_API_TOKEN` just to run kickoff — auth is handled the same way it already is for every other JIRA action I take as a developer.
+
+**Context (why this replaces Story 1.3):** the original design assumed a developer would export `JIRA_BASE_URL` / `JIRA_EMAIL` / `JIRA_API_TOKEN` into their shell. In a real pilot rollout, developers joining an existing JIRA-backed project don't provision personal API tokens for one-off tooling — and shouldn't have to. The Atlassian Remote MCP Server (`https://mcp.atlassian.com/v1/mcp/authv2`) is the standard way Claude Code (and other AI tools) already connect to JIRA/Confluence/Bitbucket/Compass, authenticated via OAuth 2.1 under the developer's own existing access controls — no manual token. [Atlassian: Extend Atlassian into any AI assistant using MCP](https://www.atlassian.com/platform/remote-mcp-server); [GitHub: atlassian/atlassian-mcp-server](https://github.com/atlassian/atlassian-mcp-server); [Atlassian Support: Getting started with the Atlassian Remote MCP Server](https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/).
+
+**Architecturally, this is not a subprocess adapter script** — an MCP tool is only callable by the agent itself (Claude Code) inside a live conversation, never by a standalone `uv run` script. So unlike Story 1.3's `tools/adapters/jira/main.py`, this story changes the **`story-kickoff` skill's step 4a** to call the MCP tool directly, then hand the already-fetched `{points, goal, sprint, description}` to the existing, unchanged manifest writer (`tools/adapters/docs-only/main.py --source-of-truth jira`). `tools/adapters/jira/main.py` (Story 1.3) is left in place, unused by the skill, as a fallback path for a project that genuinely has no MCP server configured — resolved by Story 1.2's existing config, not a new field.
+
+**Acceptance Criteria (draft):**
+
+**Given** `source_of_truth: jira` and the Atlassian Remote MCP Server already configured for this Claude Code session (org-level or project-level `.mcp.json`)
+**When** the developer enters a JIRA issue key at kickoff (e.g. `jira-task-1234`)
+**Then** the `story-kickoff` skill calls the MCP server's issue-fetch tool (`getJiraIssue`, per Atlassian's documented toolset) directly — no `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` env vars are read or required
+**And** the fetched fields are normalized into the same `{points, goal, sprint, description}` shape Story 1.3 produced, then passed to `docs-only/main.py --source-of-truth jira` unchanged
+**And** points confirmation stays human either way (CAP-1) — MCP-fetched points are a suggestion, never auto-written without developer confirmation
+**And** a field the MCP tool doesn't return is `null`, elicited via the existing step-4 re-prompt rule — never invented
+**And** if no JIRA MCP server is reachable/configured for this session, the skill tells the developer plainly and falls back to Story 1.3's token-based script *only if* `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` happen to be set, otherwise falls back to the plain docs-only ask — it never blocks kickoff (FR5)
+**And** NFR4 is satisfied more simply than before: no JIRA credential of any kind is ever read, held, or written by this tooling — auth lives entirely in the MCP server's own OAuth session
+
+**Testing strategy (decided 2026-07-10 — this story is skill-flow work, not script work):** Story 1.3 was a subprocess script, fully unit-testable with pytest; Story 1.6 changes the `story-kickoff` skill's conversational step 4a, which pytest cannot reach. Manual E2E against a real Atlassian test site (available — confirmed 2026-07-10) is therefore the *primary* verification, not the backstop. The story's Definition of Done must include a scripted E2E pass covering at minimum: (a) happy path — issue key → MCP fetch → confirm → `.story.yaml` written with `source_of_truth: jira`; (b) issue key not found; (c) MCP server not connected → graceful fallback message, kickoff still completable via plain ask (FR5); (d) points absent from the MCP response → null elicited via re-prompt rule, never invented. Any *new or changed* subprocess code (e.g. normalization helpers, if extracted) still gets pytest coverage per the repo standard; invocation remains natural-language ("kick off this story"), not a formal command (decided 2026-07-10).
+
+**Empirical verification (2026-07-11, against `my-sg-custom-dashboard.atlassian.net`):**
+- ✅ **OAuth flow works exactly as designed**: `claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp/authv2` (project-local scope), then `/mcp` in the CLI → browser OAuth → authenticated on first try. No token provisioned anywhere.
+- ✅ **Full raw REST v3 issue shape survives the MCP layer** (fetched AI-53 with `fields: ["*all"]`): the response is the complete JIRA REST issue object wrapped in `{"issues": {"nodes": [...]}}` — custom fields intact, nothing normalized away.
+- ✅ **Points field visible**: `customfield_10016` present in the response (null on the test issue only because no points were set — the correct elicitation-path trigger). Story 1.3's `DEFAULT_POINTS_FIELD` and `extract_points()` logic transfer as-is.
+- ✅ **Sprint field visible**: `customfield_10020` with the full sprint-object list (closed + future entries on the test issue). Story 1.3's `extract_sprint()` rule (active wins, else last) handles the observed shape exactly.
+- ✅ **Tool names confirmed**: `mcp__atlassian__getJiraIssue` does the fetch, but it requires a `cloudId` parameter — obtained by calling `mcp__atlassian__getAccessibleAtlassianResources` first. Step 4a is therefore a **two-call sequence** (resolve cloudId → fetch issue); the skill should cache/reuse the cloudId within a kickoff rather than re-resolving per field.
+- ✅ **Positive-path points confirmed** (2026-07-11): after setting Story Points = 5 on AI-53, a re-fetch returned `customfield_10016: 5`. All empirical unknowns for this story are now closed; implementation can start.
+
+**Remaining open questions:**
+- Decide whether the API-token path (Story 1.3) stays as a documented fallback long-term, or is deprecated/removed once MCP is proven out in the pilot.
+- Server-agnostic wording (decided 2026-07-11): the skill's step 4a should target *whichever JIRA MCP server the session has configured* (official Atlassian remote recommended as default; community `mcp-atlassian` also exists but registers zero tools without env credentials — observed live). Which server a project uses is a deployment/prerequisites choice, not skill logic.
+
+### Story 1.8: Confluence Adapter Fetches via the Atlassian Remote MCP Server
+
+> ✅ **Complete** — 2026-07-15 · [PR #40](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/40) (squash-merged to `enhancements-v2`, d47d4e8), found live during Confluence pilot testing: step 4b never got the MCP upgrade Story 1.6 gave JIRA. **Live-verified same day** (`story-20260715-480790`): a real kickoff against a real Confluence page correctly fetched via `getAccessibleAtlassianResources` → `getConfluencePage`, gave the honest labels-gap explanation, and wrote the manifest correctly. That same live test surfaced Story 1.9 below.
+
+### Story 1.9: JIRA/Confluence Kickoff's Plain-Ask Fallback Wrongly Offered the Docs-Only "None" Sprint Option
+
+> 🆕 **Built 2026-07-15** — found live during Story 1.8's own real-session verification: a Confluence kickoff correctly degraded to a plain manual ask (no MCP auth, no env credentials), but offered the docs-only-specific "None" sprint option, and the manifest writer correctly rejected it (`--sprint must not be empty` — sprint has always been required for JIRA/Confluence, only docs-only gets the "none" exception). Root cause: `SKILL.md`'s step 4 header already states the rule, but 4a's and 4b's own fallback text never repeated it at the point it actually matters — a pre-existing ambiguity since Story 1.6, just never live-caught until now. Fixed with explicit inline reminders at all three fallback points (4a's one, 4b's two). PR pending; not fully closed — needs a live re-test of the fallback path.
+
+Researched the real MCP capability before implementing, not assumed: the Atlassian MCP server does expose Confluence tools (`getConfluencePage` and related) — confirmed live in the user's own session, fetching a real page ("Fibonacci Series", ID 22020097). But it has two confirmed, currently-open platform gaps of its own: **no Confluence page-label read capability at all** (this project's points/sprint auto-fill has always worked via `points-<number>`/`sprint-<name>` labels), and **no short-link resolution** (`/wiki/x/...` URLs can't be turned into a page ID by the MCP tools). Unlike Story 1.6's clean win for JIRA, this is an honest tradeoff, not a strict upgrade: `story-kickoff/SKILL.md` step 4b now fetches via MCP by default (no personal token, asks for the full page URL and parses the numeric ID itself), but points/sprint always fall back to a plain manual ask over that path, with an explicit explanation of why — the script fallback (real Confluence REST API, personal token) remains the only way to get genuine label-based auto-fill. Skill-instruction-only change, no pytest surface (same precedent as Stories 1.6/2.10) — verified so far via research plus one real live MCP page fetch; a full live kickoff run against the updated instructions is the remaining proof point.
+
 ---
 
 ## Epic 2: Metrics Appear Automatically When You Close a Story
 
 A developer works normally and, on closing the story, a trustworthy metrics snapshot exists — no manual reporting, no placeholder numbers.
 
+> ✅ **Epic complete** — 2026-07-10, all 6 stories done (PRs #10, #11, #12, #13, #14, #15).
+>
+> 🔓 **Reopened 2026-07-11** — real pilot-simulation testing of v0.2.0 surfaced a severe (S1) bug in Story 2.1's hook installer: Claude hook commands are written as relative paths, which break permanently for the rest of a session the moment the developer `cd`s anywhere (e.g. into a subproject to build/test) — every subsequent tool call and `Stop` then fails to spawn, in an unrecoverable loop requiring a session restart. Superseded by **Story 2.7**.
+>
+> **Retro note (§13):** *What worked* — the shared-emitter spine amendment (Story 2.3) paid for itself immediately: extending it to a third producer family (the opsx wrapper, Story 2.4) and reusing its `git_out()` helper for the assembler's git queries (Story 2.6) both required zero new subprocess-safety code. Extending existing components (the assembler, the docs-only writer) rather than creating parallel ones kept drift low across six stories touching the same files repeatedly. E2E discipline was decisive, not decorative: real-git/real-pipe testing caught 5 of this epic's defects outright (3 BOM-family bugs in 2.2/2.3, a cwd-addressing bug and a latent null-parsing bug in 2.6) that mocked unit suites alone did not surface — several as plausible-looking wrong answers, not crashes, the hardest failure mode to catch any other way. The LLM review loop (Gemini) converged to zero findings on 3 of 6 stories by the epic's end, visibly benefiting from earlier rounds' feedback (URL encoding, resilient parsing, format-over-membership validation) being pre-applied rather than re-caught.
+>
+> *What to watch* — Story 2.5 shipped without persisting its own output (the Phase-1 estimate), a gap only surfaced when Story 2.6 needed to read it back; the fix (AD-6a) was correct but retroactive. Future create-story passes should explicitly check whether a story's stated ACs, taken alone, satisfy every architecture invariant that later stories in the same epic will depend on — not just the epic document's per-story AC list. Also: this epic's `git_out()` reuse discipline (Issue #7's resolution) held up well through a second consumer; worth revisiting if a fourth producer family ever needs it, to confirm the shared module still earns its keep at that scale.
+
 ### Story 2.1: Hook Installation Is a Single Repeatable Setup Step
+
+> ✅ **Complete** — 2026-07-10 · [PR #10](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/10)
 
 As a developer joining the project,
 I want one command to install all capture hooks,
@@ -180,6 +301,8 @@ So that my activity is captured identically to everyone else's on the team.
 **And** hook logic lives in git-tracked `tools/hooks/`, never hand-maintained per machine
 
 ### Story 2.2: Git Activity Captured Silently While You Work
+
+> ✅ **Complete** — 2026-07-10 · [PR #11](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/11)
 
 As a developer,
 I want my commits/checkouts/merges captured automatically,
@@ -195,6 +318,8 @@ So that my metrics build up without extra effort.
 
 ### Story 2.3: AI Session Activity Captured Silently
 
+> ✅ **Complete** — 2026-07-10 · [PR #12](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/12)
+
 As a developer using Claude Code,
 I want my AI session activity (tool use, prompts, token usage) captured automatically,
 So that cost and phase metrics exist without manual reporting.
@@ -209,6 +334,8 @@ So that cost and phase metrics exist without manual reporting.
 
 ### Story 2.4: Story Closes and a Snapshot Is Created Automatically
 
+> ✅ **Complete** — 2026-07-10 · [PR #13](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/13)
+
 As a developer,
 I want closing my story to automatically produce a metrics snapshot,
 So that I never manually compile a report.
@@ -220,7 +347,11 @@ So that I never manually compile a report.
 **Then** the snapshot assembler reduces the full event log (Stories 2.2, 2.3) into the fixed envelope shape: `schema_version, story_id, revision, pm_metrics, engineering_metrics, story_point_cost, token_cost` (AD-3a)
 **And** every close produces a new immutable revision; nothing is overwritten in place (AD-3)
 
+> 🔍 **Post-implementation finding (2026-07-11, live pilot-simulation testing):** when `sessions_observed: 0` (no AI session events captured at all — as opposed to sessions existing but not reporting token cost), `token_cost.reason` comes back bare `null` rather than an explanatory string. AD-10's rule is "null-with-reason, never a bare null" — this may be a minor gap in that guarantee for the zero-sessions case specifically (every other null-token-cost snapshot observed so far carried a real reason string, e.g. "claude-code hooks do not report token usage"). Low severity, not yet turned into a story — worth a quick look at whether `sessions_observed == 0` should populate a reason too (e.g. "no AI sessions observed for this story"). **Confirmed with a live repro during 2026-07-14 pilot testing (`story-20260714-abfa46`: `ai_sessions: 1`, `sessions_observed: 0`, `reason: null`, visible as "not tracked — no reason given" in both the dashboard and metrics report) — now Story 5.6.**
+
 ### Story 2.5: Story Points Are Estimated Automatically at Kickoff
+
+> ✅ **Complete** — 2026-07-10 · [PR #14](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/14)
 
 As a developer,
 I want my story's points estimated automatically from its scope and complexity,
@@ -235,6 +366,8 @@ So that I don't have to guess a number myself.
 
 ### Story 2.6: Story Points Are Reconciled Against What Actually Happened
 
+> ✅ **Complete** — 2026-07-10 · [PR #15](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/15)
+
 As a developer,
 I want my estimate compared against what actually happened when I close the story,
 So that leadership sees real variance instead of a static guess.
@@ -246,13 +379,133 @@ So that leadership sees real variance instead of a static guess.
 **Then** the Phase-2 formula computes actual points from review cycles, agent-narrated decision events, and testing-type weights (AD-6)
 **And** the variance between the Phase-1 estimate and Phase-2 actual is logged, with neither number overwritten
 
+### Story 2.7: Hook Commands Are Cwd-Independent (Absolute Paths)
+
+> ✅ **Complete** — 2026-07-11 · [PR #22](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/22) (squash-merged to `enhancements`, 4d21476). Review found 2 real defects (fixed before merge, see the story's Review Follow-ups) and 5 misattributed findings — 2 of those 5 were legitimate concerns about untouched files, split out below as Stories 2.8/2.9.
+
+As a developer,
+I want the capture hooks to keep working no matter which directory I `cd` into during a session,
+so that a normal workflow (building/testing a subproject) never permanently breaks metrics capture — or my whole session.
+
+**What happened (verbatim from testing):** kickoff (Story 1.7) worked perfectly — name, PRD read, points/milestone via `AskUserQuestion`, all correct. The developer then did realistic work: used `/opsx:propose`/`/opsx:apply` to actually implement the proposed auth feature in `demo/user-auth-service/`, `cd`-ing into that subdirectory to run its own test suite. From that point on, **every** tool call failed with:
+```
+PreToolUse hook error: [uv run tools/hooks/claude/pre_tool_use.py]: error: Failed to spawn: `tools/hooks/claude/pre_tool_use.py`
+Caused by: The system cannot find the path specified. (os error 3)
+```
+`Stop` failed identically on every turn boundary, producing an infinite loop with no recovery path inside the session — required killing and restarting entirely.
+
+**Root cause (confirmed in code):** `tools/setup-hooks.py`'s `command_for()` writes a **relative** path into every Claude hook entry in `.claude/settings.json`:
+```python
+def command_for(script: str) -> str:
+    return f"uv run tools/hooks/claude/{script}"
+```
+This only resolves correctly if the hook is invoked with the repo root as cwd. Claude Code's hook-invocation mechanism appears to reuse whatever working-directory state the session has drifted to (via the model's own `cd`s in Bash tool calls) rather than always using the workspace root — so the moment a session `cd`s into a subdirectory, every subsequent hook invocation looks for the script relative to the wrong location and fails to spawn entirely.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** a repo where `tools/setup-hooks.py --repo-root <path>` has been run
+   **When** `.claude/settings.json` is inspected
+   **Then** every one of the six Claude hook commands (`SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`) is an **absolute path** to its script (resolved from `--repo-root` at install time), never a bare relative path
+2. **Given** a live Claude Code session with hooks installed this way
+   **When** the developer `cd`s into any subdirectory (or a subproject entirely) and continues working
+   **Then** every hook continues to spawn and fire correctly — no `Failed to spawn` error, regardless of the session's current working directory at the moment a hook fires
+3. **Given** an existing installation from before this fix (relative paths already in `.claude/settings.json`)
+   **When** the developer re-runs `uv run tools/setup-hooks.py --repo-root .`
+   **Then** the installer detects and upgrades the stale relative-path entries to absolute paths in place (the installer's existing idempotent-upgrade behavior, extended to cover this migration — not just a fresh install)
+4. **Given** the git hook shims (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`)
+   **When** this story is implemented
+   **Then** confirm whether they have the same relative-path fragility or are protected by git's own guarantee that hooks always run with cwd at the repo root (per the existing comment in `tools/hooks/_events.py`) — fix only if actually vulnerable; don't fix what isn't broken
+
+**Held for later:** whether Claude Code itself should be more resilient to a hook failing to spawn (e.g. degrade to a warning rather than blocking every subsequent tool call) is an Anthropic-side concern, not something this codebase can fix — worth a `/feedback` report separately, but out of scope for this story's fix.
+
+### Story 2.8: Git Commit Hooks Never Abort a Commit if `uv` Is Unavailable
+
+> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid finding, but about `tools/hooks/git/commit-msg.sh`, a file Story 2.7 never touched; [PR #39](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/39) (squash-merged to `enhancements-v2`, 1338f2a)
+
+`tools/hooks/git/commit-msg.py` is deliberately written to always exit 0, but that guarantee only held once Python was actually running — `commit-msg.sh` invoked it via a bare `uv run ...`, and if `uv` itself wasn't on the invoking process's PATH, the **shell** failed before Python ever started, which git treats as a real abort signal for `commit-msg` specifically. Fixed with a `command -v uv` guard plus an unconditional `exit 0`, with a visible stderr warning on miss (AD-9). Applied the same guard to `post-commit`/`post-checkout`/`post-merge` too, for consistent messaging — though confirmed via `_events.py`'s own documented exit-code table that those three were never actually at risk (git ignores their exit codes already), so this is a UX polish for them, not a correctness fix. Verified live: a real scratch repo, real hook install, real `git commit` with `uv` stripped from `PATH` — commit succeeded with visible warnings, not blocked.
+
+### Story 2.9: `repo_root()` Falls Back to a Parent-Directory Walk, Not Just Cwd
+
+> ✅ **Complete** — 2026-07-15, split out from PR #22's review (Gemini) — a real, valid hardening suggestion, but about `tools/hooks/_events.py`, a file Story 2.7 never touched; [PR #39](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/39) (squash-merged to `enhancements-v2`, 1338f2a)
+
+`repo_root()` used to fall back straight to `Path.cwd()` if `git rev-parse --show-toplevel` failed for any reason (timeout, `git` unavailable, OS-level limits). Story 2.7 already fixed the *primary* way a session's cwd can drift into a subdirectory; this story adds a smarter intermediate step for the rarer residual case: now walks up from cwd looking for a `.git` directory-or-file (worktrees/submodules use a file) before falling back to bare cwd. Verified with real-filesystem tests exercising the actual function directly (not monkeypatched away, unlike most other tests in this suite).
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `git_out("rev-parse", "--show-toplevel")` returns `None` (git failed or is unavailable)
+   **When** `repo_root()` is called from a subdirectory of the actual repo
+   **Then** it walks up from the current directory looking for a `.git` directory and returns that parent, rather than returning the current (possibly nested) directory unconditionally
+2. **Given** no `.git` directory is found anywhere in the parent chain (genuinely not inside a repo)
+   **When** `repo_root()` is called
+   **Then** it falls back to `Path.cwd()` exactly as today — this story only adds a smarter *intermediate* step, not a new failure mode
+
+### Story 2.10: A Closed Story's Manifest Doesn't Block the Next Story's Kickoff
+
+> ✅ **Complete** — 2026-07-13 · [PR #24](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/24) (squash-merged to `enhancements`, 05c29fa; branch preserved). Found live during pilot testing of the JIRA-via-MCP flow (v0.2.1, `ai-project-metrics-bmad-testing` test repo). Skill-instruction-only change (no pytest surface) — verified with 4 real live invocations of the actual skill, not simulated. Review found 3 real, correctly-attributed defects (explicit `<repo-root>`-relative path, missing-`snapshots/`-directory fallback, malformed-manifest fallback) — all fixed and re-verified live before merge.
+
+As a developer,
+I want kicking off a new story to work normally even though the previous story's `.story.yaml` was merged into my base branch,
+so that ordinary branch-per-story git hygiene (branching the next story off `develop`, not off the previous story's branch) never gets blocked by a stale manifest.
+
+**Context:** AD-5 requires `.story.yaml` to be git-committed per story, and it is — but no story, AD, or the Story DoD/Archival Checklist (`project-context.md` §12–13) ever defines how it's retired once that story closes. Concretely: `story-1` branches off `develop`, kickoff writes and commits `.story.yaml`, the story is archived (`opsx-wrapper archive`) and its branch merges back into `develop` — `.story.yaml` merges in too. `story-2` then branches off `develop` (completely normal git flow, not branching off `story-1`'s branch) and inherits story-1's `.story.yaml`. `story-kickoff`'s "Refuse a double kickoff early" guard (SKILL.md step 2) then blocks kickoff, telling the developer to "close out or archive the current story" — but story-1 *is* already closed; only its manifest file is still sitting there from the merge. Confirmed live: `story/AI-53` (branched after `story/add-user-basic-auth` had been archived, snapshotted, committed, and pushed) still carried the old story's `.story.yaml` and had to be manually `git rm`'d before kickoff would proceed.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** a story has been successfully archived via `tools/opsx-wrapper/main.py archive <name>`
+   **When** the archive completes successfully
+   **Then** `.story.yaml` is removed (staged for the developer's next commit, consistent with "close = one command, nothing left dangling" — the same philosophy Story 2.4's wrapper already applies to the snapshot step) — needs a decision on whether removal is automatic-and-committed by the wrapper itself, or automatic-but-left-staged for the developer's own close-out commit
+2. **Given** a project that doesn't use `openspec`/the opsx wrapper (plain docs-only or JIRA/Confluence close-out with no archive command)
+   **When** a story is done
+   **Then** define an equivalent manual or documented step so the same stale-manifest problem doesn't occur for non-openspec projects too
+3. **Given** the fix above
+   **When** `story-2` is branched off `develop` after `story-1`'s manifest-clearing change has merged
+   **Then** kickoff proceeds normally with no stale-manifest block
+
+**Design decision (resolved 2026-07-13, before implementation):** not a wrapper-side automatic teardown (that would only cover the openspec/opsx path, and mutating git state as a side effect of archiving is a surprising thing for a wrapper to do) and not a manual checklist step (too easy to forget, same class of problem as Story 2.11). Instead: `story-kickoff`'s own "Refuse a double kickoff early" guard (SKILL.md step 2) gets smarter. AD-3 already guarantees a snapshot is the authoritative signal a story has closed — so when `.story.yaml` already exists, kickoff checks whether `snapshots/{story_id}.*.json` also exists for that manifest's `story_id`. If a snapshot exists, the story is provably already closed (just its manifest lingered via merge/branch-inherit) — kickoff says so plainly and offers to clear `.story.yaml` (confirmed, not silent) so the new kickoff can proceed. If no snapshot exists, it's genuinely the same in-progress story — today's hard block stays exactly as-is. This is backend-agnostic (works whether or not a project uses openspec) and needs zero new state or wrapper changes.
+
+### Story 2.11: Setup Enforces `.gitignore` for Local Capture State (Prevents Silent Cross-Branch Data Loss)
+
+> ✅ **Complete** — 2026-07-13 · [PR #23](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/23) (squash-merged to `enhancements`, 8397b95; branch preserved). Found live during pilot testing (flow-2 branch-switch scenario), severity high — silent data corruption, no error surfaced anywhere. Review found 3 real, correctly-attributed defects (batched `git ls-files` call, whitespace/anchored-entry tolerance, `.gitignore`-as-a-directory guard) — all fixed and tested before merge.
+
+As a developer working multiple story branches off the same trunk,
+I want `.story-events.jsonl` (and the other local capture files) to always be git-ignored,
+so that switching between story branches never silently discards or forks captured events.
+
+**Context:** INSTALL.md documents `.story-events.jsonl`, `.story-events.pending.jsonl`, `.active-story`, and `.active-claude-session` as files the developer should manually add to `.gitignore` — but nothing in `setup-hooks.py` enforces or validates this, and it's a single easy-to-miss bullet buried in the "Daily use" section, not the "Install" steps. In this pilot test, that bullet was missed, so `.story-events.jsonl` got committed on `story/add-user-basic-auth` and carried forward via normal branching.
+
+**What happened (verbatim from testing):** with `.story-events.jsonl` git-tracked, `story/AI-53` and `story/AI-54` each accumulated their own committed version of the shared event log. Checking out between them caused git to silently overwrite the working-tree file with whichever branch's committed version was checked out — discarding, not merging, whatever events had been recorded on the branch just left. Confirmed via `Select-String` over the full log: every `AI-54`-branch event (the `stub.txt` commit, the AI-54 kickoff, etc.) was completely absent once back on `story/AI-53` — no error, no warning, just quietly missing data. Had a snapshot been assembled for either story mid-test, its `engineering_metrics` would have been silently wrong.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `tools/setup-hooks.py --repo-root .` is run (fresh install or upgrade)
+   **When** the repo's `.gitignore` doesn't already contain `.story-events.jsonl`, `.story-events.pending.jsonl`, `.active-story`, and `.active-claude-session`
+   **Then** the installer appends the missing entries automatically (creating `.gitignore` if absent), consistent with the "one command, nothing left dangling" philosophy already applied to `opsx-wrapper`'s archive step
+2. **Given** a repo where one or more of these files is *already* git-tracked (this pilot's exact situation — a stale commit predates the fix)
+   **When** the installer runs
+   **Then** it detects the already-tracked file(s) and surfaces a visible, actionable warning (AD-9: never fail silently) — e.g. "`.story-events.jsonl` is tracked by git; this can silently fork your event log across branches — run `git rm --cached .story-events.jsonl` to fix" — rather than silently leaving the dangerous state in place
+3. **Given** this fix
+   **When** a developer works two story branches off the same trunk and switches between them repeatedly
+   **Then** `.story-events.jsonl` is never touched by `git checkout` at all (untracked + ignored), so the log stays continuous and no branch's events are ever discarded or forked
+
+**Held for later:** whether `setup-hooks.py` should also proactively scan for and warn about *other* dangerous already-committed local state beyond this specific file list — out of scope for this story, which fixes the concrete case actually found.
+
 ---
 
 ## Epic 3: Time Tracked Without Logging Hours
 
 Switching between stories never corrupts time attribution, and nobody manually starts or stops a timer.
 
+> ✅ **Epic complete** — 2026-07-10, all 3 stories done (PRs #16, #17, #18).
+>
+> 🔍 **Post-epic smoke-test finding (2026-07-11):** an abrupt VS Code shutdown (no `SessionEnd`) leaves a stale `.active-claude-session` marker. Until the next `SessionStart` self-heals it, any `git checkout` takes the "session live → repoint only" path with no live session actually present — skipping slice accounting it should have performed. Observed live (overnight, marker present + no `.active-story`). Low severity, but the snapshot assembler should treat a `session_start` with no matching `session_end` event as a reduced-confidence signal on that story's time totals. Backlog, not urgent.
+>
+> **Retro note (§13):** *What worked* — the same "shared, source-parameterized emitter" discipline from Epic 2 carried straight into Epic 3: every new mechanic (`update_active_story`, `record_activity`, `repoint_active_story`, `close_active_story_slice`) was built as a sibling function reusing `emit()`/`write_atomic_json()`/`read_active_story()`, never a parallel append or I/O path — zero new event-integrity code needed across 3 stories despite adding 2 new event types (`time.slice_opened/closed/paused`) and 2 new local state files (`.active-story`, `.active-claude-session`). Live E2E (real git repos, real hook invocations via `uv run --script`) caught nothing new this epic but continued to be the final confirmation step every story leaned on, consistent with Epic 2's finding that it's the strongest signal mocked unit suites alone miss. Story 3.3 completed a rule (session-level slices closing on `SessionEnd`) that had been written into `ARCHITECTURE-SPINE.md` before Epic 3 even started but was left half-wired by Story 3.1 — a good example of a story's own dev notes correctly flagging and closing a cross-story architecture gap before it became a silent one, the same lesson Epic 2's retro flagged as a process improvement.
+>
+> *What to watch* — the LLM review (Gemini) surfaced a genuinely valid Critical finding on PR #17 (a malformed `STORY_IDLE_THRESHOLD_SECONDS` env var crashing module import, which would have blocked every commit) but also produced a misattributed bullet on **both** PR #16 and PR #18 — content from a different story's actual diff, presented as if it were about the PR under review. Caught both times by grep-verifying the claim against the actual changed files before acting; this is now the second epic in a row where this reviewer has produced at least one hallucinated/misattributed finding (Epic 1's retro flagged the first). Keep grep-verifying every finding, every PR, rather than trusting the review's framing at face value. Separately: PR #17 also failed CI on `ruff format --check` even though local `ruff check` (lint) had passed — format and lint are separate CI gates in this repo and both must be run locally before pushing; this was corrected and held for the rest of the epic.
+
 ### Story 3.1: Active-Story Pointer Tracks Time Automatically
+
+> ✅ **Complete** — 2026-07-10 · [PR #16](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/16)
 
 As a developer,
 I want the system to know which story I'm actively working on without me telling it,
@@ -266,6 +519,8 @@ So that my time-on-task is attributed correctly without logging hours.
 
 ### Story 3.2: Idle Time Doesn't Inflate a Story's Active Time
 
+> ✅ **Complete** — 2026-07-10 · [PR #17](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/17)
+
 As a developer,
 I want idle periods (meetings, breaks) excluded from my active time,
 So that time-on-task reflects real work, not an open session.
@@ -278,6 +533,8 @@ So that time-on-task reflects real work, not an open session.
 
 ### Story 3.3: Mid-Session Checkout Doesn't Double-Count Time
 
+> ✅ **Complete** — 2026-07-10 · [PR #18](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/18)
+
 As a developer,
 I want switching story branches mid-AI-session to not corrupt time totals,
 So that my time attribution stays accurate even when I context-switch quickly.
@@ -288,3 +545,167 @@ So that my time attribution stays accurate even when I context-switch quickly.
 **When** a `git checkout` happens mid-session
 **Then** the live session's `SessionStart`/`SessionEnd` boundaries govern time-slice accounting
 **And** the checkout re-points which story current activity counts toward, without itself opening or closing a session-level slice (AD-7 precedence rule)
+
+---
+
+## Epic 4: Package and Distribute the Capture Tooling to a Target Repo
+
+> 🆕 **Opened 2026-07-10** — surfaced during pre-deploy smoke testing (see `docs/testing/pre-deploy-smoke-checklist.md`). AD-8 assumed `tools/` already lives inside a target project's own repo, but no story ever designed how it gets there. Cloning this planning repo wholesale (specs, BMad artifacts, prompts, `_bmad-output/`) is not a viable install path for a pilot team's own project.
+
+A developer on a target project can get the capture tooling (`tools/`, its tests, and its minimal dependency footprint) into their own repo without also importing this repo's planning artifacts, specs, or history.
+
+**Not covered by the original SPEC.md** (CAP-1..7) — this is an operational/deployment gap identified after the fact, not a reconciled capability. Revisit `SPEC.md` and the architecture spine (AD-8) once the distribution mechanism is chosen, so the constraint is captured canonically rather than living only here.
+
+### Story 4.1: Choose and Implement a Distribution Mechanism for the Capture Tooling
+
+> ✅ **Complete** — 2026-07-11 · [PR #20](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/20) (squash-merged to `enhancements`, 7b621ff). Verified live: built the artifact, extracted into a virgin git repo, hooks installed, a real commit captured to the pending spool with zero planning-repo files present.
+
+As a developer on a target project,
+I want a documented, repeatable way to bring only the capture tooling into my project,
+So that adopting metrics capture doesn't require cloning or vendoring this planning repo's specs, prompts, and BMad artifacts.
+
+**Acceptance Criteria (draft — pending a decision on mechanism):**
+
+**Given** a target project that wants to adopt the capture pipeline
+**When** a developer follows the documented install path
+**Then** only `tools/`, `tests/` (or an equivalent minimal test footprint), and the dependency declarations needed to run them land in their repo — not `_bmad-output/`, `prompts/`, `openspec/`, or this repo's own specs
+**And** `tools/setup-hooks.py` (Story 2.1) still works unmodified against the vendored copy
+**And** the mechanism is a single documented command/step, not a manual file-by-file copy
+**And** picking up an update to `tools/` later (e.g. a new hook or a bugfix) has a defined, repeatable path — not just a one-time copy
+**And** the documented install path states every prerequisite up front (below), so a developer isn't discovering a missing piece mid-install
+
+**Prerequisites to document (confirmed by inspecting `tools/`; every hook/adapter script is stdlib-only — `urllib`, `json`, `subprocess`, `argparse`, no third-party runtime imports anywhere under `tools/`):**
+
+| Prerequisite | Why | Notes |
+| --- | --- | --- |
+| **Git** | Hooks are git hooks (`post-commit`, `post-checkout`, `post-merge`, `commit-msg`); branch-per-story convention (NFR5) | Any reasonably current version. On Windows, cloning **this planning repo** additionally needs `git config core.longpaths true` (its `_bmad-output/` paths exceed the 260-char limit from deep clone destinations — hit in real testing 2026-07-10); the release artifact won't carry those paths, making this a non-issue for target repos |
+| **Python 3.8+** | `requires-python = ">=3.8"` in `pyproject.toml`; every hook/adapter script targets this floor | Matches `ruff`'s `target-version = "py38"` too |
+| **uv** | Every script is invoked via `uv run` (PEP 723 inline script headers); git hooks are thin shell/batch shims that call `uv run <script>.py` (per epics.md build convention) | Must be on `PATH` — this is exactly what broke in initial testing when `uv run pytest` failed to spawn on a fresh clone |
+| **Claude Code** | Only required if `ai_tool: claude-code` (default) — the `.claude/settings.json` hook entries and `tools/hooks/claude/*.py` producers need it running | Not required for git-only capture if a project declares no AI tool |
+| **Atlassian Remote MCP Server access** (only if `source_of_truth: jira`, pending Story 1.6) | The JIRA fetch is moving from a personal API token to the org's already-configured Atlassian Remote MCP Server (`https://mcp.atlassian.com/v1/mcp/authv2`), OAuth 2.1-authenticated under the developer's existing JIRA access — no token to provision | Requires the MCP server to already be configured in the developer's Claude Code setup (`.mcp.json` or org-level); `JIRA_API_TOKEN` (Story 1.3) remains only as a documented fallback, not the primary path |
+| **Confluence API token** (only if `source_of_truth: confluence`, until an MCP equivalent is decided) | Adapter (`tools/adapters/confluence/main.py`) is currently a plain `urllib` REST call — **no MCP server yet** | Env vars: `CONFLUENCE_BASE_URL` (include `/wiki` for Cloud), `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`. Same personal-token concern as JIRA's original design applies here too — revisit once Story 1.6 (JIRA→MCP) is proven out, since the Atlassian Remote MCP Server also covers Confluence |
+| **No third-party Python packages at runtime** | `pytest`/`ruff` (`pyproject.toml` `dependency-groups.dev`) are dev-only, needed to run this repo's own test suite — **not** needed by a target repo just running the installed hooks | Worth calling out explicitly so target teams don't assume they need `uv sync` with the dev group just to use the tooling |
+
+**Correcting a likely misconception before this ships as install docs:** `source_of_truth: docs-only` does not read, parse, or ingest any shared document — it's a plain conversational elicitation where the developer types points/goal/sprint directly into the `story-kickoff` skill, which then writes `.story.yaml`. There is no supported document format for docs-only. For JIRA, Story 1.6 (see Epic 1) moves the fetch to the Atlassian Remote MCP Server instead of a personal API token — Confluence still uses a plain `urllib` REST call with a personal token for now (same gap Story 1.6 is fixing for JIRA), pending a decision on whether to extend the MCP approach to Confluence too, since the same Atlassian Remote MCP Server also exposes Confluence tools.
+
+**Decision status (2026-07-10): recommendation is the release artifact — pending final confirmation before implementation.**
+- **Release artifact (recommended)**: tag a release here; CI zips `tools/` + `.claude/skills/story-kickoff/` + a small install script; target team downloads from the GitHub Releases page (which doubles as the public prerequisite/download URL for install docs) and runs one command inside their own repo. Fits this codebase's stdlib-only, no-build-step design; updates = download next tag, re-run install.
+- **Git subtree/submodule (rejected)**: submodules impose clone/update friction on teams that didn't opt in; subtree pulls this planning repo's history (specs, prompts, BMad artifacts) into the client's project — the exact wholesale-clone problem this epic exists to fix.
+- **Template repo (rejected)**: permanent two-repo sync burden with inevitable drift, and only helps at project-creation time — useless for existing projects adopting the tooling.
+
+**Held for later (not in this story):** automatic update/sync tooling beyond the initial install path; versioning/compatibility policy between the tooling's version and a target repo's pinned copy.
+
+### Story 4.2: `develop` Promotes to `main` on a Defined Release Cadence
+
+> 🔁 **Superseded 2026-07-15** — the two-tier `develop`→`main` plan below is replaced by a simpler one: every story branch now opens its PR directly against `main` (no intermediate integration branch at all). See `project-context.md` §8/§10/§11 for the current rule. This entry is kept for history — the smoke-test failure it documents is exactly the class of bug the simpler flow prevents structurally (there's no second branch to fall behind).
+
+As a pilot developer cloning this repository,
+I want the default branch a fresh clone lands on to actually contain the shipped tooling,
+So that the documented install steps work on first contact instead of failing with "program not found."
+
+**What happened (2026-07-10):** the first real fresh-clone smoke test failed at `uv run pytest` → `Failed to spawn: pytest — program not found`. Root cause: `git clone` checks out `main` (the default branch), and `main` is **33 commits behind `develop`** — no `pyproject.toml`, no `uv.lock`, no `tools/`, no `tests/`. All 18 story PRs (Epics 1–3) merged to `develop`; nothing was ever promoted to `main`. A pilot rollout at that moment would have shipped an empty tool. Reproduced independently on a second fresh clone the same day, and again on 2026-07-15 in a separate testing repo (`ai-project-metrics-bmad-testing`) during Story 5.9's live verification — same root cause, different repo, which is what prompted dropping the two-tier branch model rather than continuing to patch around it.
+
+**Resolution:** rather than building a `develop`→`main` promotion mechanism, the team moved straight to `main` as the only trunk (§10 of `project-context.md`). Every story branch merges to `main` directly via the existing PR + human + LLM review gate — no separate promotion step to forget.
+
+### Story 4.3: One-Command Curl/irm Installer (No Manual Zip Download)
+
+> ✅ **Complete** — opened 2026-07-14 after the user asked why this couldn't be "install like BMad or openspec"; PR #30, merged
+
+A second, more convenient distribution path alongside Story 4.1's existing GitHub Releases zip — a single `curl -fsSL <url> | sh` (macOS/Linux) or `irm <url> | iex` (Windows) command, mirroring the exact pattern `uv`'s own installer already uses (already cited in this project's own `INSTALL.md`). The script resolves the **latest** release dynamically via the GitHub API, downloads and extracts the zip into the current directory, then prints the next step. Does not replace the manual zip-download path — both stay documented, this is additive. No automated test (not Python; same manual-E2E-only precedent as Story 2.7's git-hook shims); verified via real live E2E against the actual v0.3.0 release. Required making the GitHub repo public (was private, which blocks unauthenticated `curl`/`raw.githubusercontent.com` access) — confirmed with the user after a clean secrets scan of the full git history.
+
+### Story 4.4: `.story-config.yaml.example` Template Shipped in the Release
+
+> ✅ **Complete** — opened 2026-07-14, after the user asked why the config file couldn't ship as part of the build; PR #29
+
+A commented `.story-config.yaml.example` (every documented key, commented out, with its default explained) now ships in the release artifact, so a developer copies-and-edits instead of hand-typing from `INSTALL.md`'s prose. Deliberately **not** auto-copied into `.story-config.yaml` — a project's absence of that file is meaningful (AD-4's docs-only default), and this story must not weaken that by silently deciding a `source_of_truth` on the developer's behalf.
+
+### Story 4.5: Publish as a Package for a True One-Word Install (`uvx ai-metrics-capture install`)
+
+> ✅ **Complete** — 2026-07-14 · [PR #37](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/37) (squash-merged to `enhancements-v2`, 496645a). Real PyPI publish is out of scope (intentionally, per this story's own AC 4) — gated behind Story 4.2, still parked.
+
+Story 4.3's `curl`/`irm` one-liner is only as short as a raw GitHub URL allows — there's no name-resolution layer, so it must fully spell out host/org/repo/branch/path every time. `npx bmad-method install` is short specifically because npm's **registry** resolves the package name for you. Built a `pypi-package/` subdirectory (its own independent `pyproject.toml`, isolated from this repo's own dev/test config) with a `hatchling`-based package `ai-metrics-capture`, whose `install` console-script bundles the exact same files Story 4.1's zip artifact ships (reusing `tools/build-release/main.py`'s `iter_entries()` at a pre-build sync step, not a duplicated file list) and copies them into the developer's repo — no GitHub API call needed at install time, since `uvx` already resolved the right version. Verified live: real `uv build` + real `uvx --from <wheel>` install into a scratch git repo produced a file layout byte-identical (`diff -rq` empty) to a real zip extract. A `workflow_dispatch`-only, TestPyPI-targeting GitHub Actions workflow exists for future publishing, but nothing can actually publish anywhere until a human wires a real secret and Story 4.2 lands — this story ships the packaging, not a live PyPI presence.
+
+### Story 4.6: One-Command Uninstall (`uninstall.sh` / `uninstall.ps1`)
+
+> ✅ **Complete** — opened 2026-07-14, after the user asked how to reset a test repo back to a clean state between install tests; PR #31, merged
+
+Teardown counterpart to Story 4.3's install scripts: `uninstall.sh`/`uninstall.ps1` remove everything the install and `setup-hooks.py` added — the extracted `tools/`/skill/`INSTALL.md`/config template, the four `.git/hooks/` shims, this tooling's own entries in `.claude/settings.json` (surgically, never the whole file), and any capture-time artifacts (`.story.yaml`, `.story-events.jsonl`, `snapshots/`, `metrics-reports/`, etc.) if present. Prints what it's about to remove and asks for y/N confirmation first (a `--yes`/`-Yes` flag skips the prompt for scripted use) — this is destructive, unlike install. No automated test (shell/PowerShell scripts, same manual-E2E-only precedent as 4.3).
+
+### Story 4.7: `setup-hooks.py` Crashes on a BOM-Prefixed `settings.json`
+
+> ✅ **Complete** — opened 2026-07-14, a real bug hit live during pilot testing; PR #34, merged
+
+`setup-hooks.py` read `.claude/settings.json` with plain `utf-8`, so a BOM-prefixed file crashed with "Unexpected UTF-8 BOM" — fixed to `utf-8-sig` (this project's established convention for exactly this class of bug, now the 4th instance). Root cause traced to `uninstall.ps1`'s own settings.json rewrite step using `Set-Content -Encoding utf8`, which writes a real BOM on Windows PowerShell 5.1 — fixed to write BOM-less UTF-8 directly via `.NET`'s `UTF8Encoding($false)`. Two-sided fix: the read is now defensive against any BOM-writing tool, and the actual source of the corruption (this project's own uninstall script) no longer introduces one.
+
+### Story 4.8: `.story-config.yaml.example` Template Missing Story 5.4's Defect-Capture Keys
+
+> ✅ **Complete** — 2026-07-14 · [PR #35](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/35) (squash-merged to `enhancements-v2`, 111db78). Gemini review's 4 "unpatched defects" were all stale/misattributed (none of the named files were even in this PR's diff) — verified and confirmed already fixed in prior stories.
+
+Story 5.4 added real, working `test_commands`/`build_commands` config keys but never updated the shipped `.story-config.yaml.example` template, `INSTALL.md`'s own embedded config example, or Story 4.4's template-completeness test's hardcoded key list — all three fixed. A real gap in Story 5.4's own Definition of Done that a stricter completeness check should have caught.
+
+---
+
+## Epic 5: Leadership-Ready Reporting and Real Cost/Defect Tracking
+
+> 🆕 **Opened 2026-07-13** — a batch of enhancement requests from the user after two clean rounds of docs-only/JIRA pilot testing (v0.2.2), inspired partly by a richer per-story report format seen in a different tool (`developer_handover.md`/`metrics.md`-style: date/duration, story points, estimated cost, AI token cost, defect breakdown, testing/review efficiency, notes). Work happens on a new branch, `enhancements-v2`, off `enhancements` — **starting tomorrow (2026-07-14), not today.** Agreed priority order: A → B → C → E, with D last since its capture mechanism needs the user's decision first (not yet made).
+
+### Story 5.1: INSTALL.md — Numbered Steps, No Prose (small)
+
+> ✅ **Complete** — 2026-07-14 · [PR #25](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/25) (squash-merged to `enhancements-v2`, 9130a94; branch preserved). Review found 1 real, correctly-flagged issue (a pipe-escaping edge case in the Prerequisites table) — verified to predate this PR (Story 1.7) but fixed anyway since the file was already being touched.
+
+Strip `INSTALL.md`'s lengthy descriptive prose down to plain numbered steps ("Step 1.", "Step 2.", ...) for both the docs-only and JIRA flows separately, matching the step-list style the user has been using throughout pilot testing. Also make the archive→snapshot step explicit — state the literal `uv run tools/snapshot-assembler/main.py --repo-root .` (or the `opsx-wrapper` one-command equivalent) command to run after archiving, not just "produces a snapshot."
+
+### Story 5.2: Real Cost and Token Fields Per Story (medium)
+
+> ✅ **Complete** — 2026-07-14 · [PR #26](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/26) (squash-merged to `enhancements-v2`, 2593c02; branch preserved). Live E2E against a real Claude Code session transcript (not synthetic) found and fixed a real bug (stale reason shadowing real token data). Review found 2 more real, correctly-attributed defects (a `TypeError` crash risk on mixed-offset timestamps; a transcript memory-efficiency improvement) — both fixed and tested before merge.
+
+Two things, both feeding a story's per-story cost picture:
+1. **Real token counts** — the transcript-parsing enhancement scoped out 2026-07-13 (see `project_pm_metrics_pipeline.md` memory): `tools/hooks/claude/session_end.py` already receives `transcript_path` in its hook payload but doesn't read it; Claude Code's own local transcript `.jsonl` contains real per-turn `usage.input_tokens`/`output_tokens` (confirmed by direct inspection). Sum these across a session's transcript instead of emitting a bare null token_cost.
+2. **Cost fields**, mirroring `developer_handover.md`'s formulas exactly:
+   - `Estimated Cost = hourly_rate × duration` (duration already computable from `first_event_at`/`last_event_at`)
+   - `AI Token Cost = (input_tokens × ai_input_rate / 1,000,000) + (output_tokens × ai_output_rate / 1,000,000)`
+   - Rates (`hourly_rate`, `ai_input_rate`, `ai_output_rate`) belong in **`.story-config.yaml`** (this project's existing config file), not a new `.env` — stay consistent with the established config convention rather than introducing a second one.
+
+**Caveat carried over from the original transcript-parsing discussion:** Claude Code's transcript format is an internal/unversioned schema, not a stable public API — this couples the implementation to whatever that format looks like today.
+
+### Story 5.3: `metrics-<date>.md` Generator (medium, builds on 5.2 but doesn't require it first)
+
+> ✅ **Complete** — 2026-07-14 · [PR #27](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/27) (squash-merged to `enhancements-v2`, 1339056; branch preserved). Live E2E against this project's own real accumulated snapshots (not synthetic fixtures) found and fixed 2 real gaps (a missing Goal line; a duration fallback for pre-Story-5.2-schema snapshots). Also fixed a small, previously-undiscovered gap: `pm_metrics.name` had been in `.story.yaml` since Story 1.7 but was never carried into the snapshot. Review found 2 more real defects (malformed-date-field guards) plus 1 stale/incorrect finding, correctly identified as such by diffing against the actual PR before acting.
+
+A new tool that reads `snapshots/*.json` (kept as the canonical machine-readable artifact per AD-3 — this does not replace JSON, it renders a human-readable view alongside it) and writes/updates one markdown file per day (e.g. `metrics-07142026.md`) formatted like this repo's own existing hand-maintained `docs/metrics.md` — one section per story, with whatever fields are actually available (points, goal, engineering metrics, phase1/phase2 points, cost/token fields once 5.2 lands). Fields not yet captured (e.g. defect counts, before 5.4 exists) are shown honestly as "not yet tracked," never a fake zero — same null-with-reason philosophy as the rest of this pipeline.
+
+### Story 5.4: Bug/Defect + Review-Efficiency Tracking
+
+> ✅ **Complete** — PR #33, merged 934da7f. Resolved by studying `aep-orchestrator`'s reference implementation directly (its formulas are reused; its 100%-manual, two-disconnected-rounds capture mechanism is explicitly not copied, since the user's goal is avoiding developer intervention entirely, which that tool doesn't actually achieve)
+
+**Final design:** compile/test defects are captured **fully automatically** by extending the existing `PostToolUse` hook to watch Bash tool calls against a project-configured `test_commands`/`build_commands` allowlist in `.story-config.yaml` — a matched command's non-zero exit appends a local `defect.compile`/`defect.test` event, no developer or AI action required, no command output ever captured (same privacy posture as this hook's existing fields). Review defects are captured **as a byproduct of this project's already-established practice** (paste an external review → verify each finding against the diff → fix the real ones) — fixing a verified-real finding now also logs a `defect.review` event and, for JIRA-backed stories, creates a real Jira Subtask via the already-connected Atlassian Remote MCP server (confirmed working with a real write — `AI-140` created as a Subtask under `AI-139` during this story's design phase). A key architectural constraint shapes the split: **MCP tools are only reachable from a live assistant turn, never from a hook subprocess** — so compile/test defects (hook-captured) stay local-only in this story; a Jira-sync step for them is an explicit, deferred non-goal. `testing_efficiency`/`review_efficiency` are `null` with a reason when zero defects were ever logged, never the reference tool's fabricated 100%/0% default. Requires one small prerequisite: persisting the parent Jira issue key in `.story.yaml` at kickoff (currently fetched transiently and discarded). Full story: `_bmad-output/implementation-artifacts/5-4-bugdefect-review-efficiency-tracking.md`.
+
+### Story 5.5: Leadership HTML Dashboard (depends on 5.3, or reads snapshots directly)
+
+> ✅ **Complete** — 2026-07-14 · [PR #28](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/28) (squash-merged to `enhancements-v2`, b958140; branch preserved). A self-contained, no-publishing-mechanism HTML dashboard (table + honest stat tiles, no chart, per the user's own explicit request and `dataviz`'s choosing-a-form guidance). Live E2E against real snapshot data found and fixed a missing-full-document-structure gap. Review found 1 real defect (a present-but-null snapshot section crash, verified with an actual before/after crash reproduction) and 1 stale finding — the third consecutive PR (#26, #27, #28) where the same already-fixed `TypeError` claim was incorrectly re-raised.
+
+A static, self-contained local HTML file presenting the accumulated `metrics-*.md`/snapshot data as a shareable table for leadership — matching the existing pattern already in this repo (`docs/architecture-diagram-leadership.html`, `docs/new-machine-onboarding.html`). **Not** published via any hosted-link/artifact-publishing tool — this is internal, potentially sensitive leadership data (consistent with `APPROACH.md`'s "how this data will/won't be used" policy) and should stay a local file the user shares at their own discretion. Consult this project's `dataviz` guidance when building the actual table/layout.
+
+### Story 5.6: `token_cost.reason` Is Bare `null` When Zero Sessions Observed
+
+> ✅ **Complete** — opened 2026-07-14, closing out the 2026-07-11 finding (see Story 2.4's finding note above), confirmed with a live repro during 2026-07-14 pilot testing; PR #32, merged
+
+Narrow fix to `tools/snapshot-assembler/main.py`'s `token_cost_of()`: when zero `session_end` events exist (`sessions_observed: 0`), `reason` currently comes back bare `null` instead of an explanatory string, violating AD-10's null-with-reason rule — confirmed live (`ai_sessions: 1`, `sessions_observed: 0`, "not tracked — no reason given" rendered in both the dashboard and metrics report). Does **not** attempt to make `ai_sessions` and `sessions_observed` match — they measure genuinely different things (sessions *started* vs. sessions that *ended cleanly with token data*) and a mismatch is expected whenever a session doesn't end gracefully (e.g. the VS Code window closed abruptly instead of `/exit`/`Ctrl+C`).
+
+### Story 5.7: `post_tool_use.py` Reads `exit_code` From the Wrong Payload Location
+
+> ✅ **Complete** — 2026-07-14 · [PR #36](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/36) (squash-merged to `enhancements-v2`, fc54d3e).
+
+Root cause, confirmed against Claude Code's official hooks documentation: `post_tool_use.py` read `exit_code` from `tool_output.exit_code`, but Claude Code actually places it as a **top-level** `exit_code` key in the PostToolUse payload — so the guard never fired, for any command, ever. Story 5.4's own test suite didn't catch this because its hook-input fixtures baked in the same wrong (nested) shape, so 322 green tests validated against a payload shape Claude Code doesn't actually send. Fixed both the read and the fixtures, added a dedicated regression test, and verified live via two real subprocess runs of the actual hook script (one failing/matched, one passing) confirming `defect_compile` now fires correctly and only when it should. **Superseded almost immediately by Story 5.8** — the very next live test found the docs were wrong again, more fundamentally.
+
+### Story 5.8: Automatic Defect Capture Cannot Rely on a Nonexistent `exit_code` Field
+
+> ✅ **Complete** — built and merged 2026-07-15 ([PR #38](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/38), squash-merged to `enhancements-v2`, 4ac30c4), found live during JIRA-flow testing (`story-20260714-733705`) immediately after Story 5.7 shipped. **Live-verified same day** on v0.8.0 in a fresh JIRA test round (`story-20260715-ebfe10`): a real broken `hello-complie-error.ts` produced the injected `__AI_METRICS_EXIT__:2` marker in real stdout, and `.story-events.jsonl` shows 3 real `ai.claude-code.defect_compile` events across 3 failing `tsc` runs — confirming Claude Code's `PreToolUse` `updatedInput` mechanism genuinely works live, closing the one gap (Subtask 5.3) this story shipped with.
+
+A deliberately broken `tsc --noEmit` (real `TS2322`, confirmed `exit 1`) still didn't produce `defect_compile` even after Story 5.7's fix. Root-caused via a real captured payload (a temporary, never-committed debug tap): Claude Code's PostToolUse payload has **no `exit_code` field at all**, ever — and the response key is `tool_response`, not `tool_output` as documented. Confirmed as a known, currently-unfixed Claude Code platform gap (`anthropics/claude-code#33656`, `rohitg00/agentmemory#539`), not fixable in this project's own code. Redesigned around Claude Code's documented `PreToolUse` `updatedInput` mechanism: `pre_tool_use.py` now silently rewrites a matched `test_commands`/`build_commands` command to append a distinctive exit-code marker to stdout, and `post_tool_use.py` parses that marker back out instead of trusting a structured field. Config format (`test_commands`/`build_commands`, comma-separated substrings) is completely unchanged — no user migration needed. 331 tests passing (up from 324), verified via real subprocess runs at every stage (the rewrite itself, the rewritten command actually executed in a real shell, the resulting real output fed back into the hook) — but the claim that Claude Code actually honors `updatedInput` live has not yet been proven with a real Claude Code session, only researched/documented, and this project has now caught Claude Code's own hook docs wrong twice in one week. Story stays open pending that real-session verification.
+
+### Story 5.9: One-Click Team Dashboard via GitHub Actions
+
+> ✅ **Complete** — built and merged 2026-07-15 on `enhancements-v3` (PR #42, 1343020) — followed directly from a live demo: the user asked to see a real consolidated report across all pilot-test snapshots to date (7 real snapshots manually gathered from 5 different local test folders into one `snapshots/` directory, run through the existing unmodified `metrics-report`/`dashboard` tools — proving zero new code is needed for aggregation, since `snapshots/*.json` is already meant to be committed to git). **Live-verified same day** in `ai-project-metrics-bmad-testing`: a real `workflow_dispatch` run succeeded in 14s and produced a correct downloadable dashboard artifact. Getting there surfaced two real environment gaps, fixed live: `workflow_dispatch` workflows must exist on the repo's *default* branch to be listed/runnable at all (a genuine GitHub platform requirement, not a bug), and that test repo had never actually committed `tools/`/`snapshots/` to any branch across the whole pilot — everything had only ever existed locally.
+
+Ships `.github/workflows/generate-dashboard.yml` in the release artifact — a `workflow_dispatch`-only workflow anyone with repo Write access can trigger with one click from the Actions tab, no local install or code push needed. Runs the same `metrics-report`/`dashboard` tools already documented for local use, uploading the result as a downloadable workflow artifact — deliberately **not** committed to the repo or published anywhere public, preserving Story 5.5's "you decide whether and how to share it" boundary. Optionally gated behind a GitHub Environment (`dashboard-publish`) with required reviewers, a one-time manual Settings step (documented, not automatable without an admin token this tooling never holds) for teams that want approval-gating beyond GitHub's own Write-access baseline. Of the three trigger options discussed with the user (manual local command, CI-on-every-merge, one-click `workflow_dispatch`), only the one-click option was built this story — CI-on-every-merge deliberately deferred to a later story until real team merge cadence is understood.
