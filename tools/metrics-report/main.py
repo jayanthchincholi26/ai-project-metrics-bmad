@@ -109,7 +109,7 @@ def humanize_minutes(minutes: Optional[float]) -> str:
 
 
 def format_usd(value: Optional[float]) -> str:
-    return f"${value:.4f}"
+    return f"${value:.2f}"
 
 
 def duration_minutes_of(eng: dict) -> Optional[float]:

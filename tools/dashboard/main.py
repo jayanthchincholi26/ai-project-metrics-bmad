@@ -41,7 +41,7 @@ OUTPUT_FILE = "dashboard.html"
 
 
 def format_usd(value: float) -> str:
-    return f"${value:.4f}"
+    return f"${value:.2f}"
 
 
 def aggregate_stats(snapshots: "list[dict]") -> "dict[str, Any]":

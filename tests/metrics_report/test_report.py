@@ -220,7 +220,7 @@ def test_real_estimated_and_token_cost_are_rendered_as_usd(tmp_path):
     run(tmp_path)
 
     text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
-    assert "$5.0000" in text
+    assert "$5.00" in text
     assert "1000" in text and "100" in text
 
 

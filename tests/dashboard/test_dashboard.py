@@ -174,7 +174,7 @@ def test_estimated_cost_total_sums_only_known_values_and_notes_exclusions(tmp_pa
     run(tmp_path)
 
     html = dashboard_html(tmp_path)
-    assert "$5.0000" in html
+    assert "$5.00" in html
     assert "1 of 2" in html or "1/2" in html  # some visible exclusion note
 
 
