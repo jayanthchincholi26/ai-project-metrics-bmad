@@ -38,6 +38,7 @@ def test_artifact_contains_the_deployable_surface(tmp_path):
     assert "tools/snapshot-assembler/main.py" in names
     assert "tools/opsx-wrapper/main.py" in names
     assert "tools/estimate-phase1/main.py" in names
+    assert ".github/workflows/generate-dashboard.yml" in names  # Story 5.9
 
 
 def test_story_config_example_contains_every_documented_key(tmp_path):

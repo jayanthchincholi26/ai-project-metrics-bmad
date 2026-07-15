@@ -27,6 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILL = Path(".claude/skills/story-kickoff/SKILL.md")
 INSTALL = Path(__file__).resolve().parent / "INSTALL.md"
 STORY_CONFIG_EXAMPLE = Path(__file__).resolve().parent / ".story-config.yaml.example"
+DASHBOARD_WORKFLOW = Path(__file__).resolve().parent / "dashboard-workflow.yml"
 EXCLUDED_DIR_NAMES = {"__pycache__", "build-release"}
 
 
@@ -34,6 +35,7 @@ def iter_entries(root: Path) -> Iterator[Tuple[Path, str]]:
     """Yield (absolute source, archive name) pairs, sorted for a reproducible zip."""
     yield INSTALL, "INSTALL.md"
     yield STORY_CONFIG_EXAMPLE, ".story-config.yaml.example"
+    yield DASHBOARD_WORKFLOW, ".github/workflows/generate-dashboard.yml"
     yield root / SKILL, SKILL.as_posix()
     tools = root / "tools"
     for path in sorted(tools.rglob("*")):
@@ -50,7 +52,7 @@ def iter_entries(root: Path) -> Iterator[Tuple[Path, str]]:
 def build(root: Path, out_dir: Path, version: str) -> Path:
     missing = [
         str(p)
-        for p in (INSTALL, STORY_CONFIG_EXAMPLE, root / SKILL, root / "tools")
+        for p in (INSTALL, STORY_CONFIG_EXAMPLE, DASHBOARD_WORKFLOW, root / SKILL, root / "tools")
         if not p.exists()
     ]
     if missing:

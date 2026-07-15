@@ -216,6 +216,32 @@ The real Atlassian MCP fetch only exists inside `story-kickoff` itself. So for J
 kickoff must run first; Phase-1's estimate will still be null at that point (no
 `tasks.md` exists yet) — expected, not a bug.
 
+## Team dashboard — one-click, no local install needed (Story 5.9)
+
+Once several developers have merged story branches (each carrying their own committed
+`snapshots/*.json`), anyone with repo access can generate a consolidated leadership
+dashboard **without running anything locally**: this install ships a GitHub Actions
+workflow at `.github/workflows/generate-dashboard.yml`, triggered manually from the
+Actions tab (**Actions → generate-dashboard → Run workflow**). It checks out the repo,
+runs the same `metrics-report`/`dashboard` tools documented above, and uploads the result
+as a downloadable workflow artifact (not committed to the repo — same "you decide whether
+and how to share it" boundary as running these tools locally).
+
+**One-time setup, before relying on approval-gating (do this once per repo, in GitHub's
+web UI, not via this tooling):** by default, anyone with **Write** access to the repo can
+trigger this workflow (a GitHub-enforced baseline — no config needed for that much). If
+you want to restrict it further to specific approvers only:
+
+1. Repo **Settings → Environments → New environment**, name it exactly `dashboard-publish`
+   (the workflow already references this name).
+2. Under that environment, enable **Required reviewers** and add whoever should approve a
+   run (e.g. just you, or a small leads list).
+3. From then on, anyone can still click "Run workflow," but the job pauses until an
+   approved reviewer signs off before it actually executes.
+
+If you skip this setup, the workflow still works — it just runs immediately for anyone
+with Write access, ungated.
+
 ## Local capture state (`.gitignore`)
 
 `uv run tools/setup-hooks.py --repo-root .` (Install step 2) automatically adds these
