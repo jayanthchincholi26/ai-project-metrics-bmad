@@ -93,5 +93,5 @@ development_status:
   5-5-leadership-html-dashboard: done  # PR #28, merged b958140
   5-6-token-cost-reason-is-bare-null-when-zero-sessions-observed: done  # PR #32, merged 52d47f9
   5-7-post-tool-use-reads-exit-code-from-the-wrong-payload-location: done  # PR #36, merged fc54d3e
-  5-8-defect-capture-cannot-rely-on-a-nonexistent-exit-code-field: review  # PR pending, live Claude Code verification (Subtask 5.3) still open
+  5-8-defect-capture-cannot-rely-on-a-nonexistent-exit-code-field: review  # PR #38 merged 4ac30c4; live Claude Code verification (Subtask 5.3) still open
   epic-5-retrospective: optional
