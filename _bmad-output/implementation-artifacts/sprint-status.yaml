@@ -71,7 +71,7 @@ development_status:
   2-9-repo-root-falls-back-to-a-parent-directory-walk-not-just-cwd: done  # PR #39, merged 1338f2a
   2-10-a-closed-storys-manifest-doesnt-block-the-next-storys-kickoff: done  # PR #24, merged 05c29fa
   2-11-setup-enforces-gitignore-for-local-capture-state: done  # PR #23, merged 8397b95
-  2-12-dry-run-mode-for-snapshot-assembler: in-progress
+  2-12-dry-run-mode-for-snapshot-assembler: review
   epic-2-retrospective: optional
   epic-3: in-progress  # reopened 2026-07-16 for Story 3.5 (raw-span fallback event filtering, pilot-testing finding)
   3-1-active-story-pointer-tracks-time-automatically: done

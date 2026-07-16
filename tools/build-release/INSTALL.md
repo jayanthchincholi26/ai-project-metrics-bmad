@@ -177,6 +177,19 @@ ran `/opsx:archive` and just want the snapshot, `uv run tools/snapshot-assembler
 nothing links them by name; they coexist because a project normally has one story (and
 one openspec change) active per branch at a time.
 
+**Want to preview current metrics without closing the story?** Running the snapshot
+assembler for real always closes the story — its existence is this tool's authoritative
+"done" signal (see "Known limitations" below). To inspect what your metrics *would* look
+like right now (e.g. to confirm a defect-capture hook fired correctly) without triggering
+that, add `--dry-run`:
+```
+uv run tools/snapshot-assembler/main.py --repo-root . --dry-run
+```
+Prints the full computed snapshot to stdout — no file is written, nothing is consumed,
+and the story is left exactly as open as it was before you ran it. Not available on the
+`opsx-wrapper archive` path (its `openspec archive` half isn't itself previewable) — use
+the bare assembler command above instead.
+
 **Step order (2 vs. 3) only matters for the point estimate, never for correctness** —
 kickoff works fine run before `/opsx:propose` too, it just falls back to a plain ask
 instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read).
@@ -323,6 +336,12 @@ by Ctrl+D (or close the whole VS Code window) rather than the chat panel's "x" b
 zero `session_end` events were seen for this story** — distinct from a `token_cost_reason`
 surfaced *from* a session_end event (e.g. a transcript read failure). The most common cause is
 the VS Code "x"-button gap above, not a bug in the reducer.
+
+**Running the snapshot assembler always closes the story — its existence is the
+authoritative signal every other producer relies on to know a story is done** (a closed
+story's `.story.yaml` is what the next `story-kickoff` checks for). There is no "just
+show me the current numbers" mode by default — use `--dry-run` (see "Daily use" above) if
+you want to inspect in-progress metrics without triggering that.
 
 **`Duration` and `estimated_cost` reflect active work time, with one remaining edge case
 (Story 3.4).** `estimated_cost_of()` prefers real, idle-excluded active time — reduced from

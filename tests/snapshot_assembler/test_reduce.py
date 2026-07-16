@@ -97,6 +97,10 @@ def run(root: Path) -> int:
     return assembler.main(["--repo-root", str(root)])
 
 
+def run_dry(root: Path) -> int:
+    return assembler.main(["--repo-root", str(root), "--dry-run"])
+
+
 def snapshot_path(root: Path, rev: int) -> Path:
     return root / "snapshots" / f"{STORY_ID}.v1.rev{rev}.json"
 
@@ -891,3 +895,96 @@ def test_defect_metrics_all_compile_and_test_no_review(tmp_path, capsys):
     assert defects["total_defects"] == 2
     assert defects["testing_efficiency"] == pytest.approx(100.0)
     assert defects["review_efficiency"] == pytest.approx(0.0)
+
+
+# --- Story 2.12: --dry-run mode ---------------------------------------------
+
+
+def test_dry_run_prints_full_snapshot_without_writing_file(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    exit_code = run_dry(tmp_path)
+
+    assert exit_code == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["ok"] is True
+    assert out["dry_run"] is True
+    assert out["events_reduced"] == 11
+    assert out["would_be_revision"] == 1
+    snapshot = out["snapshot"]
+    assert set(snapshot.keys()) == ENVELOPE_KEYS
+    assert snapshot["story_id"] == STORY_ID
+    assert snapshot["revision"] == 1
+    assert snapshot["engineering_metrics"]["commits"] == 2
+    assert not (tmp_path / "snapshots").exists()
+
+
+def test_real_run_ack_shape_is_unchanged_by_dry_run_addition(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    exit_code = run(tmp_path)
+
+    assert exit_code == 0
+    ack = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert set(ack.keys()) == {"ok", "snapshot", "revision", "events_reduced", "pending_backfilled"}
+    assert isinstance(ack["snapshot"], str)
+    assert "dry_run" not in ack
+
+
+def test_dry_run_leaves_pending_spool_untouched(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+    write_events(tmp_path, [event("git.commit", story_id=None)], pending=True)
+
+    exit_code = run_dry(tmp_path)
+
+    assert exit_code == 0
+    pending_path = tmp_path / ".story-events.pending.jsonl"
+    assert pending_path.exists()
+    main_log_lines = (tmp_path / ".story-events.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(main_log_lines) == len(standard_log())  # nothing appended from the spool
+    out = json.loads(capsys.readouterr().out)
+    # the pending event is read and reduced-from (computation still sees it)...
+    assert out["snapshot"]["engineering_metrics"]["commits"] == 3
+    # ...but never actually consumed/deleted
+
+
+def test_dry_run_then_real_run_matches_real_run_alone(tmp_path, capsys):
+    with_dry_run = tmp_path / "with-dry-run"
+    without_dry_run = tmp_path / "without-dry-run"
+    with_dry_run.mkdir()
+    without_dry_run.mkdir()
+    for root in (with_dry_run, without_dry_run):
+        write_manifest(root)
+        write_events(root, standard_log())
+        write_events(root, [event("git.commit", story_id=None)], pending=True)
+
+    run_dry(with_dry_run)
+    capsys.readouterr()  # discard the dry-run preview output
+    run(with_dry_run)
+    ack_with = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+
+    run(without_dry_run)
+    ack_without = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+
+    assert ack_with["pending_backfilled"] == ack_without["pending_backfilled"] == 1
+    assert read_snapshot(with_dry_run) == read_snapshot(without_dry_run)
+
+
+def test_dry_run_degraded_signal_parity_with_written_snapshot(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    dry_exit = run_dry(tmp_path)
+    dry_out = json.loads(capsys.readouterr().out)
+    real_exit = run(tmp_path)
+    written = read_snapshot(tmp_path)
+
+    assert dry_exit == 0
+    assert real_exit == 0
+    assert dry_out["snapshot"]["token_cost"] == written["token_cost"]
+    assert dry_out["snapshot"]["defect_metrics"] == written["defect_metrics"]
+    assert dry_out["snapshot"]["story_point_cost"] == written["story_point_cost"]
+    assert dry_out["snapshot"]["estimated_cost"] == written["estimated_cost"]
