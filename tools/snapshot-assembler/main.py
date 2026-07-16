@@ -219,8 +219,9 @@ def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, A
         and isinstance(input_rate, (int, float))
         and isinstance(output_rate, (int, float))
     ):
-        cost_usd = (input_tokens * input_rate / 1_000_000) + (
-            output_tokens * output_rate / 1_000_000
+        cost_usd = round(
+            (input_tokens * input_rate / 1_000_000) + (output_tokens * output_rate / 1_000_000),
+            4,
         )
 
     if input_tokens is not None:
@@ -279,8 +280,8 @@ def defect_metrics_of(events: "list[dict]") -> dict[str, Any]:
         "compile_defects": compile_defects,
         "test_defects": test_defects,
         "review_defects": review_defects,
-        "testing_efficiency": (compile_defects + test_defects) / total_defects * 100,
-        "review_efficiency": review_defects / total_defects * 100,
+        "testing_efficiency": round((compile_defects + test_defects) / total_defects * 100, 2),
+        "review_efficiency": round(review_defects / total_defects * 100, 2),
         "reason": None,
     }
 
@@ -375,7 +376,7 @@ def estimated_cost_of(
             "reason": "no events to compute duration from",
         }
     return {
-        "usd": hourly_rate * (duration_minutes / 60),
+        "usd": round(hourly_rate * (duration_minutes / 60), 2),
         "hourly_rate": hourly_rate,
         "duration_minutes": duration_minutes,
         "reason": None,
