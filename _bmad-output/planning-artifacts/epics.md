@@ -101,6 +101,8 @@ A developer can kick off a story without re-typing PM data, whatever tool (or la
 > **Retro note (§13):** *What worked* — fetch-only adapters composed with one manifest writer kept NFR4 trivially provable; test-first + manual E2E caught what green suites missed (the UTF-8 BOM bug); external-LLM review found one real defect per early story, then zero by 1.5 as its lessons (URL encoding, format-over-membership validation, resilient parsing) got pre-applied; duration fell 60→13 min/story as patterns stabilized. *What to adjust* — squash-merge discipline slipped once (PR #1, merge commit); LLM review produced one hallucinated finding (nonexistent `import math`) — keep grep-verifying before acting; the duplicated flat-YAML parser (2 copies) is fine for now, but revisit at spine level if Epic 2's hooks need it too (Issue #7).
 >
 > 🔓 **Reopened 2026-07-10** — real-world pilot deployment surfaced that individual developers on an existing JIRA-backed project will not realistically have (or want to manage) a personal `JIRA_API_TOKEN`. Story 1.3's direct-REST-with-token adapter is superseded by **Story 1.6**, which fetches via the already-configured Atlassian Remote MCP Server instead. Story 1.3 is left below for history; do not delete it or its PR.
+>
+> 🔍 **Pilot-testing finding (2026-07-16):** `tools/build-release/INSTALL.md` has full "setup" and "daily use" sections for JIRA (and docs-only), but Confluence — a fully built, tested, live-verified backend since Stories 1.4/1.8 — has none at all: no dedicated setup section, no daily-use step list, and the Prerequisites table only mentions JIRA. A developer setting `source_of_truth: confluence` gets no install-time guidance whatsoever, despite the config example listing it as a supported value. Noticed directly by the user while reading the installed docs. Backlog, not urgent — candidate fix: extend "JIRA setup" to cover both backends (they share the same Atlassian MCP connection) and add a "Daily use — Confluence flow" section mirroring the JIRA one, including the real, currently-open MCP gap (no page-label read support, so points/sprint always need manual entry via that path, unlike JIRA).
 
 ### Story 1.1: Create the Story Manifest via Docs-Only Kickoff
 
@@ -270,6 +272,34 @@ So that I don't need a personal `JIRA_API_TOKEN` just to run kickoff — auth is
 > 🆕 **Built 2026-07-15** — found live during Story 1.8's own real-session verification: a Confluence kickoff correctly degraded to a plain manual ask (no MCP auth, no env credentials), but offered the docs-only-specific "None" sprint option, and the manifest writer correctly rejected it (`--sprint must not be empty` — sprint has always been required for JIRA/Confluence, only docs-only gets the "none" exception). Root cause: `SKILL.md`'s step 4 header already states the rule, but 4a's and 4b's own fallback text never repeated it at the point it actually matters — a pre-existing ambiguity since Story 1.6, just never live-caught until now. Fixed with explicit inline reminders at all three fallback points (4a's one, 4b's two). PR pending; not fully closed — needs a live re-test of the fallback path.
 
 Researched the real MCP capability before implementing, not assumed: the Atlassian MCP server does expose Confluence tools (`getConfluencePage` and related) — confirmed live in the user's own session, fetching a real page ("Fibonacci Series", ID 22020097). But it has two confirmed, currently-open platform gaps of its own: **no Confluence page-label read capability at all** (this project's points/sprint auto-fill has always worked via `points-<number>`/`sprint-<name>` labels), and **no short-link resolution** (`/wiki/x/...` URLs can't be turned into a page ID by the MCP tools). Unlike Story 1.6's clean win for JIRA, this is an honest tradeoff, not a strict upgrade: `story-kickoff/SKILL.md` step 4b now fetches via MCP by default (no personal token, asks for the full page URL and parses the numeric ID itself), but points/sprint always fall back to a plain manual ask over that path, with an explicit explanation of why — the script fallback (real Confluence REST API, personal token) remains the only way to get genuine label-based auto-fill. Skill-instruction-only change, no pytest surface (same precedent as Stories 1.6/2.10) — verified so far via research plus one real live MCP page fetch; a full live kickoff run against the updated instructions is the remaining proof point.
+
+### Story 1.10: INSTALL.md Documents the Confluence Flow
+
+> ✅ **Complete** — 2026-07-16. `tools/build-release/INSTALL.md` gains: a broadened Prerequisites row covering both JIRA and Confluence via the shared Atlassian MCP connection; "JIRA setup" renamed to "JIRA / Confluence setup" with a new Confluence-specific subsection explaining the MCP page-label gap and the script-fallback alternative; a full new "Daily use — Confluence flow" step list mirroring the JIRA one; and a new "Known limitations" entry stating plainly that Confluence kickoff never auto-fills points/sprint via MCP, only the goal. Pure documentation change, no pytest surface (same precedent as Story 5.1) — self-reviewed against `story-kickoff/SKILL.md`'s actual step 4b logic (the real source of truth for what Confluence kickoff does) rather than assumption.
+
+As a developer whose project uses Confluence as its source of truth,
+I want INSTALL.md to document the Confluence setup and daily-use flow with the same completeness as JIRA's,
+so that I'm not left guessing how to configure or use a fully-built, already-shipped backend.
+
+**Context:** logged as a 🔍 pilot-testing finding (2026-07-16, this epic's blockquote block, formalized into this story now). Noticed directly by the user while reading the installed `INSTALL.md`: only docs-only and JIRA have setup/daily-use sections, despite Confluence being a complete, tested, live-verified backend (Stories 1.4/1.8).
+
+**Acceptance Criteria (draft):**
+
+1. **Given** the Prerequisites table's JIRA-only MCP row
+   **When** this story is done
+   **Then** it covers both JIRA and Confluence, noting they share one Atlassian MCP connection
+2. **Given** the existing "JIRA setup" section
+   **When** this story is done
+   **Then** it becomes "JIRA / Confluence setup," documenting the shared MCP connection steps once, JIRA-specific custom-field overrides, and a new Confluence-specific subsection explaining that MCP fetches the goal (page title) but cannot read points/sprint page labels — and that real label auto-fill requires the Story 1.4 script fallback (personal API token), not the MCP path
+3. **Given** the existing "Daily use — docs-only flow" and "Daily use — JIRA flow" sections
+   **When** this story is done
+   **Then** a new "Daily use — Confluence flow" section exists with the same structure and completeness (fresh branch through checking the snapshot), including the full-URL-not-short-link kickoff guidance and the same `/opsx:propose`-after-kickoff ordering rationale as JIRA
+4. **Given** "Known limitations"
+   **When** this story is done
+   **Then** it gains an entry stating that Confluence kickoff never auto-fills points/sprint via MCP (goal only), consistent with the honest-tradeoff framing already used for `token_cost`/duration limitations elsewhere in the file
+5. **Given** this is a pure documentation change
+   **When** Definition of Done is evaluated
+   **Then** there is no pytest surface — the check is a self-review re-read cross-checked against `story-kickoff/SKILL.md`'s actual step 4b logic, not an automated test
 
 ---
 
