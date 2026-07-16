@@ -316,6 +316,24 @@ def test_no_snapshots_produces_a_dashboard_with_zero_stories(tmp_path):
     assert "0" in html
 
 
+def test_table_headers_carry_explanatory_tooltips(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1)
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert '<th title="' in html
+
+
+def test_stat_tiles_carry_explanatory_tooltips(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1)
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert 'class="tile" title="' in html
+
+
 def test_a_present_but_null_section_does_not_crash_generation(tmp_path):
     # Review finding (PR #28): dict.get(key, {}) only supplies its default for an
     # ABSENT key - a corrupted/hand-edited snapshot with e.g. "pm_metrics": null

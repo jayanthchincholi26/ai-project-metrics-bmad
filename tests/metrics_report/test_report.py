@@ -19,6 +19,7 @@ def load(module_name: str, path: Path):
     return module
 
 
+field_guide = load("_field_guide", REPO / "tools" / "hooks" / "_field_guide.py")
 report = load("metrics_report", REPO / "tools" / "metrics-report" / "main.py")
 
 
@@ -333,3 +334,26 @@ def test_regeneration_does_not_leave_a_stale_entry_from_a_prior_run(tmp_path):
     text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
     assert "updated goal" in text
     assert text.count("## story-a") == 1
+
+
+# --- Story 5.11: Field Guide appendix ---
+
+
+def test_report_includes_a_field_guide_appendix(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1)
+
+    run(tmp_path)
+
+    text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
+    assert "## Field Guide" in text
+    assert field_guide.FIELD_GUIDE["token_cost.reason"] in text
+
+
+def test_field_guide_appendix_appears_once_per_report_not_per_story(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1)
+    write_snapshot(tmp_path, "story-b", 1)
+
+    run(tmp_path)
+
+    text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
+    assert text.count("## Field Guide") == 1

@@ -67,8 +67,9 @@ from typing import Any, Optional
 
 sys.path.insert(
     0, str(Path(__file__).resolve().parents[1] / "hooks")
-)  # bridge to the shared git_out() helper (spine-sanctioned, reused not reimplemented)
+)  # bridge to shared helpers (spine-sanctioned, reused not reimplemented)
 import _events
+import _field_guide  # Story 5.11: shared field-descriptions dict
 
 EVENTS_FILE = ".story-events.jsonl"
 PENDING_FILE = ".story-events.pending.jsonl"
@@ -546,6 +547,7 @@ def main(argv: "list[str] | None" = None) -> int:
     engineering_metrics = reduce_events(ours)
 
     snapshot = {
+        "field_guide": _field_guide.FIELD_GUIDE,
         "schema_version": SCHEMA_VERSION,
         "story_id": story,
         "revision": next_revision(root / SNAPSHOTS_DIR, story),

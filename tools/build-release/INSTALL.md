@@ -149,7 +149,11 @@ folder), or Claude Code won't see the kickoff skill.
    ```
    uv run tools/snapshot-assembler/main.py --repo-root .
    ```
-8. Check `snapshots/<story-id>.v1.rev1.json`.
+8. Check `snapshots/<story-id>.v1.rev1.json`. Confused about what a field means or how it's
+   calculated? The snapshot itself, the markdown report, and the dashboard all explain their
+   own fields inline now (a `field_guide` section in the JSON, a "Field Guide" appendix in
+   the report, hover tooltips in the dashboard) — "Known limitations" below adds deeper
+   context on specific gaps, it isn't the only place to look.
 9. *(optional)* Generate a human-readable report from all accumulated snapshots:
    ```
    uv run tools/metrics-report/main.py --repo-root .
@@ -207,7 +211,8 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
 6. Commit and push.
 7. Close the story: `uv run tools/opsx-wrapper/main.py archive <change-name>` (or, without
    openspec, `uv run tools/snapshot-assembler/main.py --repo-root .`).
-8. Check the resulting snapshot under `snapshots/`.
+8. Check the resulting snapshot under `snapshots/` — every field explains itself inline (see
+   the docs-only flow's step 8 above).
 9. *(optional)* Generate a human-readable report:
    ```
    uv run tools/metrics-report/main.py --repo-root .

@@ -36,8 +36,29 @@ from typing import Any, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "metrics-report"))
 import main as metrics_report  # noqa: E402 (path must be set up first) - discover_snapshots() reuse
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / "hooks")
+)  # bridge to the shared field-descriptions dict (Story 5.11)
+import _field_guide  # noqa: E402 (path must be set up first)
+
 REPORTS_DIR = "metrics-reports"
 OUTPUT_FILE = "dashboard.html"
+
+# Story 5.11: which FIELD_GUIDE entry best explains each table column / stat tile.
+COLUMN_FIELD_GUIDE_KEYS = {
+    "Story": "pm_metrics.name",
+    "Date": "engineering_metrics.last_event_at",
+    "Points": "pm_metrics.points",
+    "Duration": "estimated_cost.duration_minutes",
+    "Estimated Cost": "estimated_cost.usd",
+    "AI Token Cost": "token_cost.cost_usd",
+    "Defects": "defect_metrics.total_defects",
+}
+TILE_FIELD_GUIDE_KEYS = {
+    "Total Story Points": "pm_metrics.points",
+    "Total Estimated Cost": "estimated_cost.usd",
+    "Total AI Token Cost": "token_cost.cost_usd",
+}
 
 
 def format_usd(value: float) -> str:
@@ -100,8 +121,18 @@ def render_stat_tiles(stats: "dict[str, Any]") -> str:
             stat_value(total, stats["token_sum"], stats["token_known"], format_token_usd),
         ),
     ]
+
+    def tile_title(label: str) -> str:
+        key = TILE_FIELD_GUIDE_KEYS.get(label)
+        if key is None:
+            return "Count of every story represented in this dashboard (highest revision per story only, AD-3b)."
+        return (
+            _field_guide.FIELD_GUIDE[key]
+            + " This tile sums the value across every story with a known figure."
+        )
+
     cards = "\n".join(
-        f'<div class="tile"><div class="tile-label">{label}</div>'
+        f'<div class="tile" title="{tile_title(label)}"><div class="tile-label">{label}</div>'
         f'<div class="tile-value">{value}</div></div>'
         for label, value in tiles
     )
@@ -153,9 +184,27 @@ def render_table(snapshots: "list[dict]") -> str:
         ),
         reverse=True,
     )
+
+    def th(label: str) -> str:
+        description = _field_guide.FIELD_GUIDE.get(COLUMN_FIELD_GUIDE_KEYS.get(label), "")
+        title_attr = f' title="{description}"' if description else ""
+        return f"<th{title_attr}>{label}</th>"
+
     header = (
-        "<tr><th>Story</th><th>Date</th><th>Points</th><th>Duration</th>"
-        "<th>Estimated Cost</th><th>AI Token Cost</th><th>Defects</th></tr>"
+        "<tr>"
+        + "".join(
+            th(label)
+            for label in [
+                "Story",
+                "Date",
+                "Points",
+                "Duration",
+                "Estimated Cost",
+                "AI Token Cost",
+                "Defects",
+            ]
+        )
+        + "</tr>"
     )
     rows = "\n".join(render_row(s) for s in ordered)
     return f"<table>\n<thead>{header}</thead>\n<tbody>\n{rows}\n</tbody>\n</table>"
