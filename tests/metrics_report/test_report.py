@@ -304,8 +304,8 @@ def test_defect_fields_render_real_values(tmp_path):
 
     text = report_path(tmp_path, "07142026").read_text(encoding="utf-8")
     assert "Total Defects**: 4" in text
-    assert "Testing Efficiency**: 75.0%" in text
-    assert "Review Efficiency**: 25.0%" in text
+    assert "Testing Efficiency**: 75.00%" in text
+    assert "Review Efficiency**: 25.00%" in text
 
 
 # --- Task 3: idempotent regeneration ---

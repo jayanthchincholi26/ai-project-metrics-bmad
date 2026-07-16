@@ -701,7 +701,7 @@ def test_estimated_cost_uses_active_time_when_time_slices_present(tmp_path, caps
 
     estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
     assert estimated_cost["duration_minutes"] == pytest.approx(10.0)
-    assert estimated_cost["usd"] == pytest.approx(10 * (10.0 / 60))
+    assert estimated_cost["usd"] == pytest.approx(round(10 * (10.0 / 60), 2))
     assert estimated_cost["reason"] is None
 
 

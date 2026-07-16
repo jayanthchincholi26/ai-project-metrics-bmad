@@ -172,8 +172,8 @@ def render_story(snapshot: dict) -> str:
 
     if defects.get("total_defects") is not None:
         total_defects_line = str(defects["total_defects"])
-        testing_efficiency_line = f"{defects['testing_efficiency']:.1f}%"
-        review_efficiency_line = f"{defects['review_efficiency']:.1f}%"
+        testing_efficiency_line = f"{defects['testing_efficiency']:.2f}%"
+        review_efficiency_line = f"{defects['review_efficiency']:.2f}%"
     else:
         not_tracked = f"not tracked — {defects.get('reason') or 'no reason given'}"
         total_defects_line = not_tracked
