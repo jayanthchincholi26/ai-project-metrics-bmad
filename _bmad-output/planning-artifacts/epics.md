@@ -827,6 +827,8 @@ so that a null token cost isn't explained by an unrelated, near-empty session's 
 
 ### Story 5.11: Snapshot and Report Fields Explain Their Own Purpose
 
+> ✅ **Complete** — 2026-07-16 · [PR #50](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/50), merged 3e23f82. New `tools/hooks/_field_guide.py` holds one shared, static dict of field purpose + calculation, bridge-imported the same way `_events.py` already is by three consumers: the snapshot JSON gets a `field_guide` section (real and `--dry-run`), the markdown report gets a "Field Guide" appendix, and the dashboard gets native `title=""` tooltips on headers/stat tiles. Built in parallel with Story 5.10 off `main`; after PR #49 merged first, `main` was merged into this branch and a flagged one-entry follow-up (`FIELD_GUIDE["token_cost.sessions_started"]`) closed the resulting gap before this PR merged. Gemini's review repeated the same false "will revert PR #45's rounding" claim seen on PR #49 — refuted the same way (direct grep of the merged branch), and self-contradicted by its own "Positive Findings" section acknowledging `sessions_started` was already integrated. Live-verified across all three tools (assembler → metrics-report → dashboard) in a real scratch repo.
+
 As someone reading a generated snapshot, markdown report, or dashboard,
 I want each field to explain what it means and how it's calculated right next to where I'm reading it,
 so that I don't have to go find `tools/snapshot-assembler/main.py`'s docstrings or `INSTALL.md` every time I get confused.

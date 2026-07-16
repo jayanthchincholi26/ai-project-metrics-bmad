@@ -4,7 +4,7 @@ baseline_commit: 8cd42db
 
 # Story 5.11: Snapshot and Report Fields Explain Their Own Purpose
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
