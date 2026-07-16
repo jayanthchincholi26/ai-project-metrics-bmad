@@ -4,7 +4,7 @@ baseline_commit: 8cd42db
 
 # Story 5.10: `token_cost.reason` Doesn't Distinguish "Never Closed" From "Closed But Failed"
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
