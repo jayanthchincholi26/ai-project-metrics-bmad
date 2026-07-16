@@ -134,7 +134,7 @@ def render_row(snapshot: dict) -> str:
     )
     defects_cell = (
         f"{defects['total_defects']} total "
-        f"(testing {defects['testing_efficiency']:.1f}% / review {defects['review_efficiency']:.1f}%)"
+        f"(testing {defects['testing_efficiency']:.2f}% / review {defects['review_efficiency']:.2f}%)"
         if defects.get("total_defects") is not None
         else f"not tracked — {defects.get('reason') or 'no reason given'}"
     )
