@@ -493,6 +493,8 @@ so that switching between story branches never silently discards or forks captur
 
 ### Story 2.12: Dry-Run Mode for Snapshot Assembler
 
+> ✅ **Complete** — 2026-07-16 · [PR #46](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/46), merged a86760c. `--dry-run` computes and prints the full snapshot to stdout without writing the file or consuming the AD-1b pending spool. Deliberately not threaded through `opsx-wrapper archive` (see Dev Notes "Why the wrapper is out of scope"). Live-verified in a real scratch repo: a subsequent real close after a dry run still produced `rev1`, not `rev2`. Gemini's review raised a merge-conflict warning against PR #45 (rounding fix, merged first) — verified for real via an actual scratch merge: `tools/snapshot-assembler/main.py` auto-merges cleanly (the two PRs touch non-overlapping regions), the only real conflict was two paragraphs both added at the same `INSTALL.md` anchor point, trivially resolved by keeping both.
+
 As a developer,
 I want to preview a story's current metrics without closing the story,
 so that testing/inspecting in-progress capture (e.g. verifying the defect-capture hook fires correctly) never accidentally marks a mid-flight story as done.
@@ -603,6 +605,8 @@ So that a story left open across days (or interleaved with meetings/other storie
 **And** `INSTALL.md`'s "Known limitations" entry for `Duration`/`estimated_cost` is narrowed to describe only the remaining caveat (a mid-session story switch via `repoint_active_story()` still attributes a slice's whole time to whichever story was active when the AI session finally closes — the same session-vs-story blending `token_cost` already has, for time instead of dollars)
 
 ### Story 3.5: Raw-Span Fallback Excludes Bookkeeping Events
+
+> ✅ **Complete** — 2026-07-16 · [PR #47](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/47), merged eefcd61. New `activity_span_of()` excludes only genuine bookkeeping event types (`opsx.*`/`session_start`/`session_end`/`time.*`) from `estimated_cost_of()`'s raw-span fallback — an exclude-list, not the narrower include-list originally drafted, corrected before implementation began (Dev Notes explain why). Live-verified in a real scratch repo: a real activity window (10:00–10:07) plus an `opsx.archive` event 2 hours later correctly produced `duration_minutes: 7.0`, not ~127. Merging after PR #46 (also merged same day) surfaced one real issue neither PR's own review caught: a test asserted the pre-rounding value for `estimated_cost.usd` — fixed post-merge-simulation, before either PR was actually merged to `main`, by running the full suite against a real combined-merge scratch test rather than trusting GitHub's conflict check alone.
 
 As someone reviewing the dashboard,
 I want the raw-span fallback duration to reflect real developer activity, not administrative/bookkeeping actions,

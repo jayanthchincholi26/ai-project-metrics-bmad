@@ -4,7 +4,7 @@ baseline_commit: eabe892
 
 # Story 3.5: Raw-Span Fallback Excludes Bookkeeping Events
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

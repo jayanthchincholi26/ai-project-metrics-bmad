@@ -4,7 +4,7 @@ baseline_commit: eabe892
 
 # Story 2.12: Dry-Run Mode for Snapshot Assembler
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
