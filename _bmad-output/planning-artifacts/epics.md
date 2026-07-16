@@ -799,6 +799,8 @@ Ships `.github/workflows/generate-dashboard.yml` in the release artifact — a `
 
 ### Story 5.10: `token_cost.reason` Doesn't Distinguish "Never Closed" From "Closed But Failed"
 
+> ✅ **Complete** — 2026-07-16 · [PR #49](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/pull/49), merged 55480f1. `token_cost_of()` now exposes `sessions_started` alongside `sessions_observed`, and when a story has at least one closed session but also at least one session_start that never got a matching session_end, `reason` names the gap explicitly instead of surfacing an unrelated closed session's own `reasons[0]`. Live-verified by reproducing the exact pilot bug (`story-20260716-ea94fb`) in a scratch repo — the reason changed from the misleading `"no assistant usage data found in transcript"` to `"1 of 3 AI session(s) for this story never sent session_end..."`. Gemini's review raised a false "will revert PR #45's rounding" claim (wrong branch-ancestry premise) and the same long-recurring stale 5-bullet "Unpatched Defects" block — both empirically refuted (`git diff --name-only` + direct grep of the claimed-missing code) before merge.
+
 As someone reading a story's `token_cost`,
 I want the surfaced `reason` to reflect what actually happened to the session that did the real work,
 so that a null token cost isn't explained by an unrelated, near-empty session's own failure reason.

@@ -100,6 +100,6 @@ development_status:
   5-7-post-tool-use-reads-exit-code-from-the-wrong-payload-location: done  # PR #36, merged fc54d3e
   5-8-defect-capture-cannot-rely-on-a-nonexistent-exit-code-field: done  # PR #38 merged 4ac30c4; live-verified 2026-07-15 on v0.8.0 (3 real defect_compile events)
   5-9-one-click-team-dashboard-workflow: done  # PR #42 merged 1343020, on enhancements-v3; live-verified 2026-07-15
-  5-10-token-cost-reason-doesnt-distinguish-never-closed-from-failed: backlog
+  5-10-token-cost-reason-doesnt-distinguish-never-closed-from-failed: done  # PR #49, merged 55480f1
   5-11-snapshot-and-report-fields-explain-their-own-purpose: review
   epic-5-retrospective: optional

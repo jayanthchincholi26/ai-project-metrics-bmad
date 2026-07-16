@@ -217,6 +217,11 @@ def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, A
     """Story 5.2: real input/output token sums (from session_end.py's transcript
     parsing) plus a computed cost_usd - only when both token counts AND both rates
     are known (AD-10: never a fabricated number from partial inputs)."""
+    session_starts = [
+        e
+        for e in events
+        if (e.get("type") or "").startswith("ai.") and e["type"].endswith(".session_start")
+    ]
     session_ends = [
         e
         for e in events
@@ -256,6 +261,21 @@ def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, A
 
     if input_tokens is not None:
         reason = None
+    elif session_ends and len(session_starts) > len(session_ends):
+        # Story 5.10: some session(s) closed cleanly (and would otherwise hand their
+        # own reasons[0] here) but at least one other session_start for this story
+        # never got a matching session_end at all - surfacing a closed session's own
+        # reason would misleadingly imply *that* session's failure explains the
+        # missing tokens, when the real cause may well be the session that never
+        # closed (found live, 2026-07-16: the session with 96 of 98 real events for
+        # a story never sent session_end, while reasons[0] came from an unrelated
+        # 2-minute reconnect blip). Name the gap explicitly instead of guessing.
+        missing = len(session_starts) - len(session_ends)
+        reason = (
+            f"{missing} of {len(session_starts)} AI session(s) for this story never sent "
+            "session_end (still open, or closed without firing it) - token usage for "
+            "that session is not reflected here"
+        )
     elif session_ends:
         # only surface a reason when token counts are actually null - real data from
         # a later session must never be shadowed by a stale reason from an earlier,
@@ -272,6 +292,7 @@ def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, A
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "reason": reason,
+        "sessions_started": len(session_starts),
         "sessions_observed": len(session_ends),
         "cost_usd": cost_usd,
     }
