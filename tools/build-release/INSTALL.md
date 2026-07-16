@@ -15,7 +15,7 @@ Check these **in order**:
 | 2 | uv | **uv** is a fast Python package/project manager — every script here runs via `uv run`, and uv **provisions its own Python automatically**, no separate Python install needed | `uv --version` — if empty/not found, see the install command below |
 | 3 | Python 3.8+ | Informational only if step 2 succeeded — uv manages its own Python. A bare `python --version` failing (e.g. Windows' Microsoft Store stub) is **not a blocker** as long as `uv --version` works | `python --version` (optional check) |
 | 4 | Claude Code | AI-session capture (the default `ai_tool: claude-code` adapter) | the VS Code extension or CLI |
-| 5 | JIRA via MCP *(only if your project uses JIRA)* | Kickoff auto-fills points/goal/sprint through a JIRA MCP server — OAuth, **no personal API token** | see "JIRA setup" below |
+| 5 | JIRA/Confluence via MCP *(only if `source_of_truth` is `jira` or `confluence`)* | Kickoff auto-fills goal (both) and points/sprint (JIRA fully; Confluence partially — see below) through the same Atlassian MCP server — OAuth, **no personal API token** | see "JIRA / Confluence setup" below |
 
 No third-party Python packages are needed at runtime — every script is standard-library only.
 
@@ -109,7 +109,10 @@ panel was already open in this window before you ran step 2, **reload the window
 old one. Also open the repo folder itself as your editor's workspace root (not a parent
 folder), or Claude Code won't see the kickoff skill.
 
-## JIRA setup (only for `source_of_truth: jira`)
+## JIRA / Confluence setup (only for `source_of_truth: jira` or `confluence`)
+
+Both backends connect through the **same** Atlassian Remote MCP Server — if you've already
+done this for JIRA, Confluence needs no separate connection (and vice versa):
 
 1. Connect the Atlassian Remote MCP Server — once per machine **and per project path**
    (this is local-scope, it does not carry over to a different folder):
@@ -117,13 +120,30 @@ folder), or Claude Code won't see the kickoff skill.
    claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp/authv2
    ```
 2. Run `/mcp` inside the Claude Code session you'll use for kickoff, and authenticate —
-   a browser OAuth flow under your own JIRA account. No API token is created or stored
-   anywhere.
-3. If your JIRA site uses non-default custom fields for story points or sprint, override
-   them in `.story-config.yaml`:
+   a browser OAuth flow under your own Atlassian account. No API token is created or
+   stored anywhere.
+3. **JIRA only** — if your site uses non-default custom fields for story points or
+   sprint, override them in `.story-config.yaml`:
    ```yaml
    jira_points_field: customfield_10016   # default
    jira_sprint_field: customfield_10020   # default
+   ```
+4. **Confluence only** — read this before your first kickoff: the connected MCP server
+   can fetch a page's title and body, but **cannot read Confluence page labels today**
+   (a confirmed, currently-open platform gap — not something this tooling can work
+   around). This project's points/sprint auto-fill has always worked via `points-<number>`/
+   `sprint-<name>` page labels, so **whenever MCP tools are available in the session**
+   (i.e. you did steps 1-2 above), kickoff fetches your **goal** (the page title)
+   automatically but always asks you to enter **points/sprint manually** — this is true
+   even if the environment variables below happen to be set, since MCP is preferred
+   whenever it's available. The **only** way to get real label-based points/sprint
+   auto-fill is to skip the MCP connection for this session entirely and rely purely on
+   the Story 1.4 script path instead, which reads labels directly via Confluence's REST
+   API using a personal API token (same posture as pre-MCP JIRA):
+   ```
+   CONFLUENCE_BASE_URL=https://your-site.atlassian.net/wiki
+   CONFLUENCE_EMAIL=you@example.com
+   CONFLUENCE_API_TOKEN=<a personal API token>
    ```
 
 ## Daily use — docs-only flow (`source_of_truth: docs-only`, or absent)
@@ -229,6 +249,40 @@ The real Atlassian MCP fetch only exists inside `story-kickoff` itself. So for J
 kickoff must run first; Phase-1's estimate will still be null at that point (no
 `tasks.md` exists yet) — expected, not a bug.
 
+## Daily use — Confluence flow (`source_of_truth: confluence`)
+
+1. `git checkout -b story/<branch-name>`.
+2. In chat: *"kick off this story \<full Confluence page URL\>"* — paste the **complete**
+   page URL, not a short link (a short link's numeric page ID can't be resolved by the
+   MCP tools — open it in a browser first if that's all you have, then paste the
+   resulting full URL, which looks like `.../wiki/spaces/<SPACE>/pages/<NUMERIC-ID>/<Title>`).
+   Kickoff fetches your **goal** (the page title) automatically via the connected
+   Atlassian MCP tools; you'll always be asked to confirm **points** and enter **sprint**
+   manually (see "JIRA / Confluence setup" above for why — an MCP platform gap, not a
+   bug). Writes `.story.yaml`.
+3. *(only if your project uses openspec SDD)* `/opsx:propose <change-name>` — do this
+   **after** kickoff, same reasoning as the JIRA flow above (`/opsx:propose` can't fetch
+   Confluence content either).
+4. *(openspec only)* `/opsx:apply`.
+5. Work normally — same silent capture as the other flows.
+6. Commit and push.
+7. Close the story: `uv run tools/opsx-wrapper/main.py archive <change-name>` (or, without
+   openspec, `uv run tools/snapshot-assembler/main.py --repo-root .`).
+8. Check the resulting snapshot under `snapshots/` — every field explains itself inline (see
+   the docs-only flow's step 8 above).
+9. *(optional)* Generate a human-readable report:
+   ```
+   uv run tools/metrics-report/main.py --repo-root .
+   ```
+   Same command as the other flows — writes `metrics-reports/metrics-<MMDDYYYY>.md`.
+10. *(optional)* Generate the leadership dashboard: `uv run tools/dashboard/main.py --repo-root .`
+    — same command as the other flows, writes `metrics-reports/dashboard.html`.
+
+**Same step-order reasoning as JIRA:** `/opsx:propose` has no Confluence-fetching
+capability either — the real Atlassian MCP fetch only exists inside `story-kickoff`
+itself, so kickoff must run first here too. Phase-1's estimate will still be null at
+that point, same as JIRA — expected, not a bug.
+
 ## Team dashboard — one-click, no local install needed (Story 5.9)
 
 Once several developers have merged story branches (each carrying their own committed
@@ -294,8 +348,8 @@ What is captured, precisely:
   `tools/hooks/claude/user_prompt_submit.py` emits only a prompt's character count, and
   `session_end.py` reads only the transcript's `usage.input_tokens`/`output_tokens`
   fields — the actual conversation text is never read, stored, or transmitted anywhere.
-- Story metadata pulled from JIRA/Confluence (ticket title, points, sprint) — see "JIRA
-  setup" above for what that connection can read and write.
+- Story metadata pulled from JIRA/Confluence (ticket title, points, sprint) — see "JIRA /
+  Confluence setup" above for what that connection can read and write.
 
 What the Atlassian connection can write: creating a JIRA sub-task when a bug is logged
 against a JIRA-tracked story is the only write this tool performs. The OAuth grant itself
@@ -350,6 +404,16 @@ happens, `reason` names the gap (e.g. `"1 of 3 AI session(s) for this story neve
 session_end..."`) rather than showing the first *closed* session's own reason, which can belong
 to a short, unrelated reconnect blip and have nothing to do with the session that actually did
 the story's real work.
+
+**Confluence kickoff never auto-fills points/sprint via MCP — only the goal (page title).**
+This project's points/sprint auto-fill convention (`points-<number>`/`sprint-<name>` page
+labels) predates the Atlassian MCP server's Confluence support, and the MCP server has no
+label-read capability at all today (a confirmed, currently-open platform gap). Whenever MCP
+tools are available in the kickoff session, you'll always be asked to confirm points and
+enter sprint manually for a Confluence-backed story — this is a genuine capability gap in
+the MCP server itself, not something a future story in this tooling can silently fix, short
+of the platform adding label support or you switching to the script-based fallback (see
+"JIRA / Confluence setup" above), which requires a personal API token.
 
 **Running the snapshot assembler always closes the story — its existence is the
 authoritative signal every other producer relies on to know a story is done** (a closed
@@ -419,7 +483,7 @@ can't reach a script invoked via `irm | iex`).
   reopen the correct folder and start a new session.
 - A hook append failure prints `METRICS CAPTURE FAILED` to stderr (after 3 retries) — it
   never blocks your commit or session; investigate disk/permissions when you see it.
-- `claude mcp list` shows the JIRA MCP server as `Connected`, but a kickoff run says no
-  JIRA MCP tools are available: same root cause as the two issues above — the session was
+- `claude mcp list` shows the Atlassian MCP server as `Connected`, but a kickoff run says
+  no JIRA/Confluence MCP tools are available: same root cause as the two issues above — the session was
   started before the server finished connecting, and a session's tool list doesn't refresh
   mid-session. Reload the window / start a new Claude Code session, then retry kickoff.
