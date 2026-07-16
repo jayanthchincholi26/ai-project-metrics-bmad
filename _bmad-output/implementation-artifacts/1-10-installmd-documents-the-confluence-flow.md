@@ -4,7 +4,7 @@ baseline_commit: 5a71c43
 
 # Story 1.10: INSTALL.md Documents the Confluence Flow
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
