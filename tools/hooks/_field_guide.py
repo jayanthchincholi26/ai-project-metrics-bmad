@@ -110,6 +110,12 @@ FIELD_GUIDE: "dict[str, str]" = {
         "reported a real count."
     ),
     "token_cost.output_tokens": "Same as input_tokens, but output tokens.",
+    "token_cost.sessions_started": (
+        "Count of ai.<tool>.session_start events for this story (Story 5.10) — "
+        "mirrors engineering_metrics.ai_sessions. Compare against sessions_observed: "
+        "if higher, at least one session never sent session_end, and reason "
+        "explains the gap rather than surfacing an unrelated closed session's own reason."
+    ),
     "token_cost.cost_usd": (
         "(input_tokens x ai_input_rate + output_tokens x ai_output_rate) / "
         "1,000,000, using the rates from .story-config.yaml — null unless both "

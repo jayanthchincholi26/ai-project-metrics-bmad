@@ -67,7 +67,7 @@ so that I don't have to go find `tools/snapshot-assembler/main.py`'s docstrings 
 - One new shared module (`tools/hooks/_field_guide.py`, a static dict — no functions, no computed content) plus small additive changes to the three existing render/output points: `tools/snapshot-assembler/main.py`, `tools/metrics-report/main.py`, `tools/dashboard/main.py`.
 - **Do NOT build a generic "documentation framework"** — this is one dict, reused verbatim by three consumers, exactly mirroring how `tools/hooks/_events.py`'s `git_out()` helper is already bridge-imported by the assembler (project-context.md §7, no premature abstraction).
 - **Do NOT bump `SCHEMA_VERSION`** — `field_guide` is a new, purely additive top-level snapshot key, same precedent as `estimated_cost` (Story 5.2) and `defect_metrics` (Story 5.4), neither of which bumped it either.
-- **Known cross-story note:** Story 5.10 (opened the same day, PR #49) adds a new `token_cost.sessions_started` field to the snapshot. This story's `FIELD_GUIDE` does not yet include a description for it, since this story was built independently off `main` before 5.10 merged. Whichever of the two stories merges second should get a trivial one-entry follow-up addition to `FIELD_GUIDE` for `token_cost.sessions_started` — flagged here rather than silently left as a gap.
+- **Cross-story note, resolved:** Story 5.10 (PR #49) merged first and added `token_cost.sessions_started` to the snapshot. This branch was rebased onto `main` after that merge, and the flagged one-entry follow-up (a `FIELD_GUIDE["token_cost.sessions_started"]` description, plus a regression test) was added here to close the gap before this story itself merges.
 
 ### Why this matters
 

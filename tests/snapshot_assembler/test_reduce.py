@@ -1279,6 +1279,22 @@ def test_snapshot_carries_a_field_guide(tmp_path, capsys):
     assert field_guide["token_cost.reason"]
 
 
+def test_field_guide_covers_sessions_started_added_by_story_5_10(tmp_path, capsys):
+    # Story 5.10 (PR #49) added token_cost.sessions_started to the snapshot after
+    # this story's own FIELD_GUIDE was authored - this is the flagged one-entry
+    # follow-up, closing that gap.
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    run(tmp_path)
+
+    snapshot = read_snapshot(tmp_path)
+    assert "sessions_started" in snapshot["token_cost"]
+    field_guide = snapshot["field_guide"]
+    assert isinstance(field_guide.get("token_cost.sessions_started"), str)
+    assert field_guide["token_cost.sessions_started"]
+
+
 def test_dry_run_snapshot_also_carries_the_field_guide(tmp_path, capsys):
     write_manifest(tmp_path)
     write_events(tmp_path, standard_log())
