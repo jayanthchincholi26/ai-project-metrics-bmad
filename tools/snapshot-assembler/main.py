@@ -480,6 +480,14 @@ def main(argv: "list[str] | None" = None) -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     p.add_argument("--repo-root", required=True, help="repository root of the story being closed")
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "compute and print the snapshot without writing it or consuming the "
+            "pending spool - preview current metrics without closing the story (Story 2.12)"
+        ),
+    )
     args = p.parse_args(argv)
 
     root = Path(args.repo_root)
@@ -524,6 +532,21 @@ def main(argv: "list[str] | None" = None) -> int:
         "estimated_cost": estimated_cost_of(engineering_metrics, config, ours),
         "defect_metrics": defect_metrics_of(ours),
     }
+
+    if args.dry_run:
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "dry_run": True,
+                    "snapshot": snapshot,
+                    "would_be_revision": snapshot["revision"],
+                    "events_reduced": len(ours),
+                },
+                indent=2,
+            )
+        )
+        return 0
 
     snapshots_dir = root / SNAPSHOTS_DIR
     snapshots_dir.mkdir(parents=True, exist_ok=True)
