@@ -78,7 +78,7 @@ development_status:
   3-2-idle-time-doesnt-inflate-a-storys-active-time: done
   3-3-mid-session-checkout-doesnt-double-count-time: done
   3-4-snapshot-assembler-reduces-idle-aware-time-slices-into-real-active-time-duration: done  # PR #44 merged 2ddf985
-  3-5-raw-span-fallback-excludes-bookkeeping-events: ready-for-dev
+  3-5-raw-span-fallback-excludes-bookkeeping-events: review
   epic-3-retrospective: optional
   epic-4: in-progress
   4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff

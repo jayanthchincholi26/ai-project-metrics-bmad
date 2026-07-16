@@ -183,6 +183,35 @@ def reduce_events(events: "list[dict]") -> dict[str, Any]:
     }
 
 
+def activity_span_of(events: "list[dict]") -> "tuple[Optional[str], Optional[str]]":
+    """Story 3.5: like reduce_events()'s own first/last timestamp scan, but excludes
+    bookkeeping event types (opsx.*, ai.<tool>.session_start/session_end, time.*) so a
+    later administrative action (e.g. a re-run of `opsx archive` well after real work
+    ended) can't stretch estimated_cost_of()'s raw-span fallback. Deliberately NOT an
+    include-list of just git.*/prompt/tool_use - that would wrongly undercount real
+    activity like defect-capture events (tool_start/stop/defect_*). Only used by
+    estimated_cost_of()'s fallback branch - engineering_metrics.first_event_at/
+    last_event_at (reduce_events(), above) are untouched and keep their existing
+    "first/last event of any kind" meaning."""
+
+    def is_bookkeeping(event_type: str) -> bool:
+        return (
+            event_type.startswith("opsx.")
+            or event_type.startswith("time.")
+            or (
+                event_type.startswith("ai.")
+                and event_type.endswith((".session_start", ".session_end"))
+            )
+        )
+
+    timestamps = sorted(
+        e["timestamp"]
+        for e in events
+        if isinstance(e.get("timestamp"), str) and not is_bookkeeping(e.get("type") or "")
+    )
+    return (timestamps[0], timestamps[-1]) if timestamps else (None, None)
+
+
 def token_cost_of(events: "list[dict]", config: "dict[str, str]") -> dict[str, Any]:
     """Story 5.2: real input/output token sums (from session_end.py's transcript
     parsing) plus a computed cost_usd - only when both token counts AND both rates
@@ -329,9 +358,7 @@ def active_time_seconds_of(events: "list[dict]") -> dict[str, Any]:
     return {"active_seconds": total_active, "reason": None}
 
 
-def estimated_cost_of(
-    engineering_metrics: "dict[str, Any]", config: "dict[str, str]", events: "list[dict]"
-) -> dict[str, Any]:
+def estimated_cost_of(config: "dict[str, str]", events: "list[dict]") -> dict[str, Any]:
     """Story 5.2: hourly_rate x duration, both read at close time (not locked at
     kickoff - a documented limitation, see the story's Dev Notes) - null-with-reason
     whenever the rate is absent or duration can't be computed (AD-10).
@@ -340,14 +367,18 @@ def estimated_cost_of(
     when at least one completed time.slice_closed exists for this story; falls
     back to the original raw first/last-event span otherwise (older snapshots,
     an ai_tool whose hooks don't emit time.slice_* yet, or a session still open
-    at story-close time) - silently, exactly as before this story existed."""
+    at story-close time) - silently, exactly as before this story existed.
+
+    Story 3.5: the fallback span comes from activity_span_of(), not
+    engineering_metrics.first_event_at/last_event_at - excludes bookkeeping events
+    (opsx.*/session_start/session_end/time.*) so a later administrative re-run
+    can't inflate a story's reported duration."""
     active_time = active_time_seconds_of(events)
     duration_minutes = None
     if active_time["active_seconds"] is not None:
         duration_minutes = active_time["active_seconds"] / 60
     else:
-        first_at = engineering_metrics.get("first_event_at")
-        last_at = engineering_metrics.get("last_event_at")
+        first_at, last_at = activity_span_of(events)
         if first_at and last_at:
             try:
                 start = datetime.fromisoformat(first_at)
@@ -521,7 +552,7 @@ def main(argv: "list[str] | None" = None) -> int:
         "engineering_metrics": engineering_metrics,
         "story_point_cost": story_point_cost_of(root, ours, manifest),
         "token_cost": token_cost_of(ours, config),
-        "estimated_cost": estimated_cost_of(engineering_metrics, config, ours),
+        "estimated_cost": estimated_cost_of(config, ours),
         "defect_metrics": defect_metrics_of(ours),
     }
 

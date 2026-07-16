@@ -721,6 +721,126 @@ def test_estimated_cost_falls_back_to_raw_span_when_no_time_slices(tmp_path, cap
     assert estimated_cost["reason"] is None
 
 
+def test_raw_span_fallback_excludes_opsx_archive_bookkeeping_event(tmp_path, capsys):
+    # 2026-07-16 pilot-testing finding: an opsx.archive event hours after real
+    # work finished must not stretch the fallback span
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.prompt", ts="2026-07-16T10:00:00+05:30", prompt_chars=10),
+            event("ai.claude-code.tool_use", ts="2026-07-16T10:02:00+05:30", tool_name="Bash"),
+            event("git.commit", ts="2026-07-16T10:05:00+05:30"),
+            # emitted ~2 hours later by an unrelated re-run of the archiver
+            event("opsx.archive", ts="2026-07-16T12:05:00+05:30", args=["archive", "x"]),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] == pytest.approx(5.0)
+    assert estimated_cost["usd"] == pytest.approx(10 * (5.0 / 60))
+
+
+def test_raw_span_fallback_excludes_session_bracket(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.session_start", ts="2026-07-16T09:50:00+05:30", session_id="s1"),
+            event("ai.claude-code.prompt", ts="2026-07-16T10:00:00+05:30", prompt_chars=10),
+            event("git.commit", ts="2026-07-16T10:05:00+05:30"),
+            event(
+                "ai.claude-code.session_end",
+                ts="2026-07-16T10:20:00+05:30",
+                session_id="s1",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason=None,
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] == pytest.approx(5.0)
+
+
+def test_raw_span_fallback_still_counts_defect_and_tool_start_events(tmp_path, capsys):
+    # a narrower include-list (git.*/prompt/tool_use only) would wrongly exclude
+    # these - the fix must be an exclude-list of bookkeeping types instead
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.tool_start", ts="2026-07-16T10:00:00+05:30", tool_name="Bash"),
+            event(
+                "ai.claude-code.defect_compile",
+                ts="2026-07-16T10:07:00+05:30",
+                matched_pattern="tsc --noEmit",
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] == pytest.approx(7.0)
+
+
+def test_bookkeeping_only_story_degrades_to_null_estimated_cost(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.session_start", ts="2026-07-16T10:00:00+05:30", session_id="s1"),
+            event(
+                "ai.claude-code.session_end",
+                ts="2026-07-16T10:01:00+05:30",
+                session_id="s1",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason=None,
+            ),
+            event("opsx.archive", ts="2026-07-16T10:02:00+05:30", args=["archive", "x"]),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["usd"] is None
+    assert estimated_cost["duration_minutes"] is None
+    assert estimated_cost["reason"] == "no events to compute duration from"
+
+
+def test_engineering_metrics_span_unaffected_by_activity_only_filter(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.prompt", ts="2026-07-16T10:00:00+05:30", prompt_chars=10),
+            event("git.commit", ts="2026-07-16T10:05:00+05:30"),
+            event("opsx.archive", ts="2026-07-16T12:05:00+05:30", args=["archive", "x"]),
+        ],
+    )
+
+    run(tmp_path)
+
+    metrics = read_snapshot(tmp_path)["engineering_metrics"]
+    # engineering_metrics's own first/last span is untouched by this story - still
+    # reflects the full event range, including the bookkeeping event
+    assert metrics["first_event_at"] == "2026-07-16T10:00:00+05:30"
+    assert metrics["last_event_at"] == "2026-07-16T12:05:00+05:30"
+
+
 def test_foreign_story_events_are_excluded(tmp_path, capsys):
     write_manifest(tmp_path)
     log = standard_log() + [event("git.commit", story_id="story-other-999")]

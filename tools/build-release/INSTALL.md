@@ -314,7 +314,11 @@ would need to track transcript byte-offsets per story boundary to do better.
 the event log's `time.slice_opened`/`time.slice_paused`/`time.slice_closed` events (gap
 threshold 15 minutes by default) — falling back to a raw first/last-event span only when no
 completed time slice was ever observed (an older snapshot, an `ai_tool` whose hooks don't
-emit `time.slice_*`, or a story closed while its AI session is still open).
+emit `time.slice_*`, or a story closed while its AI session is still open). That fallback
+(Story 3.5) only scans genuine activity events (`git.*`, `ai.<tool>.*` other than the
+session-boundary events themselves) for its span — a later administrative action (e.g.
+re-running `opsx archive`/the assembler well after real work ended) can no longer stretch
+a story's reported duration.
 
 The one case this doesn't yet handle: **a mid-session story switch.** If a developer works
 Story A, then `git checkout`s to Story B without closing or reloading the AI session in
