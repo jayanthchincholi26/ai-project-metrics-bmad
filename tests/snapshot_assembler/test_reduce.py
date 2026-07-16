@@ -725,6 +725,29 @@ def test_estimated_cost_falls_back_to_raw_span_when_no_time_slices(tmp_path, cap
     assert estimated_cost["reason"] is None
 
 
+def test_duration_minutes_is_rounded_to_2dp_without_skewing_usd(tmp_path, capsys):
+    # pilot-testing finding (2026-07-16): duration_minutes was the one field
+    # PR #45's rounding pass missed - a real story showed 27.533333333333335.
+    # usd must still be computed from the full-precision value, not the
+    # rounded display value, so this also guards against double-rounding.
+    write_manifest(tmp_path)
+    write_story_config(tmp_path, hourly_rate=10)
+    write_events(
+        tmp_path,
+        [
+            event("git.commit", ts="2026-07-10T10:00:00+05:30"),
+            # 1652 real seconds -> 27.533333333333335 minutes, unrounded
+            event("git.commit", ts="2026-07-10T10:27:32+05:30"),
+        ],
+    )
+
+    run(tmp_path)
+
+    estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
+    assert estimated_cost["duration_minutes"] == 27.53
+    assert estimated_cost["usd"] == pytest.approx(round(10 * (1652 / 3600), 2))
+
+
 def test_raw_span_fallback_excludes_opsx_archive_bookkeeping_event(tmp_path, capsys):
     # 2026-07-16 pilot-testing finding: an opsx.archive event hours after real
     # work finished must not stretch the fallback span
