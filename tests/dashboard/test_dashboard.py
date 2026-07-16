@@ -244,7 +244,7 @@ def test_defects_column_renders_real_values(tmp_path):
     run(tmp_path)
 
     html = dashboard_html(tmp_path)
-    assert "4 total (testing 75.0% / review 25.0%)" in html
+    assert "4 total (testing 75.00% / review 25.00%)" in html
 
 
 def test_output_is_self_contained_no_external_network_references(tmp_path):

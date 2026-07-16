@@ -309,6 +309,21 @@ Bottom line: close or reload the AI session at least roughly once per story for 
 to mean what it looks like it means. This isn't enforced or detected today — a future story
 would need to track transcript byte-offsets per story boundary to do better.
 
+**In VS Code, closing the chat session via the panel's "x" button does not reliably fire
+`SessionEnd` at all** — a Claude Code platform gap, not something this tool's `session_end.py`
+can work around. `SessionEnd`'s documented trigger reasons (`clear`, `logout`,
+`prompt_input_exit`, etc.) are all CLI-oriented, and even there it's known to misfire (doesn't
+fire on `/clear` or `/exit` in some versions — only on Ctrl+D). Closing the panel just tears
+down the process without guaranteeing the hook runs, so a story can show
+`token_cost.reason: "no AI session_end event observed for this story"` even though you did
+close the session. To make `SessionEnd` actually fire, end the session with `/exit` followed
+by Ctrl+D (or close the whole VS Code window) rather than the chat panel's "x" button.
+
+**`token_cost.reason: "no AI session_end event observed for this story"` specifically means
+zero `session_end` events were seen for this story** — distinct from a `token_cost_reason`
+surfaced *from* a session_end event (e.g. a transcript read failure). The most common cause is
+the VS Code "x"-button gap above, not a bug in the reducer.
+
 **`Duration` and `estimated_cost` reflect active work time, with one remaining edge case
 (Story 3.4).** `estimated_cost_of()` prefers real, idle-excluded active time — reduced from
 the event log's `time.slice_opened`/`time.slice_paused`/`time.slice_closed` events (gap
