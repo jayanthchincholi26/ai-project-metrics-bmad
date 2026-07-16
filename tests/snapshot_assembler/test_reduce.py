@@ -741,7 +741,7 @@ def test_raw_span_fallback_excludes_opsx_archive_bookkeeping_event(tmp_path, cap
 
     estimated_cost = read_snapshot(tmp_path)["estimated_cost"]
     assert estimated_cost["duration_minutes"] == pytest.approx(5.0)
-    assert estimated_cost["usd"] == pytest.approx(10 * (5.0 / 60))
+    assert estimated_cost["usd"] == pytest.approx(round(10 * (5.0 / 60), 2))
 
 
 def test_raw_span_fallback_excludes_session_bracket(tmp_path, capsys):
