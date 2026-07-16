@@ -284,6 +284,8 @@ A developer works normally and, on closing the story, a trustworthy metrics snap
 > **Retro note (§13):** *What worked* — the shared-emitter spine amendment (Story 2.3) paid for itself immediately: extending it to a third producer family (the opsx wrapper, Story 2.4) and reusing its `git_out()` helper for the assembler's git queries (Story 2.6) both required zero new subprocess-safety code. Extending existing components (the assembler, the docs-only writer) rather than creating parallel ones kept drift low across six stories touching the same files repeatedly. E2E discipline was decisive, not decorative: real-git/real-pipe testing caught 5 of this epic's defects outright (3 BOM-family bugs in 2.2/2.3, a cwd-addressing bug and a latent null-parsing bug in 2.6) that mocked unit suites alone did not surface — several as plausible-looking wrong answers, not crashes, the hardest failure mode to catch any other way. The LLM review loop (Gemini) converged to zero findings on 3 of 6 stories by the epic's end, visibly benefiting from earlier rounds' feedback (URL encoding, resilient parsing, format-over-membership validation) being pre-applied rather than re-caught.
 >
 > *What to watch* — Story 2.5 shipped without persisting its own output (the Phase-1 estimate), a gap only surfaced when Story 2.6 needed to read it back; the fix (AD-6a) was correct but retroactive. Future create-story passes should explicitly check whether a story's stated ACs, taken alone, satisfy every architecture invariant that later stories in the same epic will depend on — not just the epic document's per-story AC list. Also: this epic's `git_out()` reuse discipline (Issue #7's resolution) held up well through a second consumer; worth revisiting if a fourth producer family ever needs it, to confirm the shared module still earns its keep at that scale.
+>
+> 🔍 **Pilot-testing finding (2026-07-16):** `tools/snapshot-assembler/main.py` (Story 2.4) has no dry-run/preview mode — `--help` only exposes `--repo-root`. Testing the defect-capture hook (Story 5.4/5.8) by deliberately introducing a compile error led to running the assembler just to see the event roll up into a snapshot, which — per AD-3 — closed the story for real (a mid-flight snapshot, taken before the code was even committed). Recoverable via a fresh run creating the next revision (AD-3b treats priors as audit history, not corruption, so nothing was lost), but avoidable: a `--dry-run` flag that runs the full reduction and prints the would-be snapshot to stdout without writing the file or consuming the AD-1b pending spool would let a developer preview current-state metrics without ever triggering the "story closed" signal. Backlog, not urgent.
 
 ### Story 2.1: Hook Installation Is a Single Repeatable Setup Step
 
@@ -489,6 +491,34 @@ so that switching between story branches never silently discards or forks captur
 
 **Held for later:** whether `setup-hooks.py` should also proactively scan for and warn about *other* dangerous already-committed local state beyond this specific file list — out of scope for this story, which fixes the concrete case actually found.
 
+### Story 2.12: Dry-Run Mode for Snapshot Assembler
+
+As a developer,
+I want to preview a story's current metrics without closing the story,
+so that testing/inspecting in-progress capture (e.g. verifying the defect-capture hook fires correctly) never accidentally marks a mid-flight story as done.
+
+**Context:** logged as a 🔍 pilot-testing finding (2026-07-16, this epic's blockquote block, formalized into this story now). `tools/snapshot-assembler/main.py` has no preview/dry-run mode — `--help` only exposes `--repo-root`. Per AD-3, a snapshot's mere existence is the authoritative "this story is closed" signal every other producer (`story-kickoff`'s double-kickoff guard, Story 2.10) relies on. Confirmed live in a pilot repo: a developer deliberately introduced a compile error to verify `PostToolUse`'s defect-capture hook (Story 5.4/5.8), then ran the assembler just to see that event roll up into a snapshot — which closed the story for real, with `engineering_metrics.commits: 0` (the actual code hadn't been committed yet). Recoverable (AD-3b: revisions are exclusive-create, never overwritten; a later real close creates the next revision, and the stale one is left as harmless audit history) but avoidable.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `tools/snapshot-assembler/main.py --repo-root <root> --dry-run`
+   **When** the assembler runs
+   **Then** it performs the exact same reduction as today (reads `.story-events.jsonl` + the AD-1b pending spool, computes all six envelope sections: `pm_metrics`, `engineering_metrics`, `story_point_cost`, `token_cost`, `estimated_cost`, `defect_metrics`) and prints the computed snapshot JSON to stdout
+2. **Given** `--dry-run` is set
+   **When** the assembler would otherwise write `snapshots/{story_id}.v{schema}.rev{N}.json`
+   **Then** it skips that write entirely — no file is created, no revision number is consumed
+3. **Given** `--dry-run` is set
+   **When** the assembler would otherwise consume the AD-1b pending spool (append its events to the main log, delete the spool file)
+   **Then** it skips that too — the pending spool is left completely untouched, so a later real (non-dry-run) run still sees and correctly backfills it
+4. **Given** `--dry-run` is *not* set (the default)
+   **When** the assembler runs
+   **Then** behavior is byte-for-byte unchanged from today — this story only adds an opt-in preview path, never alters the existing close-time behavior
+5. **Given** `tools/opsx-wrapper/main.py archive <name>`
+   **When** a clean pass-through for this flag is possible without changing the wrapper's own archive semantics (it always performs a real `openspec archive` + real snapshot)
+   **Then** evaluate threading `--dry-run` through to the assembler call for symmetry — informational only, not a hard requirement of this story if it doesn't fit cleanly (the wrapper's own `archive` action isn't itself dry-runnable, only its snapshot half is)
+
+---
+
 ---
 
 ## Epic 3: Time Tracked Without Logging Hours
@@ -498,6 +528,8 @@ Switching between stories never corrupts time attribution, and nobody manually s
 > ✅ **Epic complete** — 2026-07-10, all 3 stories done (PRs #16, #17, #18).
 >
 > 🔍 **Post-epic smoke-test finding (2026-07-11):** an abrupt VS Code shutdown (no `SessionEnd`) leaves a stale `.active-claude-session` marker. Until the next `SessionStart` self-heals it, any `git checkout` takes the "session live → repoint only" path with no live session actually present — skipping slice accounting it should have performed. Observed live (overnight, marker present + no `.active-story`). Low severity, but the snapshot assembler should treat a `session_start` with no matching `session_end` event as a reduced-confidence signal on that story's time totals. Backlog, not urgent.
+>
+> 🔍 **Pilot-testing finding (2026-07-16):** the raw-span fallback (`estimated_cost_of()`'s `duration_minutes` when no completed time slice exists) uses whichever event has the *latest* timestamp recorded for a story — including non-work bookkeeping events (`opsx.archive`, `session_start`/`session_end` themselves), not just real activity (`git.*` commits, `ai.claude-code.{prompt,tool_use}`). Observed live in a pilot repo: an `opsx archive` run nearly 2 hours after a story's real work had finished became the fallback's end-of-span, inflating a ~15-20 real-minute story to a reported 117.6 minutes / $19.60 `estimated_cost`. Only bites when Story 3.4's real-slice path is unavailable (which the 2026-07-11 finding above shows is common), so it compounds an existing gap rather than being new on its own. Backlog, not urgent — candidate fix: exclude only genuine bookkeeping event types (`opsx.*`, `ai.<tool>.session_start`/`session_end`, `time.*`) from the raw-span fallback's timestamp scan, keeping every other event type (`git.*` and all remaining `ai.<tool>.*` activity, e.g. `prompt`/`tool_use`/`tool_start`/`stop`/`defect_*`) — a narrower include-list of just prompt/tool_use would wrongly undercount real activity like defect-capture events.
 >
 > **Retro note (§13):** *What worked* — the same "shared, source-parameterized emitter" discipline from Epic 2 carried straight into Epic 3: every new mechanic (`update_active_story`, `record_activity`, `repoint_active_story`, `close_active_story_slice`) was built as a sibling function reusing `emit()`/`write_atomic_json()`/`read_active_story()`, never a parallel append or I/O path — zero new event-integrity code needed across 3 stories despite adding 2 new event types (`time.slice_opened/closed/paused`) and 2 new local state files (`.active-story`, `.active-claude-session`). Live E2E (real git repos, real hook invocations via `uv run --script`) caught nothing new this epic but continued to be the final confirmation step every story leaned on, consistent with Epic 2's finding that it's the strongest signal mocked unit suites alone miss. Story 3.3 completed a rule (session-level slices closing on `SessionEnd`) that had been written into `ARCHITECTURE-SPINE.md` before Epic 3 even started but was left half-wired by Story 3.1 — a good example of a story's own dev notes correctly flagging and closing a cross-story architecture gap before it became a silent one, the same lesson Epic 2's retro flagged as a process improvement.
 >
@@ -569,6 +601,29 @@ So that a story left open across days (or interleaved with meetings/other storie
 **Then** behavior is unchanged from today (raw span, no reason needed) — this story only improves the calculation when the richer signal exists, it never removes the existing fallback
 
 **And** `INSTALL.md`'s "Known limitations" entry for `Duration`/`estimated_cost` is narrowed to describe only the remaining caveat (a mid-session story switch via `repoint_active_story()` still attributes a slice's whole time to whichever story was active when the AI session finally closes — the same session-vs-story blending `token_cost` already has, for time instead of dollars)
+
+### Story 3.5: Raw-Span Fallback Excludes Bookkeeping Events
+
+As someone reviewing the dashboard,
+I want the raw-span fallback duration to reflect real developer activity, not administrative/bookkeeping actions,
+so that a story's reported duration/cost isn't inflated by an unrelated later command that happens to touch the same story_id.
+
+**Context:** logged as a 🔍 pilot-testing finding (2026-07-16, this epic's blockquote block, formalized into this story now). Story 3.4's raw-span fallback (`estimated_cost_of()`, used whenever no completed `time.slice_*` sequence exists for a story) computes `duration_minutes` from `engineering_metrics.first_event_at`/`last_event_at` — the first and last timestamps of *any* event tagged with that `story_id`, with no filter on event type. Confirmed live in a pilot repo: an `opsx.archive` bookkeeping event, emitted by a re-run of the assembler/wrapper nearly 2 hours after a story's real work had finished, became the fallback's end-of-span — inflating a ~15-20 real-minute story to a reported 117.6 minutes / $19.60 `estimated_cost`. This compounds whenever Story 3.4's real-slice path is unavailable (already common — see this epic's 2026-07-11 finding), turning a "no idle exclusion" gap into an actively misleading number, not just an imprecise one.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** the raw-span fallback is in effect for a story (no completed `time.slice_*` sequence exists)
+   **When** `engineering_metrics.first_event_at`/`last_event_at` are computed (or a new duration-specific pair is computed for this purpose)
+   **Then** only genuine bookkeeping event types are excluded from the span — `opsx.*`, `ai.<tool>.session_start`, `ai.<tool>.session_end`, `time.*` — every other event type (`git.*` and all remaining `ai.<tool>.*` activity, e.g. `prompt`/`tool_use`/`tool_start`/`stop`/`defect_*`) still counts, so real activity signals like defect-capture events are never undercounted
+2. **Given** a story whose *only* events are bookkeeping ones (e.g. a kickoff immediately followed by an archive, no real work in between)
+   **When** the assembler computes the raw-span fallback
+   **Then** it degrades to null-with-reason (AD-10) rather than a fabricated zero or a misleading span from bookkeeping-only timestamps
+3. **Given** this fix
+   **When** a re-run of the assembler/wrapper happens well after a story's real work concluded (the exact scenario that surfaced this finding)
+   **Then** `estimated_cost`/`duration_minutes` for that story are unaffected by the timing of that later re-run
+4. **Given** Story 3.4's real-slice path (a completed `time.slice_*` sequence exists)
+   **When** the assembler computes duration
+   **Then** behavior is unchanged — this story only narrows the *fallback* path's event selection, it does not touch the idle-aware active-time calculation at all
 
 ---
 

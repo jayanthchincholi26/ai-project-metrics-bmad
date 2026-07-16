@@ -59,7 +59,7 @@ development_status:
   1-8-confluence-adapter-fetches-via-the-atlassian-remote-mcp-server: done  # PR #40, merged d47d4e8; live-verified 2026-07-15 (story-20260715-480790)
   1-9-jira-confluence-plain-ask-fallback-wrongly-offered-none-sprint: review  # PR pending, found live during 1.8's own verification
   epic-1-retrospective: optional
-  epic-2: done  # all 11 stories (2.1-2.11) complete; 2.8/2.9 merged PR #39, 2026-07-15
+  epic-2: in-progress  # reopened 2026-07-16 for Story 2.12 (dry-run flag, pilot-testing finding)
   2-1-hook-installation-is-a-single-repeatable-setup-step: done
   2-2-git-activity-captured-silently-while-you-work: done
   2-3-ai-session-activity-captured-silently: done
@@ -71,12 +71,14 @@ development_status:
   2-9-repo-root-falls-back-to-a-parent-directory-walk-not-just-cwd: done  # PR #39, merged 1338f2a
   2-10-a-closed-storys-manifest-doesnt-block-the-next-storys-kickoff: done  # PR #24, merged 05c29fa
   2-11-setup-enforces-gitignore-for-local-capture-state: done  # PR #23, merged 8397b95
+  2-12-dry-run-mode-for-snapshot-assembler: in-progress
   epic-2-retrospective: optional
-  epic-3: done  # 3.4 merged PR #44, 2ddf985 - completes the reducer half of AD-7
+  epic-3: in-progress  # reopened 2026-07-16 for Story 3.5 (raw-span fallback event filtering, pilot-testing finding)
   3-1-active-story-pointer-tracks-time-automatically: done
   3-2-idle-time-doesnt-inflate-a-storys-active-time: done
   3-3-mid-session-checkout-doesnt-double-count-time: done
   3-4-snapshot-assembler-reduces-idle-aware-time-slices-into-real-active-time-duration: done  # PR #44 merged 2ddf985
+  3-5-raw-span-fallback-excludes-bookkeeping-events: ready-for-dev
   epic-3-retrospective: optional
   epic-4: in-progress
   4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff
