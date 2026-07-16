@@ -337,6 +337,15 @@ zero `session_end` events were seen for this story** — distinct from a `token_
 surfaced *from* a session_end event (e.g. a transcript read failure). The most common cause is
 the VS Code "x"-button gap above, not a bug in the reducer.
 
+**When a story has multiple AI sessions and only some of them close cleanly, `token_cost`
+now says so explicitly instead of surfacing an unrelated session's own reason.** `token_cost`
+exposes both `sessions_started` (every `session_start` seen) and `sessions_observed` (every
+`session_end` seen) — a gap between the two means at least one session never closed. When that
+happens, `reason` names the gap (e.g. `"1 of 3 AI session(s) for this story never sent
+session_end..."`) rather than showing the first *closed* session's own reason, which can belong
+to a short, unrelated reconnect blip and have nothing to do with the session that actually did
+the story's real work.
+
 **Running the snapshot assembler always closes the story — its existence is the
 authoritative signal every other producer relies on to know a story is done** (a closed
 story's `.story.yaml` is what the next `story-kickoff` checks for). There is no "just
