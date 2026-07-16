@@ -36,7 +36,11 @@ ENVELOPE_KEYS = {
     "token_cost",
     "estimated_cost",
     "defect_metrics",
+    "field_guide",
 }
+# Story 5.11's field_guide is strictly additive (AC5) — this is the pre-5.11
+# envelope, frozen, so the regression test below doesn't just restate ENVELOPE_KEYS.
+PRE_FIELD_GUIDE_ENVELOPE_KEYS = ENVELOPE_KEYS - {"field_guide"}
 
 
 def write_story_config(root: Path, **rates) -> None:
@@ -132,7 +136,7 @@ def standard_log() -> list:
     ]
 
 
-def test_envelope_has_exactly_the_nine_ad3a_keys(tmp_path, capsys):
+def test_envelope_has_exactly_the_ten_ad3a_keys(tmp_path, capsys):
     write_manifest(tmp_path)
     write_events(tmp_path, standard_log())
 
@@ -1261,3 +1265,54 @@ def test_dry_run_degraded_signal_parity_with_written_snapshot(tmp_path, capsys):
     assert dry_out["snapshot"]["defect_metrics"] == written["defect_metrics"]
     assert dry_out["snapshot"]["story_point_cost"] == written["story_point_cost"]
     assert dry_out["snapshot"]["estimated_cost"] == written["estimated_cost"]
+
+
+def test_snapshot_carries_a_field_guide(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    run(tmp_path)
+
+    field_guide = read_snapshot(tmp_path)["field_guide"]
+    assert isinstance(field_guide, dict)
+    assert isinstance(field_guide.get("token_cost.reason"), str)
+    assert field_guide["token_cost.reason"]
+
+
+def test_field_guide_covers_sessions_started_added_by_story_5_10(tmp_path, capsys):
+    # Story 5.10 (PR #49) added token_cost.sessions_started to the snapshot after
+    # this story's own FIELD_GUIDE was authored - this is the flagged one-entry
+    # follow-up, closing that gap.
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    run(tmp_path)
+
+    snapshot = read_snapshot(tmp_path)
+    assert "sessions_started" in snapshot["token_cost"]
+    field_guide = snapshot["field_guide"]
+    assert isinstance(field_guide.get("token_cost.sessions_started"), str)
+    assert field_guide["token_cost.sessions_started"]
+
+
+def test_dry_run_snapshot_also_carries_the_field_guide(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    run_dry(tmp_path)
+    dry_out = json.loads(capsys.readouterr().out)
+
+    field_guide = dry_out["snapshot"]["field_guide"]
+    assert isinstance(field_guide, dict)
+    assert isinstance(field_guide.get("token_cost.reason"), str)
+
+
+def test_field_guide_is_additive_existing_envelope_keys_unaffected(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(tmp_path, standard_log())
+
+    run(tmp_path)
+
+    snapshot = read_snapshot(tmp_path)
+    assert PRE_FIELD_GUIDE_ENVELOPE_KEYS.issubset(set(snapshot.keys()))
+    assert snapshot["schema_version"] == 1

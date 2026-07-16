@@ -38,6 +38,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / "hooks")
+)  # bridge to the shared field-descriptions dict (Story 5.11)
+import _field_guide
+
 SNAPSHOTS_DIR = "snapshots"
 REPORTS_DIR = "metrics-reports"
 FILENAME_RE = re.compile(r"^(?P<story_id>.+)\.v(?P<schema>\d+)\.rev(?P<rev>\d+)\.json$")
@@ -209,11 +214,33 @@ def render_story(snapshot: dict) -> str:
     return "\n".join(lines)
 
 
+def render_field_guide() -> str:
+    """Story 5.11: one "Field Guide" appendix per report, grouped by the same
+    top-level section each field belongs to in the snapshot JSON. Group order
+    follows FIELD_GUIDE's own definition order (top-level keys first, then one
+    section at a time) - not re-sorted, so it reads in the same order fields
+    appear in render_story() above."""
+    groups: "dict[str, list[tuple[str, str]]]" = {}
+    for key, description in _field_guide.FIELD_GUIDE.items():
+        section = key.split(".", 1)[0] if "." in key else "top level"
+        groups.setdefault(section, []).append((key, description))
+
+    lines = ["## Field Guide", "", "What each field above means and how it's calculated.", ""]
+    for section, entries in groups.items():
+        lines.append(f"### {section}")
+        lines.append("")
+        for key, description in entries:
+            lines.append(f"- **{key}** — {description}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def render_report(date_key: str, snapshots: "list[dict]") -> str:
     header = f"# Metrics Report — {date_key}\n\n"
     ordered = sorted(snapshots, key=lambda s: s.get("story_id") or "")
     blocks = [render_story(s) for s in ordered]
-    return header + "\n\n---\n\n".join(blocks) + "\n"
+    body = header + "\n\n---\n\n".join(blocks) + "\n"
+    return body + "\n---\n\n" + render_field_guide()
 
 
 def main(argv: "list[str] | None" = None) -> int:
