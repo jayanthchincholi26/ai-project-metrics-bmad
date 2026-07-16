@@ -731,6 +731,10 @@ Story 5.4 added real, working `test_commands`/`build_commands` config keys but n
 ## Epic 5: Leadership-Ready Reporting and Real Cost/Defect Tracking
 
 > 🆕 **Opened 2026-07-13** — a batch of enhancement requests from the user after two clean rounds of docs-only/JIRA pilot testing (v0.2.2), inspired partly by a richer per-story report format seen in a different tool (`developer_handover.md`/`metrics.md`-style: date/duration, story points, estimated cost, AI token cost, defect breakdown, testing/review efficiency, notes). Work happens on a new branch, `enhancements-v2`, off `enhancements` — **starting tomorrow (2026-07-14), not today.** Agreed priority order: A → B → C → E, with D last since its capture mechanism needs the user's decision first (not yet made).
+>
+> 🔍 **Pilot-testing finding (2026-07-16):** a real JIRA-flow snapshot (`story-20260716-ea94fb`) showed `token_cost.reason: "no assistant usage data found in transcript"` even though real work clearly happened (a real commit, a real defect_review event with a JIRA subtask). Root-caused by direct inspection of `.story-events.jsonl`: 3 `session_start` events existed for this story but only 2 `session_end` events — and the session that did essentially all the real work (96 of 98 session-tagged events, including the final commit and defect event) never sent `session_end` at all (the already-known VS Code "x"-button `SessionEnd` gap). `token_cost_of()` surfaces `reasons[0]` — the reason from the chronologically *first* `session_end` — which here belonged to an unrelated, near-empty 2-minute reconnect blip, not the real session. The displayed reason is technically true for that blip but misleading about what actually happened to the story's real token cost. Backlog, not urgent — candidate fix: when `session_start` count exceeds `session_end` count (i.e., at least one session never closed), say so explicitly instead of surfacing an unrelated closed session's own reason.
+>
+> 🔍 **Pilot-testing finding (2026-07-16):** across a full day of reading generated snapshots and reports, the user repeatedly lost track of what specific fields mean and how they're calculated (`phase1_points`/`phase2_points`/`variance`, `sessions_observed` vs `ai_sessions`, `duration_minutes`'s active-vs-raw-span distinction, etc.) — the explanations exist only in `tools/snapshot-assembler/main.py`'s docstrings and `INSTALL.md`, neither of which sits next to the actual output being read (`snapshots/*.json`, `metrics-reports/*.md`, `dashboard.html`). Backlog, not urgent — candidate fix: a single shared field-descriptions source, surfaced directly inside all three generated artifacts (a `field_guide` key in the snapshot JSON itself, a "Field Guide" appendix in the markdown report, and header tooltips in the HTML dashboard).
 
 ### Story 5.1: INSTALL.md — Numbered Steps, No Prose (small)
 
@@ -792,3 +796,55 @@ A deliberately broken `tsc --noEmit` (real `TS2322`, confirmed `exit 1`) still d
 > ✅ **Complete** — built and merged 2026-07-15 on `enhancements-v3` (PR #42, 1343020) — followed directly from a live demo: the user asked to see a real consolidated report across all pilot-test snapshots to date (7 real snapshots manually gathered from 5 different local test folders into one `snapshots/` directory, run through the existing unmodified `metrics-report`/`dashboard` tools — proving zero new code is needed for aggregation, since `snapshots/*.json` is already meant to be committed to git). **Live-verified same day** in `ai-project-metrics-bmad-testing`: a real `workflow_dispatch` run succeeded in 14s and produced a correct downloadable dashboard artifact. Getting there surfaced two real environment gaps, fixed live: `workflow_dispatch` workflows must exist on the repo's *default* branch to be listed/runnable at all (a genuine GitHub platform requirement, not a bug), and that test repo had never actually committed `tools/`/`snapshots/` to any branch across the whole pilot — everything had only ever existed locally.
 
 Ships `.github/workflows/generate-dashboard.yml` in the release artifact — a `workflow_dispatch`-only workflow anyone with repo Write access can trigger with one click from the Actions tab, no local install or code push needed. Runs the same `metrics-report`/`dashboard` tools already documented for local use, uploading the result as a downloadable workflow artifact — deliberately **not** committed to the repo or published anywhere public, preserving Story 5.5's "you decide whether and how to share it" boundary. Optionally gated behind a GitHub Environment (`dashboard-publish`) with required reviewers, a one-time manual Settings step (documented, not automatable without an admin token this tooling never holds) for teams that want approval-gating beyond GitHub's own Write-access baseline. Of the three trigger options discussed with the user (manual local command, CI-on-every-merge, one-click `workflow_dispatch`), only the one-click option was built this story — CI-on-every-merge deliberately deferred to a later story until real team merge cadence is understood.
+
+### Story 5.10: `token_cost.reason` Doesn't Distinguish "Never Closed" From "Closed But Failed"
+
+As someone reading a story's `token_cost`,
+I want the surfaced `reason` to reflect what actually happened to the session that did the real work,
+so that a null token cost isn't explained by an unrelated, near-empty session's own failure reason.
+
+**Context:** logged as a 🔍 pilot-testing finding (2026-07-16, this epic's blockquote block, formalized into this story now). `token_cost_of()` sums input/output tokens across every `session_end` event for a story; when none carry real token counts, it falls back to `reasons[0]` — the `token_cost_reason` from the chronologically *first* `session_end`. Confirmed live in a real JIRA-flow pilot repo (`D:\mywork\myPOCs\test-metrics\v0.9.3-jira-only`, story `story-20260716-ea94fb`): 3 `session_start` events existed, but only 2 `session_end` events — both from short, empty reconnect blips (`session_ids` `58af4d1c...`'s first ~2-minute life, and `311a6897...`'s ~1-second life). The session that did essentially all the real work (`58af4d1c...`'s second life, 96 of 98 session-tagged events, including the final real commit and a `defect_review` event) never sent `session_end` at all — the already-documented VS Code "x"-button `SessionEnd` gap (see `INSTALL.md`'s "Known limitations"). The displayed reason (`"no assistant usage data found in transcript"`) was technically accurate for the blip session it came from, but misleading about the real work session's fate.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** a story where every `session_start` has a matching `session_end`, and none of them yield real token counts
+   **When** the assembler computes `token_cost`
+   **Then** `reason` is unchanged from today — `reasons[0]` from the closed sessions (no regression to the already-tested Story 5.2/5.6 behavior)
+2. **Given** a story where zero `session_end` events exist at all
+   **When** the assembler computes `token_cost`
+   **Then** `reason` is unchanged from today — `"no AI session_end event observed for this story"` (no regression to Story 5.6)
+3. **Given** a story where at least one `session_end` exists (so the zero-session_end case above doesn't apply) but the count of `ai.<tool>.session_start` events exceeds the count of `session_end` events
+   **When** the assembler computes `token_cost`
+   **Then** `reason` explicitly says N of M sessions never sent `session_end`, rather than surfacing an unrelated closed session's own `reasons[0]`
+4. **Given** any story
+   **When** the assembler computes `token_cost`
+   **Then** the returned dict also exposes a `sessions_started` count (alongside the existing `sessions_observed`) so the gap between "sessions that began" and "sessions that cleanly ended" is visible directly in the snapshot, not just inferable from the reason text
+5. **Given** this fix
+   **When** `INSTALL.md`'s "Known limitations" section is reviewed
+   **Then** it gets one sentence noting `token_cost.reason` now distinguishes an unclosed session from a closed-but-failed one, and that `sessions_started`/`sessions_observed` together show the gap
+
+### Story 5.11: Snapshot and Report Fields Explain Their Own Purpose
+
+As someone reading a generated snapshot, markdown report, or dashboard,
+I want each field to explain what it means and how it's calculated right next to where I'm reading it,
+so that I don't have to go find `tools/snapshot-assembler/main.py`'s docstrings or `INSTALL.md` every time I get confused.
+
+**Context:** logged as a 🔍 pilot-testing finding (2026-07-16, this epic's blockquote block, formalized into this story now). Field explanations today live only in code docstrings and `INSTALL.md`'s prose — neither is visible from the actual artifacts a developer or leadership reader looks at day to day (`snapshots/*.json`, `metrics-reports/*.md`, `dashboard.html`). Recurring confusion reported live during pilot testing over fields like `story_point_cost.phase1_points`/`phase2_points`/`variance`, `token_cost.sessions_observed` vs. `engineering_metrics.ai_sessions`, and `estimated_cost.duration_minutes`'s active-time-vs-raw-span distinction.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** a single shared, static field-descriptions source (one dotted-path-keyed dict, covering every field currently emitted by the six snapshot sections)
+   **When** it's authored
+   **Then** each description states both the field's purpose and — where the value is computed rather than copied verbatim from a source system — a one-line summary of the calculation, in plain language a non-author can follow
+2. **Given** the snapshot assembler writes a snapshot (real or `--dry-run`)
+   **When** the JSON is produced
+   **Then** it includes a `field_guide` section (sourced from the shared descriptions in AC1) directly in the snapshot itself — no external doc lookup needed to understand any field in the file you're already looking at
+3. **Given** `tools/metrics-report/main.py` generates a `metrics-<date>.md` file
+   **When** the report is rendered
+   **Then** it includes a "Field Guide" appendix (sourced from the same shared descriptions) explaining every field that appears in each story's block above it
+4. **Given** `tools/dashboard/main.py` generates `dashboard.html`
+   **When** the table/stat-tiles are rendered
+   **Then** each column header and stat tile carries a hover tooltip (sourced from the same shared descriptions) explaining that field — no separate legend page needed, and no new script/CDN dependency introduced
+5. **Given** this story only adds documentation-carrying fields/attributes
+   **When** existing consumers (tests, other tools) read a snapshot
+   **Then** nothing that reads specific data fields today breaks — `field_guide` is strictly additive, same precedent as `estimated_cost`/`defect_metrics` being added without a `schema_version` bump

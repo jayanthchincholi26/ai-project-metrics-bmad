@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-14  # Story 4.8 merged
+last_updated: 2026-07-16  # Stories 5.10/5.11 opened
 project: explore-jira-ai-metrics
 project_key: NOKEY
 tracking_system: file-system
@@ -90,7 +90,7 @@ development_status:
   4-7-setup-hooks-crashes-on-a-bom-prefixed-settingsjson: done  # PR #34, merged ca9da4f
   4-8-story-config-template-missing-story-54s-defect-capture-keys: done  # PR #35, merged 111db78
   epic-4-retrospective: optional
-  epic-5: done  # 5.9 verified live 2026-07-15 in ai-project-metrics-bmad-testing (real workflow_dispatch run)
+  epic-5: in-progress  # reopened 2026-07-16 for 5.10/5.11, found during live JIRA-flow pilot testing
   5-1-installmd-numbered-steps-no-prose: done  # PR #25, merged 9130a94
   5-2-real-cost-and-token-fields-per-story: done  # PR #26, merged 2593c02
   5-3-metrics-date-md-generator: done  # PR #27, merged 1339056
@@ -100,4 +100,6 @@ development_status:
   5-7-post-tool-use-reads-exit-code-from-the-wrong-payload-location: done  # PR #36, merged fc54d3e
   5-8-defect-capture-cannot-rely-on-a-nonexistent-exit-code-field: done  # PR #38 merged 4ac30c4; live-verified 2026-07-15 on v0.8.0 (3 real defect_compile events)
   5-9-one-click-team-dashboard-workflow: done  # PR #42 merged 1343020, on enhancements-v3; live-verified 2026-07-15
+  5-10-token-cost-reason-doesnt-distinguish-never-closed-from-failed: backlog
+  5-11-snapshot-and-report-fields-explain-their-own-purpose: backlog
   epic-5-retrospective: optional
