@@ -492,6 +492,159 @@ def test_reason_is_not_shown_when_a_later_session_has_real_tokens(tmp_path, caps
     assert token_cost["reason"] is None
 
 
+def test_sessions_started_counts_session_start_events_independent_of_ends(tmp_path, capsys):
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.session_start", ts="2026-07-16T18:24:52+05:30", session_id="a"),
+            event("ai.claude-code.session_start", ts="2026-07-16T18:26:51+05:30", session_id="a"),
+            event("ai.claude-code.session_start", ts="2026-07-16T18:26:50+05:30", session_id="b"),
+            event(
+                "ai.claude-code.session_end",
+                ts="2026-07-16T18:26:45+05:30",
+                session_id="a",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason="no assistant usage data found in transcript",
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["sessions_started"] == 3
+    assert token_cost["sessions_observed"] == 1
+
+
+def test_reason_names_unclosed_sessions_instead_of_an_unrelated_blips_reason(tmp_path, capsys):
+    # Reproduces the exact live pilot finding (2026-07-16, story-20260716-ea94fb,
+    # D:\mywork\myPOCs\test-metrics\v0.9.3-jira-only): 3 session_starts, 2
+    # session_ends from short/unrelated blip sessions, and the session that did
+    # all the real work (its second session_start, "a") never sent session_end.
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.session_start", ts="2026-07-16T18:24:52+05:30", session_id="a"),
+            event(
+                "ai.claude-code.session_end",
+                ts="2026-07-16T18:26:45+05:30",
+                session_id="a",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason="no assistant usage data found in transcript",
+            ),
+            event("ai.claude-code.session_start", ts="2026-07-16T18:26:50+05:30", session_id="b"),
+            event(
+                "ai.claude-code.session_end",
+                ts="2026-07-16T18:26:52+05:30",
+                session_id="b",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason="transcript file not found or unreadable",
+            ),
+            # "a"'s second life: does all the real work, never sends session_end
+            event("ai.claude-code.session_start", ts="2026-07-16T18:26:51+05:30", session_id="a"),
+            event("git.commit", ts="2026-07-16T18:41:52+05:30"),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["sessions_started"] == 3
+    assert token_cost["sessions_observed"] == 2
+    assert token_cost["reason"] not in (
+        "no assistant usage data found in transcript",
+        "transcript file not found or unreadable",
+    )
+    assert "session_end" in token_cost["reason"]
+    assert "1" in token_cost["reason"] and "3" in token_cost["reason"]
+
+
+def test_reason_unchanged_when_every_started_session_also_closed(tmp_path, capsys):
+    # Regression guard for AC1: 2 starts, 2 ends, neither with real tokens -
+    # reasons[0] behavior (Story 5.2/5.6) must be untouched by this story.
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.session_start", session_id="s1"),
+            event(
+                "ai.claude-code.session_end",
+                session_id="s1",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason="first reason",
+            ),
+            event("ai.claude-code.session_start", session_id="s2"),
+            event(
+                "ai.claude-code.session_end",
+                session_id="s2",
+                input_tokens=None,
+                output_tokens=None,
+                token_cost_reason="second reason",
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["sessions_started"] == 2
+    assert token_cost["sessions_observed"] == 2
+    assert token_cost["reason"] == "first reason"
+
+
+def test_reason_unchanged_when_zero_sessions_ever_closed(tmp_path, capsys):
+    # Regression guard for AC2: Story 5.6's zero-session_end wording must be
+    # untouched — the new branch only fires when session_ends is non-empty.
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.session_start", session_id="s1"),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["sessions_started"] == 1
+    assert token_cost["sessions_observed"] == 0
+    assert token_cost["reason"] == "no AI session_end event observed for this story"
+
+
+def test_real_tokens_still_shadow_unclosed_session_reason(tmp_path, capsys):
+    # Regression guard for AC5: real token data must win even when some
+    # session_start never got a matching session_end.
+    write_manifest(tmp_path)
+    write_events(
+        tmp_path,
+        [
+            event("ai.claude-code.session_start", session_id="s1"),
+            event("ai.claude-code.session_start", session_id="s2"),
+            event(
+                "ai.claude-code.session_end",
+                session_id="s2",
+                input_tokens=7111,
+                output_tokens=500,
+                token_cost_reason=None,
+            ),
+        ],
+    )
+
+    run(tmp_path)
+
+    token_cost = read_snapshot(tmp_path)["token_cost"]
+    assert token_cost["sessions_started"] == 2
+    assert token_cost["sessions_observed"] == 1
+    assert token_cost["input_tokens"] == 7111
+    assert token_cost["reason"] is None
+
+
 def test_cost_usd_is_null_when_tokens_are_unknown_even_with_rates_configured(tmp_path, capsys):
     write_manifest(tmp_path)
     write_story_config(tmp_path, ai_input_rate=1.25, ai_output_rate=5.00)
