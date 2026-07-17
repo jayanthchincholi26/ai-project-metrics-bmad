@@ -994,6 +994,8 @@ so that sub-tasks show up realistically in JIRA reporting rather than as unestim
 
 ### Story 6.4: Parent Ticket's Story Points Sync Back at Close
 
+> 🔨 **Built and live-verified 2026-07-17 on `epic-6-jira-lifecycle-sync`, not yet merged to `main`** — new step 7 in `story-close/SKILL.md`, ordered strictly after step 6 (the close command), since `phase2_points` is computed *by* that command and doesn't exist beforehand — a real sequencing correction caught while reading `story-close`/`tools/snapshot-assembler/main.py` together during story authoring, not assumed from the original epic draft. The existing single confirmation (Story 6.2) now also mentions the points sync — no new prompt. Live-verified against `AI-143`: 3 real prompt events produced a real `phase2_points: 2`, written to the ticket's points field and confirmed via independent re-fetch. Also found and noted honestly: the current `phase2_points` formula can never actually return `null`, so AC 2's null-guard was verified structurally, not live-reproduced. Awaiting the rest of Epic 6 and the user's own end-to-end testing before this branch merges to `main`.
+
 As someone viewing the JIRA board,
 I want the ticket's points field to reflect what was actually estimated by the end of the story,
 so that JIRA isn't left showing a stale pre-work guess.
