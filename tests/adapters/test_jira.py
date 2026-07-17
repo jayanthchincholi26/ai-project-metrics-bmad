@@ -75,6 +75,8 @@ def test_success_ack_contains_the_normalized_shape(tmp_path, monkeypatch, capsys
         "points": 5,
         "goal": "Ship the demo",
         "sprint": "Sprint 9",
+        "sprint_start_date": None,
+        "sprint_end_date": None,
         "description": "Longer text",
     }
 
@@ -140,6 +142,80 @@ def test_sprint_absent_yields_null(tmp_path, monkeypatch, capsys):
     run(tmp_path, monkeypatch, body=payload())
 
     assert read_ack(capsys)["sprint"] is None
+
+
+def test_sprint_dates_come_from_the_same_active_item_as_the_name(tmp_path, monkeypatch, capsys):
+    sprint = [
+        {"name": "Sprint 8", "state": "closed", "startDate": "2026-06-01T00:00:00.000Z"},
+        {
+            "name": "Sprint 9",
+            "state": "active",
+            "startDate": "2026-07-01T00:00:00.000Z",
+            "endDate": "2026-07-15T00:00:00.000Z",
+        },
+    ]
+    run(tmp_path, monkeypatch, body=payload(sprint=sprint))
+
+    ack = read_ack(capsys)
+    assert ack["sprint"] == "Sprint 9"
+    assert ack["sprint_start_date"] == "2026-07-01T00:00:00.000Z"
+    assert ack["sprint_end_date"] == "2026-07-15T00:00:00.000Z"
+
+
+def test_sprint_dates_fall_back_to_the_same_last_item_as_the_name(tmp_path, monkeypatch, capsys):
+    sprint = [
+        {
+            "name": "Sprint 8",
+            "state": "closed",
+            "startDate": "2026-06-01T00:00:00.000Z",
+            "endDate": "2026-06-15T00:00:00.000Z",
+        },
+        {"name": "Sprint 10", "state": "future"},
+    ]
+    run(tmp_path, monkeypatch, body=payload(sprint=sprint))
+
+    ack = read_ack(capsys)
+    assert ack["sprint"] == "Sprint 10"
+    assert ack["sprint_start_date"] is None
+    assert ack["sprint_end_date"] is None
+
+
+def test_sprint_dates_null_for_a_future_sprint_with_no_date_keys_at_all(tmp_path, monkeypatch, capsys):
+    # Real confirmed shape (live research, Story 6.5): a "future" sprint carries no
+    # startDate/endDate keys at all, not null values - must not KeyError.
+    sprint = [{"id": 148, "name": "AI Sprint 20", "state": "future", "boardId": 36}]
+    run(tmp_path, monkeypatch, body=payload(sprint=sprint))
+
+    ack = read_ack(capsys)
+    assert ack["sprint_start_date"] is None
+    assert ack["sprint_end_date"] is None
+
+
+def test_sprint_dates_null_for_legacy_greenhopper_string(tmp_path, monkeypatch, capsys):
+    legacy = [
+        "com.atlassian.greenhopper.service.sprint.Sprint@6d[id=5,state=ACTIVE,name=Sprint 7,startDate=2026-07-01]"
+    ]
+    run(tmp_path, monkeypatch, body=payload(sprint=legacy))
+
+    ack = read_ack(capsys)
+    assert ack["sprint_start_date"] is None
+    assert ack["sprint_end_date"] is None
+
+
+def test_sprint_dates_null_for_plain_string_sprint_value(tmp_path, monkeypatch, capsys):
+    run(tmp_path, monkeypatch, body=payload(sprint="Sprint 3"))
+
+    ack = read_ack(capsys)
+    assert ack["sprint_start_date"] is None
+    assert ack["sprint_end_date"] is None
+
+
+def test_sprint_dates_null_when_sprint_field_absent(tmp_path, monkeypatch, capsys):
+    run(tmp_path, monkeypatch, body=payload())
+
+    ack = read_ack(capsys)
+    assert ack["sprint_start_date"] is None
+    assert ack["sprint_end_date"] is None
 
 
 def test_missing_env_vars_exit_2_naming_them(tmp_path, monkeypatch, capsys):

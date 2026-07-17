@@ -108,7 +108,7 @@ development_status:
   6-2-a-new-skill-transitions-sub-tasks-plus-parent-to-done-around-the-existing-close-command: review
   6-3-defect-sub-tasks-carry-a-story-points-value: review
   6-4-parent-tickets-story-points-sync-back-at-close: review
-  6-5-kickoff-captures-sprint-metadata-name-start-end-date: ready-for-dev
+  6-5-kickoff-captures-sprint-metadata-name-start-end-date: review
   6-6-dashboard-shows-sprint-level-rollups: backlog  # added 2026-07-17
   6-7-committed-vs-closed-trend-graphs: backlog  # added 2026-07-17, explicitly deferred by the user, not to be started this batch
   epic-5-retrospective: optional

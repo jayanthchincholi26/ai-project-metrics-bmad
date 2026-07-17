@@ -26,6 +26,8 @@ MANIFEST_KEYS = [
     "points_estimated",
     "goal",
     "sprint",
+    "sprint_start_date",
+    "sprint_end_date",
     "description",
     "created",
 ]
@@ -142,6 +144,25 @@ def test_jira_issue_key_is_null_when_not_passed_even_for_confluence(tmp_path):
     kickoff(tmp_path, sprint="Sprint 3", **{"source-of-truth": "confluence"})
 
     assert parse_manifest(tmp_path)["jira_issue_key"] is None
+
+
+def test_sprint_dates_default_to_null(tmp_path):
+    kickoff(tmp_path)
+
+    manifest = parse_manifest(tmp_path)
+    assert manifest["sprint_start_date"] is None
+    assert manifest["sprint_end_date"] is None
+
+
+def test_sprint_dates_recorded_when_provided(tmp_path):
+    kickoff(
+        tmp_path,
+        **{"sprint-start-date": "2026-07-01T00:00:00.000Z", "sprint-end-date": "2026-07-15T00:00:00.000Z"},
+    )
+
+    manifest = parse_manifest(tmp_path)
+    assert manifest["sprint_start_date"] == "2026-07-01T00:00:00.000Z"
+    assert manifest["sprint_end_date"] == "2026-07-15T00:00:00.000Z"
 
 
 def test_description_defaults_to_null(tmp_path):

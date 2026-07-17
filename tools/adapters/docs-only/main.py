@@ -108,6 +108,16 @@ def main(argv: list[str] | None = None) -> int:
         help="sprint the story belongs to; required for jira/confluence, optional for "
         "docs-only (an omitted/blank value writes sprint: null for ad hoc teams)",
     )
+    p.add_argument(
+        "--sprint-start-date",
+        help="the sprint's start date (Story 6.5), if the JIRA fetch's chosen sprint item "
+        "carried one; null when omitted (a future sprint has no dates yet, docs-only/"
+        "confluence stories have no sprint object at all)",
+    )
+    p.add_argument(
+        "--sprint-end-date",
+        help="the sprint's end date (Story 6.5), same conditions as --sprint-start-date",
+    )
     p.add_argument("--description", help="optional longer description")
     p.add_argument(
         "--jira-issue-key",
@@ -162,6 +172,8 @@ def main(argv: list[str] | None = None) -> int:
         sprint = None  # docs-only: no sprint/milestone concept is a valid answer
     description = clean(args.description) if args.description else ""
     jira_issue_key = clean(args.jira_issue_key) if args.jira_issue_key else ""
+    sprint_start_date = clean(args.sprint_start_date) if args.sprint_start_date else ""
+    sprint_end_date = clean(args.sprint_end_date) if args.sprint_end_date else ""
 
     root = Path(args.repo_root)
     if not root.is_dir():
@@ -185,6 +197,8 @@ def main(argv: list[str] | None = None) -> int:
                 "points_estimated": points_estimated,
                 "goal": goal,
                 "sprint": sprint,
+                "sprint_start_date": sprint_start_date or None,
+                "sprint_end_date": sprint_end_date or None,
                 "description": description or None,
                 "created": now.isoformat(timespec="seconds"),
             }

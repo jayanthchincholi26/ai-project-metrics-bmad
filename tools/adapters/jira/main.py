@@ -83,6 +83,22 @@ def extract_points(value: Any) -> Optional[float]:
     return value
 
 
+def _select_sprint_item(value: Any) -> Any:
+    """The active sprint object wins; otherwise the last one. Shared by extract_sprint()
+    (name) and extract_sprint_dates() (Story 6.5, start/end dates) so both agree on which
+    sprint an issue "belongs to" - an issue can carry multiple sprint entries (its full
+    history), confirmed via live research, so this selection must never be duplicated
+    and risk drifting between the two extractors."""
+    if not isinstance(value, list) or not value:
+        return None
+    chosen = None
+    for item in value:
+        if isinstance(item, dict) and str(item.get("state", "")).lower() == "active":
+            chosen = item
+            break
+    return chosen if chosen is not None else value[-1]
+
+
 def extract_sprint(value: Any) -> Optional[str]:
     """The sprint custom field appears in three real-world shapes: a list of sprint
     objects (active one wins, else the last), legacy Greenhopper strings, or a plain string."""
@@ -90,21 +106,26 @@ def extract_sprint(value: Any) -> Optional[str]:
         return None
     if isinstance(value, str):
         return value
-    if isinstance(value, list) and value:
-        items = value
-        chosen = None
-        for item in items:
-            if isinstance(item, dict) and str(item.get("state", "")).lower() == "active":
-                chosen = item
-                break
-        item = chosen if chosen is not None else items[-1]
-        if isinstance(item, dict):
-            name = item.get("name")
-            return str(name) if name is not None else None
-        if isinstance(item, str):
-            match = re.search(r"name=([^,\]]+)", item)
-            return match.group(1) if match else item
+    item = _select_sprint_item(value)
+    if isinstance(item, dict):
+        name = item.get("name")
+        return str(name) if name is not None else None
+    if isinstance(item, str):
+        match = re.search(r"name=([^,\]]+)", item)
+        return match.group(1) if match else item
     return None
+
+
+def extract_sprint_dates(value: Any) -> "tuple[Optional[str], Optional[str]]":
+    """(start_date, end_date) from the same chosen sprint item extract_sprint() uses
+    (Story 6.5). Real-world confirmed: a "future" sprint (not yet started) carries no
+    startDate/endDate keys at all - .get() returns None for both, never a KeyError.
+    Legacy Greenhopper strings and plain-string values carry no structured dates -
+    both null, never invented (AD-10)."""
+    item = _select_sprint_item(value)
+    if not isinstance(item, dict):
+        return None, None
+    return item.get("startDate"), item.get("endDate")
 
 
 def normalize(payload: Any, points_field: str, sprint_field: str) -> dict[str, Any]:
@@ -118,10 +139,13 @@ def normalize(payload: Any, points_field: str, sprint_field: str) -> dict[str, A
     description = fields.get("description")
     if description is not None and not isinstance(description, str):
         raise ValueError("description is not plain text (is the instance on API v2?)")
+    sprint_start_date, sprint_end_date = extract_sprint_dates(fields.get(sprint_field))
     return {
         "points": extract_points(fields.get(points_field)),
         "goal": summary,
         "sprint": extract_sprint(fields.get(sprint_field)),
+        "sprint_start_date": sprint_start_date,
+        "sprint_end_date": sprint_end_date,
         "description": description,
     }
 
