@@ -904,6 +904,8 @@ A JIRA-backed story's ticket reflects real progress automatically — moves to "
 
 ### Story 6.1: Kickoff Transitions the JIRA Issue to "In Progress"
 
+> 🔨 **Built and live-verified 2026-07-17 on `epic-6-jira-lifecycle-sync`, not yet merged to `main`** — new `story-kickoff/SKILL.md` step 4a.6, MCP-path only, running after step 5's manifest write already succeeded (a transition failure can never retroactively fail kickoff). Real scope correction found during authoring: `tools/adapters/jira/main.py` (the Story 1.3 script fallback) has zero transition capability, so that path and the plain-ask path are explicitly out of scope, not silently missing. Live-verified against a real issue (`AI-143`, provided by the user): fetched its real starting status ("To Do"), wrote the manifest for real, transitioned it via the real MCP tools, then re-fetched independently and confirmed `status.name` is genuinely "In Progress" — not just trusting the transition call's own response. Awaiting the rest of Epic 6 and the user's own end-to-end testing before this branch merges to `main`.
+
 As a developer kicking off a JIRA-backed story,
 I want the ticket to automatically move to "In Progress" the moment I start work,
 so that the board reflects reality without a manual JIRA click.
