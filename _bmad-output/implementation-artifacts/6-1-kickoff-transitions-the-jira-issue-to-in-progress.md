@@ -4,7 +4,7 @@ baseline_commit: e155b5c
 
 # Story 6.1: Kickoff Transitions the JIRA Issue to "In Progress"
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -111,16 +111,40 @@ No conflicts — extends `story-kickoff/SKILL.md` (already modified by Stories 1
 
 ### Agent Model Used
 
-claude-sonnet-5 (create-story context engineering)
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### Debug Log References
 
-_(filled in during dev-story implementation)_
+- Task 1: tool-searched `getTransitionsForJiraIssue`/`transitionJiraIssue` before writing any `SKILL.md` prose — confirmed real parameter shapes (`cloudId`+`issueIdOrKey` for the former; `cloudId`+`issueIdOrKey`+`transition: {id}` for the latter), avoiding a guessed API shape.
+- Task 5 (live E2E against the real connected Atlassian site, issue `AI-143` "Fibonacci Series", provided by the user specifically for this test):
+  1. `getJiraIssue` confirmed the issue's real starting status: **"To Do"**.
+  2. Wrote the manifest for real via `tools/adapters/docs-only/main.py` (points 2, sprint "Sprint 1", `--jira-issue-key AI-143`) — exit 0, mirroring step 5 exactly.
+  3. `getTransitionsForJiraIssue` on `AI-143` returned 3 real transitions: `id 11 "To Do"`, `id 21 "In Progress"`, `id 31 "Done"` — `"In Progress"` matched the allow-list's first entry exactly.
+  4. `transitionJiraIssue` with `transition: {id: "21"}` returned `{"success": true}`.
+  5. **Re-fetched the issue independently** (not trusting the transition call's own response) — confirmed `status.name` is now genuinely `"In Progress"` in real JIRA. Subtask 5.1 fully proven, not just logged.
+  6. Subtask 5.2: confirmed via `git diff main -- .claude/skills/story-kickoff/SKILL.md` that every changed line sits after step 4a's existing step 5 and before step 4b's header — zero lines touched in step 4b (Confluence) or the docs-only flow, so both are byte-for-byte unaffected by construction, not just by claim.
+  7. Subtask 5.3: this real workflow's transitions are all `isGlobal: true` (available from any status), so a genuine API-level transition failure (e.g. "already in that state") couldn't be organically reproduced against this specific issue without contriving a fake scenario — noted honestly rather than claimed as reproduced. What *is* structurally proven regardless: step 4a.6 only runs after step 5's manifest write already returned exit 0 and was already reported to the developer, so by construction any step 4a.6 outcome (success or failure) can never retroactively change kickoff's already-completed result — this is a sequencing guarantee, not something that needs a live failure to demonstrate.
+  8. Scratch repo removed after the run; real JIRA issue `AI-143` was intentionally left in "In Progress" per the user's own test request (not reverted, since reverting would itself be an extra, unrequested write to a real ticket).
+- Full regression: `uv run pytest -q` → 367 passed, unchanged from before this story (pure skill-instruction/doc change, no pytest surface expected or found).
 
 ### Completion Notes List
 
-_(filled in during dev-story implementation)_
+- Task 1: confirmed real MCP tool shapes before writing any instructions — no guessed API.
+- Task 2: new `story-kickoff/SKILL.md` step 4a.6, cross-referenced from step 4a's own list. Runs only after step 5's manifest write succeeds, only on the MCP fetch path. Transition-matching precedence: `.story-config.yaml`'s `jira_in_progress_transition` override checked first, then the `"In Progress"`/`"In Development"`/`"Doing"` allow-list, first match wins. Any failure is a trailing note after the kickoff summary, never a retroactive kickoff failure.
+- **Real scope correction made during `create-story` (not discovered later):** the transition only fires on the MCP path. `tools/adapters/jira/main.py` (Story 1.3's script fallback) was read directly and confirmed to have zero transition capability — extending it was judged out of scope (speculative reach into a credential-holding fallback script used precisely by developers who don't have MCP), so the script-fallback and plain-ask paths are an explicit, documented non-goal (AC 5), not a silent gap.
+- Task 3: `jira_in_progress_transition` override documented in `.story-config.yaml.example`, same style/placement as the existing `jira_points_field`/`jira_sprint_field` overrides. (The bundled copy under `pypi-package/src/ai_metrics_capture/_bundled/` is generated/gitignored — confirmed via `git check-ignore`, not hand-edited.)
+- Task 4: `INSTALL.md` updated in three places — the JIRA daily-use flow's kickoff step, the "JIRA / Confluence setup" section (config override example), and a new "Known limitations" entry stating the MCP-only scope and non-blocking failure behavior plainly.
+- Task 5: live-verified end to end against a real JIRA issue on the user's own connected Atlassian site — see Debug Log for the full real API sequence and the one thing that couldn't be organically reproduced (a genuine transition failure, since this workflow's transitions are all global).
+- No new dependencies, no code changes (pure skill-instruction + two doc files), no architecture deviations.
 
 ### File List
 
-_(filled in during dev-story implementation)_
+- .claude/skills/story-kickoff/SKILL.md (modified — new step 4a.6, cross-referenced from step 4a's list)
+- tools/build-release/.story-config.yaml.example (modified — new `jira_in_progress_transition` override documented)
+- tools/build-release/INSTALL.md (modified — JIRA daily-use flow sentence, JIRA/Confluence setup section override example, new Known Limitations entry)
+- _bmad-output/implementation-artifacts/6-1-kickoff-transitions-the-jira-issue-to-in-progress.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
+
+## Change Log
+
+- 2026-07-17: Story implemented and live-verified end to end (real JIRA transition confirmed on issue `AI-143`). Status: ready-for-dev → review.

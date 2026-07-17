@@ -128,6 +128,12 @@ done this for JIRA, Confluence needs no separate connection (and vice versa):
    jira_points_field: customfield_10016   # default
    jira_sprint_field: customfield_10020   # default
    ```
+   Kickoff also transitions the issue to an active-work state automatically once it
+   fetches successfully (Story 6.1) — checked in order: `jira_in_progress_transition`
+   below if set, else `"In Progress"`, `"In Development"`, `"Doing"`:
+   ```yaml
+   jira_in_progress_transition: In Progress   # override only if none of the above match your workflow
+   ```
 4. **Confluence only** — read this before your first kickoff: the connected MCP server
    can fetch a page's title and body, but **cannot read Confluence page labels today**
    (a confirmed, currently-open platform gap — not something this tooling can work
@@ -223,7 +229,9 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
 1. `git checkout -b story/<branch-name>`.
 2. In chat: *"kick off this story \<issue-key\>"* — kickoff fetches points/goal/sprint
    automatically via the connected Atlassian MCP tools; confirm or override the values.
-   Writes `.story.yaml`.
+   Writes `.story.yaml`, then automatically transitions the issue to an active-work
+   state (Story 6.1) — see "JIRA / Confluence setup" above and "Known limitations"
+   below if it doesn't pick the state you expect.
 3. *(only if your project uses openspec SDD)* `/opsx:propose <change-name>` — do this
    **after** kickoff for JIRA (see note below), describing the work in your own words.
 4. *(openspec only)* `/opsx:apply`.
@@ -414,6 +422,15 @@ enter sprint manually for a Confluence-backed story — this is a genuine capabi
 the MCP server itself, not something a future story in this tooling can silently fix, short
 of the platform adding label support or you switching to the script-based fallback (see
 "JIRA / Confluence setup" above), which requires a personal API token.
+
+**The automatic "In Progress" transition (Story 6.1) only happens via the MCP fetch
+path — not the script fallback, not the plain manual ask.** `tools/adapters/jira/main.py`
+(the personal-API-token fallback) has no transition capability at all, so a kickoff that
+falls back to it, or all the way to a plain unassisted ask, writes the manifest correctly
+but never touches the issue's JIRA status. A transition failure for any reason (no
+matching workflow state, permission denied, the issue already active) is never a kickoff
+failure either — it's reported as a short note *after* the normal kickoff summary, and
+kickoff has already fully succeeded by that point regardless of what happens next.
 
 **Running the snapshot assembler always closes the story — its existence is the
 authoritative signal every other producer relies on to know a story is done** (a closed

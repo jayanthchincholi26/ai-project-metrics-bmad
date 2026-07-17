@@ -93,6 +93,19 @@ The JIRA fetch goes through **whichever JIRA MCP server this session has configu
    - Issue key not found / permission denied → tell the developer what the tool returned and re-ask the key.
    - **No JIRA MCP tools available in this session** → say so plainly ("no JIRA MCP server is connected — see prerequisites"). Then, only if `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` are all set in the environment, fall back to the Story 1.3 script (`uv run tools/adapters/jira/main.py --repo-root <repo-root> --issue <KEY>`, same normalized ack, surface stderr verbatim on failure). Otherwise fall back to the plain step-4 ask for points/goal/description, unassisted — **except sprint**: do NOT offer 4.4's "None" milestone/sprint option here (found via a live Confluence-side degradation test, Story 1.8) — this is the JIRA variant, and per step 4's own header, sprint stays a required, confirmed non-empty value even on this fallback path. Ask for it as plain free text instead, re-prompting on a blank answer.
 5. Proceed to step 5 with the confirmed values, `--source-of-truth jira`, and `--jira-issue-key <KEY>` (the manifest records the backend, not the transport — MCP vs fallback script makes no difference downstream; the issue key itself — Story 5.4 — is persisted so a later defect-logging step can attach a Jira subtask to the right parent).
+6. **After step 5's manifest write succeeds** — see step 4a.6 below (Story 6.1). Only applies when this fetch actually used the MCP path (step 2 above); the script fallback and plain-ask paths in step 4 above never reach it.
+
+### 4a.6. Transition the issue to "In Progress" (Story 6.1 — MCP path only)
+
+Runs immediately after step 5's manifest write succeeds (exit 0), and **only** when step 4a.2's MCP fetch was the path actually used for this kickoff — never after the Story 1.3 script fallback or the plain unassisted ask (step 4a.4's degradation chain). By this point kickoff has already fully succeeded; this step is a purely additive JIRA-side side effect, never a gate on kickoff's own outcome.
+
+1. Call `getTransitionsForJiraIssue` with the already-resolved `cloudId` (step 4a.2.1 — do not re-resolve it) and the issue key. This returns the list of transitions actually available from the issue's current workflow state, each with an `id` and a name (e.g. `to.name`).
+2. Match a transition name against, in order (first match wins, case-insensitive):
+   1. `.story-config.yaml`'s `jira_in_progress_transition` override, if set (an exact name to look for — a project's own workflow may not call it any of the names below).
+   2. The allow-list: `"In Progress"`, `"In Development"`, `"Doing"`.
+3. If a match is found, call `transitionJiraIssue` with `cloudId`, the issue key, and `transition: {id: <matched transition's id>}`.
+4. If no transition matches (workflow uses different names entirely, and no override is set), or either MCP call itself fails (permission denied, issue already in that state, a tool error) — this is never a kickoff failure. Report it as a **trailing note appended after** the step-5 kickoff summary the developer already saw (e.g. "Note: couldn't move AI-145 to an active-work state — <reason>. You may want to update it manually, or set `jira_in_progress_transition` in `.story-config.yaml` if your workflow uses a different name.") — never re-open, re-run, or recolor any part of kickoff because of this step.
+5. **Confluence and docs-only kickoffs never reach this step at all** — it's exclusive to the JIRA MCP path (step 4a.2). Nothing here applies to 4b or the docs-only flow.
 
 ### 4b. Confluence variant: fetch via MCP, then confirm (Story 1.8; supersedes the script-only flow)
 

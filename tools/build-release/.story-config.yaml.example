@@ -14,6 +14,12 @@
 # jira_points_field: customfield_10016
 # jira_sprint_field: customfield_10020
 
+# JIRA transition name override (Story 6.1) — only if your workflow's active-work
+# state isn't one of "In Progress"/"In Development"/"Doing" (checked in that
+# order otherwise). Kickoff transitions the issue automatically after a
+# successful MCP-based fetch; this only changes which state name it looks for:
+# jira_in_progress_transition: In Progress
+
 # Optional cost tracking — all three are optional and absent by default; without
 # them, a snapshot's estimated_cost.usd and token_cost.cost_usd stay null
 # (never a fabricated number computed from a missing rate):
