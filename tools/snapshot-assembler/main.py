@@ -413,12 +413,16 @@ def estimated_cost_of(config: "dict[str, str]", events: "list[dict]") -> dict[st
                 # not fromisoformat(), so ValueError alone doesn't cover it (review finding, PR #26)
                 duration_minutes = None
 
+    # usd is computed from the full-precision duration_minutes above; only the
+    # displayed/returned value is rounded, so rounding here never skews the cost.
+    duration_minutes_display = None if duration_minutes is None else round(duration_minutes, 2)
+
     hourly_rate = as_number(config.get("hourly_rate"))
     if not isinstance(hourly_rate, (int, float)):
         return {
             "usd": None,
             "hourly_rate": None,
-            "duration_minutes": duration_minutes,
+            "duration_minutes": duration_minutes_display,
             "reason": "hourly_rate not configured in .story-config.yaml",
         }
     if duration_minutes is None:
@@ -431,7 +435,7 @@ def estimated_cost_of(config: "dict[str, str]", events: "list[dict]") -> dict[st
     return {
         "usd": round(hourly_rate * (duration_minutes / 60), 2),
         "hourly_rate": hourly_rate,
-        "duration_minutes": duration_minutes,
+        "duration_minutes": duration_minutes_display,
         "reason": None,
     }
 
