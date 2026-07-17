@@ -81,7 +81,7 @@ development_status:
   3-4-snapshot-assembler-reduces-idle-aware-time-slices-into-real-active-time-duration: done  # PR #44 merged 2ddf985
   3-5-raw-span-fallback-excludes-bookkeeping-events: done  # PR #47, merged eefcd61
   epic-3-retrospective: optional
-  epic-4: in-progress
+  epic-4: done  # all stories done/superseded; 4.2 superseded 2026-07-15, real PyPI publish now gated only on a human wiring a publish secret (not story work)
   4-1-release-artifact-packages-the-capture-tooling: done  # PR #20, merged 7b621ff
   4-2-develop-promotes-to-main-on-a-defined-release-cadence: superseded  # 2026-07-15: dropped the develop/main two-tier plan in favor of story-branch -> main directly (see epics.md + project-context.md sec 10); real PyPI publish gate moves with it, no longer blocked on this story
   4-3-one-command-curl-irm-installer: done  # PR #30, merged 2a100e4
