@@ -998,11 +998,13 @@ As someone viewing the JIRA board,
 I want the ticket's points field to reflect what was actually estimated by the end of the story,
 so that JIRA isn't left showing a stale pre-work guess.
 
+**Sequencing correction found during story authoring (before implementation started):** `story_point_cost.phase2_points` is computed *by* the close command itself (`tools/snapshot-assembler/main.py`, Story 2.6) — it does not exist until that command has actually run and produced a snapshot. Story 6.2's `story-close` skill runs the close command **last**, after all its own JIRA writes (sub-tasks → parent → Done). This means the points sync-back cannot happen at "the same close-time step" as originally drafted — it must be a **new, final step that runs *after* the close command**, reading the resulting snapshot file to get the real `phase2_points` value.
+
 **Acceptance Criteria (draft):**
 
-1. **Given** `source_of_truth: jira` and the close-time MCP step introduced by Story 6.2
-   **When** the story closes
-   **Then** `story_point_cost.phase2_points` (this project's own after-the-fact computed estimate, Story 2.6) is written back to the issue's points field via `editJiraIssue` — **not** `pm_metrics.points` and **not** an at-close developer prompt (decided with the user when this epic was scoped)
+1. **Given** `source_of_truth: jira`, a non-null `jira_issue_key`, and the existing close command (Story 6.2's step 6) has just run successfully
+   **When** `story-close` continues
+   **Then** it parses the snapshot path out of the close command's own JSON output, reads `story_point_cost.phase2_points` from that file, and — if non-null — writes it to the issue's points field via `editJiraIssue` (using the same `jira_points_field` config key already used elsewhere) — **not** `pm_metrics.points` and **not** an at-close developer prompt (decided with the user when this epic was scoped)
 2. **Given** `phase2_points` is null for any reason
    **When** the close-time sync runs
    **Then** it skips the write entirely rather than writing a null/zero (AD-10 null-with-reason philosophy, applied here to an outbound write instead of a snapshot field)
