@@ -1020,14 +1020,16 @@ As someone who will later want sprint-level rollups,
 I want a JIRA-backed story's sprint name and its start/end dates captured at kickoff time,
 so that a later dashboard feature has real dates to show, not just a bare sprint name string.
 
-**Context:** added 2026-07-17 at the user's request (point 5 of the same-day rework), alongside Story 6.6 below — not deferred, unlike Story 6.7's graphs. Today, `pm_metrics.sprint` only ever holds a plain name string, extracted from the configured `jira_sprint_field`. JIRA Cloud's sprint custom field is frequently a richer object/array (id, name, state, `startDate`, `endDate`, `completeDate`) when the full field value is inspected rather than just its display name — this needs live verification against a real JIRA project during `create-story`/`dev-story`, not assumption; the Atlassian MCP tool surface available to this project has no dedicated "get sprint details" tool, so this data, if available at all, must come from the sprint field's own raw value on `getJiraIssue`.
+**Context:** added 2026-07-17 at the user's request (point 5 of the same-day rework), alongside Story 6.6 below — not deferred, unlike Story 6.7's graphs. Today, `pm_metrics.sprint` only ever holds a plain name string, extracted from the configured `jira_sprint_field`.
+
+**Live-verified before implementation (`searchJiraIssuesUsingJql`, real project data, 2026-07-17):** JIRA Cloud's sprint custom field genuinely is a richer array of objects — confirmed real shape: `[{"id": 115, "name": "AI Sprint 19", "state": "closed", "boardId": 36, "goal": "", "startDate": "2026-06-08T06:03:51.792Z", "endDate": "2026-06-26T06:19:49.000Z", "completeDate": "2026-07-10T12:40:04.501Z"}, {"id": 148, "name": "AI Sprint 20", "state": "future", "boardId": 36}]`. Two real findings this confirms: (1) dates only exist once a sprint has actually **started** — a `"future"` sprint has no `startDate`/`endDate` at all yet, only `id`/`name`/`state`/`boardId`; (2) an issue can carry **multiple** sprint entries (its full sprint history), not just the current one — the existing `extract_sprint()` selection rule (active wins, else the last entry) must be reused for dates too, not reinvented, or the two could disagree about which sprint an issue "belongs to."
 
 **Acceptance Criteria (draft):**
 
-1. **Given** `source_of_truth: jira` and a successful kickoff fetch
+1. **Given** `source_of_truth: jira` and a successful kickoff fetch (either the MCP path, `story-kickoff/SKILL.md` step 4a, or the Story 1.3 script fallback, `tools/adapters/jira/main.py`)
    **When** the sprint field's raw value is inspected (not just today's extracted name string)
-   **Then** if it carries structured start/end date data, persist `sprint_start_date`/`sprint_end_date` into `.story.yaml` alongside the existing `sprint` name — additive only, `sprint`'s own existing meaning/format is unchanged
-2. **Given** the sprint field's raw value does **not** carry structured dates (a plain string, a different workflow scheme, or a JIRA instance/plan that doesn't expose this)
+   **Then** if the *same chosen sprint item* `extract_sprint()` already selects (active wins, else last) carries `startDate`/`endDate`, persist them into `.story.yaml` as `sprint_start_date`/`sprint_end_date` alongside the existing `sprint` name — additive only, `sprint`'s own existing meaning/format is unchanged
+2. **Given** the chosen sprint item has no dates (a `"future"` sprint, a plain string/legacy Greenhopper format, or a JIRA instance/plan that doesn't expose this)
    **When** kickoff runs
    **Then** `sprint_start_date`/`sprint_end_date` are simply absent/null — never fabricated, and kickoff is not blocked either way (FR5)
 3. **Given** `source_of_truth: confluence` or `docs-only`
