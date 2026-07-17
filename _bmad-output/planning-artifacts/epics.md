@@ -973,14 +973,22 @@ so that sub-tasks show up realistically in JIRA reporting rather than as unestim
 
 **Context:** Story 5.4 already creates a JIRA Subtask for review defects via MCP (`createJiraIssue`) but never sets a points value on it. The reference tool always sets one (defaulting to 1, override-able). This story's default-of-1 logic is also reused defensively by Story 6.2's close-time flow, for any older sub-task that somehow still lacks a points value.
 
+**Scope expanded 2026-07-17 (before implementation started), confirmed with the user:** while researching where the `createJiraIssue` call itself is instructed, found it exists **only** in this project's own internal `project-context.md` §9 — never in any shipped skill (`story-kickoff`, `story-close`) or `INSTALL.md`. This means the whole review-defect-to-JIRA-subtask feature only ever works for this repo's own dogfooding; a real end user who installs `ai-metrics-capture` gets no instruction telling their own Claude Code session to do this at all. The user chose to fix both in this story: ship a proper, generalized instruction (a new skill) so the feature actually reaches real users, in addition to the originally-scoped points field.
+
 **Acceptance Criteria (draft):**
 
-1. **Given** a review defect is logged for a JIRA-backed story (Story 5.4's existing flow)
+1. **Given** a review defect is logged for a JIRA-backed story
    **When** the subtask is created
    **Then** the create call includes a story-points value on the subtask, defaulting to **1**, using the same `jira_points_field` config key already used for reading points at kickoff (no new config key introduced)
 2. **Given** compile/test defects
    **When** they're captured
    **Then** nothing changes — still local-only, still the explicit non-goal Story 5.4 already documented (hooks can't reach MCP)
+3. **Given** the review-defect-to-JIRA-subtask mechanism currently only exists in `project-context.md` §9 (this repo's own internal doc, never shipped)
+   **When** this story is done
+   **Then** a new shipped skill carries the full instruction (create the subtask with points, then run `tools/log-defect/main.py`) generalized for any project — packaged into the release the same way `story-kickoff`/`story-close` are (`tools/build-release/main.py`'s `SKILLS` list, both uninstall scripts, `INSTALL.md`)
+4. **Given** the new shipped skill now fully specifies this mechanism
+   **When** `project-context.md` §9 is reviewed
+   **Then** it's simplified to reference the shipped skill rather than duplicating the mechanism inline — one source of truth, not two copies that can drift out of sync with each other (the exact failure mode that caused this gap in the first place)
 
 ### Story 6.4: Parent Ticket's Story Points Sync Back at Close
 
