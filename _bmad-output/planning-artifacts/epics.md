@@ -1016,6 +1016,8 @@ so that JIRA isn't left showing a stale pre-work guess.
 
 ### Story 6.5: Kickoff Captures Sprint Metadata (Name, Start/End Date)
 
+> 🔨 **Built and live-verified 2026-07-17 on `epic-6-jira-lifecycle-sync`, not yet merged to `main`** — live-verified the real sprint field shape via `searchJiraIssuesUsingJql` before writing any code: a list of sprint objects, dates only present once a sprint has actually started, and an issue can carry multiple sprint entries (its full history). `extract_sprint()` refactored to share a new `_select_sprint_item()` helper with a new `extract_sprint_dates()`, so both agree on which sprint an issue "belongs to" rather than risking two independently-written selection rules drifting apart. New `--sprint-start-date`/`--sprint-end-date` manifest fields (`tools/adapters/docs-only/main.py`); `story-kickoff/SKILL.md` step 4a.3 extended to extract dates from the same chosen sprint object already used for the name. Real pytest surface this time (8 new tests, 375 total passing). Live-verified against real data (`AI-126`): confirmed both the null-dates case (a real future sprint) and the real-dates case (genuine ISO strings from a real closed sprint) — no JIRA mutation needed, pure read + local write. Awaiting the rest of Epic 6 and the user's own end-to-end testing before this branch merges to `main`.
+
 As someone who will later want sprint-level rollups,
 I want a JIRA-backed story's sprint name and its start/end dates captured at kickoff time,
 so that a later dashboard feature has real dates to show, not just a bare sprint name string.
