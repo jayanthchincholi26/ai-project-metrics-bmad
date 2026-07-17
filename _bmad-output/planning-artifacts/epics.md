@@ -1046,18 +1046,26 @@ so that I don't have to manually group stories by sprint myself to understand sp
 
 **Context:** added 2026-07-17 alongside Story 6.5 (its data source). Stories-count and per-sprint status can be computed entirely from **already-available local snapshot data** (grouping every discovered snapshot by `pm_metrics.sprint`, same discovery/highest-revision logic `tools/metrics-report/main.py`'s `discover_snapshots()` already provides) — no new JIRA fetch needed for that part. Only the start/end dates depend on Story 6.5 actually having captured them.
 
+**Corrections found during story authoring (2026-07-17, before implementation):**
+1. **A real gap, not yet wired through:** `tools/snapshot-assembler/main.py`'s `pm_metrics` construction (confirmed by re-reading it fresh, not assumed) still only copies `name`/`points`/`goal`/`sprint`/`source_of_truth`/`ai_tool`/`created` from the manifest — Story 6.5 wrote `sprint_start_date`/`sprint_end_date` into `.story.yaml` but never touched the snapshot assembler, so those two fields are silently dropped at close time and never reach a snapshot at all. This story's Task 1 fixes that first — the dashboard rollup has nothing to read otherwise.
+2. **The original "done vs. still open" framing for "overall status" is structurally impossible and has been dropped.** A snapshot only ever exists for a story that has already been *closed* (AD-3) — this pipeline's local data has no concept of a "still open" story at all, so no story-completion count could ever be honest here. "Overall status" is redefined to describe the **sprint's own timeline** instead (something this pipeline can honestly know once Story 6.5's dates are wired through): `Ended` once the sprint's end date has passed, `Active or upcoming` otherwise, `Unknown` if no end date was ever captured for that sprint.
+3. **The "two or more" grouping threshold was ambiguous and has been dropped.** The rollup section renders whenever at least one discovered snapshot carries a non-null `pm_metrics.sprint` — every distinct sprint present gets its own row, including a sprint with only one story (a rollup of one is still a rollup; gatekeeping on a count added complexity without a real benefit).
+
 **Acceptance Criteria (draft):**
 
 1. **Given** `tools/dashboard/main.py` renders `dashboard.html`
-   **When** two or more discovered snapshots share the same non-null `pm_metrics.sprint` value
-   **Then** a new sprint-rollup section/table appears (in addition to the existing per-story table, not replacing it) showing: Sprint Name, Start Date, End Date, Story Count, and an overall status summary (e.g. how many of that sprint's known stories are `done` vs. still open, based only on what's locally known — never a claim about JIRA's own sprint completion state unless Story 6.5 captured it)
+   **When** at least one discovered snapshot carries a non-null `pm_metrics.sprint` value
+   **Then** a new sprint-rollup section/table appears (in addition to the existing per-story table, not replacing it), with one row per distinct sprint present, showing: Sprint Name, Start Date, End Date, Story Count, and an Overall Status of `Ended` / `Active or upcoming` / `Unknown`, computed from that sprint's own end date vs. today (never from a story-done/open count — see correction 2 above)
 2. **Given** a story has no sprint value (`pm_metrics.sprint` is null)
    **When** the rollup is built
-   **Then** it's grouped under an honest "no sprint" bucket, or omitted from the rollup entirely with a visible count of how many stories were excluded (AD-10 philosophy: never silently drop data without saying so)
-3. **Given** Story 6.5 didn't capture start/end dates for a given sprint (older snapshots, or the JIRA instance doesn't expose them)
+   **Then** those stories are grouped into an honest "No Sprint" row showing their count, appended after the real sprint rows — never silently dropped (AD-10 philosophy)
+3. **Given** Story 6.5 didn't capture a start/end date for a given sprint (older snapshots predating it, or the JIRA instance doesn't expose them)
    **When** that sprint's row renders
-   **Then** dates show "unknown" rather than blank/fabricated, same null-with-reason posture as every other optional field in this dashboard
-4. **Given** this story only adds a new section
+   **Then** the missing date(s) show "unknown" rather than blank/fabricated, and Overall Status shows "Unknown" if the end date specifically is missing — same null-with-reason posture as every other optional field in this dashboard
+4. **Given** no discovered snapshot carries a non-null sprint at all (an all-docs-only shop, or no data yet)
+   **When** the dashboard renders
+   **Then** the whole rollup section is omitted, not shown empty — additive only, never a confusing empty table
+5. **Given** this story only adds a new section
    **When** the existing per-story table/stat-tiles render
    **Then** they are completely unchanged — additive only, same precedent as Story 5.11's `field_guide`
 
