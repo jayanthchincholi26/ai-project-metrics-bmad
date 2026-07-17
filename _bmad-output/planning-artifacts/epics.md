@@ -927,6 +927,8 @@ so that the board reflects reality without a manual JIRA click.
 
 ### Story 6.2: A New Skill Transitions Sub-tasks + Parent to Done Around the Existing Close Command
 
+> 🔨 **Built and live-verified 2026-07-17 on `epic-6-jira-lifecycle-sync`, not yet merged to `main`** — new `.claude/skills/story-close/SKILL.md`, triggered implicitly (matched by Claude Code on relevance, not a memorized command). Real gap found mid-implementation: `tools/build-release/main.py` (and both uninstall scripts) hardcoded a single skill path — without fixing it, the new skill would have shipped invisibly; fixed with a real RED/GREEN test. Live-verified against `AI-143`: created a throwaway sub-task, and JQL discovery incidentally found a real pre-existing sub-task (`AI-144`, logged during actual prior work) with no points value too — directly confirming the points gap this story fixes. Closed both sub-tasks and the parent for real, re-fetched independently to confirm, then ran the actual local close command afterward and confirmed it stays fully decoupled from the JIRA-side sync. Awaiting the rest of Epic 6 and the user's own end-to-end testing before this branch merges to `main`.
+
 As a developer finishing a JIRA-backed story,
 I want the ticket (and its defect sub-tasks) to automatically move to "Done" when I close the story, without having to learn or invoke a new command,
 so that I don't have to separately update JIRA by hand, and the extra safety confirmation only interrupts me at the one moment that actually matters.
