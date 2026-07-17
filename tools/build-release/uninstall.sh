@@ -22,7 +22,7 @@ if [ ! -e ".git" ]; then
 fi
 
 PATHS=""
-for p in tools .claude/skills/story-kickoff INSTALL.md .story-config.yaml.example \
+for p in tools .claude/skills/story-kickoff .claude/skills/story-close INSTALL.md .story-config.yaml.example \
          .story-config.yaml .story.yaml .story-events.jsonl .story-events.pending.jsonl \
          .active-story .active-claude-session snapshots metrics-reports; do
     if [ -e "$p" ]; then

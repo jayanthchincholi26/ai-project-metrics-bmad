@@ -5,8 +5,9 @@
 """build-release — assembles the distributable capture-tooling artifact (Story 4.1).
 
 Produces one zip a target repo extracts at its root: `tools/` (every capture
-producer, the shared emitter, setup-hooks), the story-kickoff skill, and
-INSTALL.md at the archive root. Nothing else — no planning artifacts, specs,
+producer, the shared emitter, setup-hooks), every skill in `SKILLS`
+(story-kickoff, story-close — Story 6.2), and INSTALL.md at the archive root.
+Nothing else — no planning artifacts, specs,
 prompts, or tests ever ship (the whole point of Epic 4: adopting capture must
 not mean importing this planning repo).
 
@@ -24,7 +25,10 @@ from pathlib import Path
 from typing import Iterator, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL = Path(".claude/skills/story-kickoff/SKILL.md")
+SKILLS = [
+    Path(".claude/skills/story-kickoff/SKILL.md"),
+    Path(".claude/skills/story-close/SKILL.md"),  # Story 6.2
+]
 INSTALL = Path(__file__).resolve().parent / "INSTALL.md"
 STORY_CONFIG_EXAMPLE = Path(__file__).resolve().parent / ".story-config.yaml.example"
 DASHBOARD_WORKFLOW = Path(__file__).resolve().parent / "dashboard-workflow.yml"
@@ -36,7 +40,8 @@ def iter_entries(root: Path) -> Iterator[Tuple[Path, str]]:
     yield INSTALL, "INSTALL.md"
     yield STORY_CONFIG_EXAMPLE, ".story-config.yaml.example"
     yield DASHBOARD_WORKFLOW, ".github/workflows/generate-dashboard.yml"
-    yield root / SKILL, SKILL.as_posix()
+    for skill in SKILLS:
+        yield root / skill, skill.as_posix()
     tools = root / "tools"
     for path in sorted(tools.rglob("*")):
         if not path.is_file():
@@ -52,7 +57,13 @@ def iter_entries(root: Path) -> Iterator[Tuple[Path, str]]:
 def build(root: Path, out_dir: Path, version: str) -> Path:
     missing = [
         str(p)
-        for p in (INSTALL, STORY_CONFIG_EXAMPLE, DASHBOARD_WORKFLOW, root / SKILL, root / "tools")
+        for p in (
+            INSTALL,
+            STORY_CONFIG_EXAMPLE,
+            DASHBOARD_WORKFLOW,
+            *(root / skill for skill in SKILLS),
+            root / "tools",
+        )
         if not p.exists()
     ]
     if missing:

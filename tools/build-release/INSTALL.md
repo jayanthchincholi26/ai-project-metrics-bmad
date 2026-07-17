@@ -63,8 +63,9 @@ below is the manual alternative to this command.
 ## Install (per repository, once)
 
 1. Extract this zip **at your repository root** (it adds `tools/`,
-   `.claude/skills/story-kickoff/`, and `.story-config.yaml.example`; nothing is
-   overwritten) — or use "Quick install" above to skip the manual download.
+   `.claude/skills/story-kickoff/`, `.claude/skills/story-close/` (Story 6.2), and
+   `.story-config.yaml.example`; nothing is overwritten) — or use "Quick install"
+   above to skip the manual download.
 2. From the repo root, run:
    ```
    uv run tools/setup-hooks.py --repo-root .
@@ -130,9 +131,12 @@ done this for JIRA, Confluence needs no separate connection (and vice versa):
    ```
    Kickoff also transitions the issue to an active-work state automatically once it
    fetches successfully (Story 6.1) — checked in order: `jira_in_progress_transition`
-   below if set, else `"In Progress"`, `"In Development"`, `"Doing"`:
+   below if set, else `"In Progress"`, `"In Development"`, `"Doing"`. Closing a
+   JIRA-backed story (Story 6.2) does the same for the Done-equivalent state, checked
+   in order: `jira_done_transition` if set, else `"Done"`, `"Closed"`, `"Resolved"`:
    ```yaml
    jira_in_progress_transition: In Progress   # override only if none of the above match your workflow
+   jira_done_transition: Done                 # override only if none of the above match your workflow
    ```
 4. **Confluence only** — read this before your first kickoff: the connected MCP server
    can fetch a page's title and body, but **cannot read Confluence page labels today**
@@ -238,7 +242,12 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
 5. Work normally — same silent capture as the docs-only flow.
 6. Commit and push.
 7. Close the story: `uv run tools/opsx-wrapper/main.py archive <change-name>` (or, without
-   openspec, `uv run tools/snapshot-assembler/main.py --repo-root .`).
+   openspec, `uv run tools/snapshot-assembler/main.py --repo-root .`). Before running either
+   command in a live Claude Code chat, a new skill (Story 6.2) automatically discovers the
+   issue's open defect sub-tasks, ensures each has a story-points value, and asks **one**
+   confirmation ("This will close N sub-task(s) and transition the parent JIRA issue `<KEY>`
+   to Done — proceed?"). Declining still runs the close command normally — only the JIRA-side
+   sync is skipped. See "Known limitations" below for when this doesn't apply.
 8. Check the resulting snapshot under `snapshots/` — every field explains itself inline (see
    the docs-only flow's step 8 above).
 9. *(optional)* Generate a human-readable report:
@@ -432,6 +441,20 @@ matching workflow state, permission denied, the issue already active) is never a
 failure either — it's reported as a short note *after* the normal kickoff summary, and
 kickoff has already fully succeeded by that point regardless of what happens next.
 
+**The close-time sub-task/parent "Done" sync (Story 6.2) only happens inside a live
+Claude Code chat turn — never when the close commands run in an external terminal.**
+There's no assistant turn to intercept a directly-run `tools/opsx-wrapper/main.py archive`
+or `tools/snapshot-assembler/main.py`, and MCP tools are categorically unreachable outside
+one — the same category of platform gap as the `SessionEnd`/VS-Code-"x"-button limitation
+above, not something this project's own code can work around. Run these commands by asking
+Claude Code to do it (or let it do so as part of a normal close conversation) if you want
+the JIRA sync to happen.
+
+**Until Story 6.3 ships, the close-time flow is the *only* place a defect sub-task ever
+gets a story-points value.** `createJiraIssue` (Story 5.4's review-defect subtask creation)
+sets no points field today — Story 6.2's close-time check is the primary mechanism, not a
+rarely-used safety net, until subtask creation itself starts setting one.
+
 **Running the snapshot assembler always closes the story — its existence is the
 authoritative signal every other producer relies on to know a story is done** (a closed
 story's `.story.yaml` is what the next `story-kickoff` checks for). There is no "just
@@ -469,8 +492,8 @@ installs are idempotent — re-running upgrades in place.
 
 ## Uninstall
 
-`uninstall.sh`/`uninstall.ps1` remove everything Install added — `tools/`, the skill,
-`INSTALL.md`, `.story-config.yaml.example`, the four git hooks, this tooling's own
+`uninstall.sh`/`uninstall.ps1` remove everything Install added — `tools/`, both skills
+(`story-kickoff`, `story-close`), `INSTALL.md`, `.story-config.yaml.example`, the four git hooks, this tooling's own
 entries in `.claude/settings.json` (surgically — any other hooks/keys you have are left
 untouched), and, if present, anything a kickoff/close cycle created (`.story.yaml`,
 `.story-events.jsonl`, `.active-story`, `snapshots/`, `metrics-reports/`, etc.). Like

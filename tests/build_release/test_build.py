@@ -29,6 +29,7 @@ def test_artifact_contains_the_deployable_surface(tmp_path):
     assert "INSTALL.md" in names
     assert ".story-config.yaml.example" in names  # Story 4.4
     assert ".claude/skills/story-kickoff/SKILL.md" in names
+    assert ".claude/skills/story-close/SKILL.md" in names  # Story 6.2
     assert "tools/setup-hooks.py" in names
     assert "tools/hooks/_events.py" in names
     assert "tools/hooks/claude/session_start.py" in names
