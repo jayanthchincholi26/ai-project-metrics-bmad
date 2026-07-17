@@ -45,7 +45,7 @@ If `source_of_truth` is **not** `jira`, **or** it is `jira` but `.story.yaml`'s 
 
 Ask a single `AskUserQuestion` — not one per sub-task:
 
-> "This will close {N} sub-task(s) and transition the parent JIRA issue `{KEY}` to Done — proceed?"
+> "This will close {N} sub-task(s), transition the parent JIRA issue `{KEY}` to Done, and sync its story points — proceed?"
 
 - **Confirmed** → proceed to step 5.
 - **Declined** → skip straight to step 6 (the existing close command still runs — declining the JIRA sync never blocks the real local close, FR5).
@@ -71,6 +71,17 @@ uv run tools/snapshot-assembler/main.py --repo-root <repo-root>
 ```
 
 This step runs **regardless of everything above** — a JIRA-side failure, a declined confirmation, or a fully successful sync all land here the same way. A failed archive run must never be preceded by a false "Done" on the ticket, which is exactly why steps 3-5 always happen *before* this step, never after.
+
+### 7. Sync the parent's story points (Story 6.4 — only after step 6 succeeds)
+
+`story_point_cost.phase2_points` doesn't exist until the close command has actually produced a snapshot — this step can only run *after* step 6, never before, and only when steps 3-6 actually happened (a JIRA-backed story, developer confirmed in step 4, close command succeeded).
+
+1. The close command's own stdout (both `tools/opsx-wrapper/main.py archive` and the bare `tools/snapshot-assembler/main.py` print this on success — for the wrapper, it's inherited from the assembler subprocess it runs, mixed in with any openspec CLI output) contains a JSON line: `{"ok": true, "snapshot": "<path>", ...}`. Find that line and take its `snapshot` path.
+2. Read that file, extract `story_point_cost.phase2_points`.
+3. If it's null, skip the rest of this step entirely — no write, no note (AD-10: this isn't a failure, just nothing to sync).
+4. If non-null, call `editJiraIssue` on the parent issue's key, setting the points field (`.story-config.yaml`'s `jira_points_field`, default `customfield_10016`) to that value.
+5. If the write fails (permission denied, field misconfigured), report it plainly as a trailing note — the story is already fully closed at this point (step 6 already succeeded), so this can never retroactively become a close failure.
+6. Skip this step entirely if: the developer declined step 4's confirmation, the story isn't JIRA-backed (or has no `jira_issue_key`), or the close command itself failed in step 6 — in every case there's either nothing to sync or nothing to read it from.
 
 ## Boundaries
 

@@ -255,9 +255,12 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
    openspec, `uv run tools/snapshot-assembler/main.py --repo-root .`). Before running either
    command in a live Claude Code chat, a new skill (Story 6.2) automatically discovers the
    issue's open defect sub-tasks, ensures each has a story-points value, and asks **one**
-   confirmation ("This will close N sub-task(s) and transition the parent JIRA issue `<KEY>`
-   to Done — proceed?"). Declining still runs the close command normally — only the JIRA-side
-   sync is skipped. See "Known limitations" below for when this doesn't apply.
+   confirmation ("This will close N sub-task(s), transition the parent JIRA issue `<KEY>` to
+   Done, and sync its story points — proceed?"). Declining still runs the close command
+   normally — only the JIRA-side sync is skipped. **After** the close command produces its
+   snapshot, the ticket's own points field is updated to match `story_point_cost.phase2_points`
+   (Story 6.4) — the real, after-the-fact estimate, not your original kickoff-time guess. See
+   "Known limitations" below for when this doesn't apply.
 8. Check the resulting snapshot under `snapshots/` — every field explains itself inline (see
    the docs-only flow's step 8 above).
 9. *(optional)* Generate a human-readable report:
@@ -465,6 +468,13 @@ not just as a close-time safety net.** The `log-review-defect` skill sets it whe
 subtask is first created; the close-time check in `story-close` (Story 6.2) remains as a
 safety net for any older sub-task that predates this fix. Same terminal-run limitation as
 above — `log-review-defect` only activates inside a live Claude Code chat turn.
+
+**The parent ticket's own points field syncs to `phase2_points` only after the close
+command finishes (Story 6.4), not before.** That value doesn't exist until the close
+command has actually produced a snapshot — the sync is a final step in `story-close`,
+after the sub-task/parent Done transitions above, not part of the same confirmation's
+writes. If it's null (nothing measurable happened), the write is skipped entirely, same
+null-with-reason posture as everywhere else in this tool — never a fabricated zero.
 
 **Running the snapshot assembler always closes the story — its existence is the
 authoritative signal every other producer relies on to know a story is done** (a closed
