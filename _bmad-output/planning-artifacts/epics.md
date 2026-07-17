@@ -967,6 +967,8 @@ so that I don't have to separately update JIRA by hand, and the extra safety con
 
 ### Story 6.3: Defect Sub-tasks Carry a Story-Points Value
 
+> 🔨 **Built and live-verified 2026-07-17 on `epic-6-jira-lifecycle-sync`, not yet merged to `main`** — new `.claude/skills/log-review-defect/SKILL.md` ships the full review-defect-to-JIRA-subtask mechanism (previously only instructed in this repo's own private `project-context.md` §9, never reaching real end users), generalized and triggered implicitly like `story-close`. Points are now set at subtask-creation time via `createJiraIssue`'s `additional_fields`, not just as `story-close`'s close-time safety net. `project-context.md` §9 simplified to reference the shipped skill instead of duplicating it. Packaging fix (the `SKILLS` list, both uninstall scripts, `INSTALL.md`) done proactively this time. Live-verified against `AI-143`: created a real subtask (`AI-148`), re-fetched independently and confirmed the points field was genuinely set at creation — unlike Story 6.2's test subtasks, which both started null. Also confirmed the full local-event + snapshot pipeline works correctly with the real subtask key. Awaiting the rest of Epic 6 and the user's own end-to-end testing before this branch merges to `main`.
+
 As a JIRA board viewer,
 I want each defect sub-task to carry a small point estimate,
 so that sub-tasks show up realistically in JIRA reporting rather than as unestimated.
