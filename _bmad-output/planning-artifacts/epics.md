@@ -896,6 +896,11 @@ A JIRA-backed story's ticket reflects real progress automatically — moves to "
 > **A real architecture constraint this surfaces:** MCP tools are only reachable from a live assistant turn, never from a hook/CLI subprocess — the same constraint Story 5.4 already documented for defect sub-task creation. Kickoff is already a skill (assistant turn), so the "In Progress" transition fits naturally there (Story 6.1). But *closing* a story today is a pure CLI command (`tools/snapshot-assembler/main.py` / `tools/opsx-wrapper/main.py archive`), which cannot reach MCP tools on its own — the "Done" transition needs a new conversational step wrapping the existing close command, not a change to the script itself (Story 6.2).
 >
 > **Two design decisions confirmed with the user before formalizing this epic:** (1) Story 6.4 writes back `story_point_cost.phase2_points` (this project's own after-the-fact computed estimate), not the developer-confirmed `pm_metrics.points` and not an at-close developer prompt — the user chose the recommended option. (2) Story 6.2's close-time step is a **new dedicated skill** (mirroring `story-kickoff`'s own structure), not an extension of the existing kickoff skill into a combined one — also the recommended option.
+>
+> **Reworked 2026-07-17 (same day, before any implementation started), 6 points from the user:** (1) all Epic 6 work happens on a dedicated integration branch (`epic-6-jira-lifecycle-sync`), not `main` — individual story branches merge into it, the whole epic merges to `main` only after the user's own live testing, a deliberate reversion to the pre-2026-07-15 `enhancements`-style staged-integration pattern for this one epic specifically, given how much it writes to a real JIRA board. (2) Story 6.2 reworked: the close-time step must not require the developer to learn/invoke a new command ("avoid developer interaction") — a new skill activates implicitly whenever the developer or assistant is about to run the existing close commands, not via a memorized phrase; see Story 6.2 below for the corrected design and its one real, undeniable limitation. (3) Sub-tasks must be closed (with a confirmed story-points value) *before* the parent transitions — folded into Story 6.2's flow. (4) One `AskUserQuestion` confirmation gate before any JIRA write in the close flow, framed around the parent ticket. (5) New scope added: sprint-level metrics (name, start/end date, story count, overall status) surfaced on the dashboard — **Stories 6.5 and 6.6**, added now, not deferred. (6) Committed-vs-closed style graphs — explicitly deferred by the user ("once the above points are completed") — logged as **Story 6.7**, backlog only, no AC drafted yet, not to be started in this batch.
+
+**Cross-references for the corrected design below:**
+- **Terminal-run limitation (applies to Story 6.2):** the close-time skill can only activate during a live Claude Code chat turn — if a developer (or a script) runs `tools/opsx-wrapper/main.py archive` / `tools/snapshot-assembler/main.py` directly in an external terminal outside any Claude Code conversation, there is no assistant turn to intercept it, and the JIRA-side transition is silently skipped (no MCP access is possible there at all). This is the same category of platform gap as the already-documented `SessionEnd`/VS-Code-"x"-button limitation — worth a `INSTALL.md` Known Limitations entry when this epic ships, not something a future story can code around.
 
 ### Story 6.1: Kickoff Transitions the JIRA Issue to "In Progress"
 
@@ -918,28 +923,43 @@ so that the board reflects reality without a manual JIRA click.
    **When** kickoff runs
    **Then** nothing changes — no transition is attempted (Confluence pages have no workflow-status concept; docs-only has no ticket at all)
 
-### Story 6.2: A New "Close Story" Skill Wraps Transition-to-Done + the Existing Archiver
+### Story 6.2: A New Skill Transitions Sub-tasks + Parent to Done Around the Existing Close Command
 
 As a developer finishing a JIRA-backed story,
-I want the ticket to automatically move to "Done" when I close the story,
-so that I don't have to separately update JIRA by hand.
+I want the ticket (and its defect sub-tasks) to automatically move to "Done" when I close the story, without having to learn or invoke a new command,
+so that I don't have to separately update JIRA by hand, and the extra safety confirmation only interrupts me at the one moment that actually matters.
 
-**Context:** closing a story today is a pure CLI command with no MCP access (see this epic's architecture-constraint note above). This story introduces a new, small skill — analogous to `story-kickoff` — that a developer invokes conversationally (e.g. "close this story") to wrap the existing close command with a JIRA transition step for JIRA-backed stories.
+**Context (reworked 2026-07-17 from the original design, before any implementation started):** closing a story today is a pure CLI command with no MCP access (see this epic's architecture-constraint note above). The original draft of this story proposed a dedicated skill invoked by a memorized phrase (e.g. "close this story") — the user corrected this: the goal is to **avoid developer interaction with a new command entirely**. The corrected design is a new skill whose *description* matches broadly on the intent to close/archive a story (or on the assistant being about to run the two commands below), so Claude Code activates it automatically during a live chat turn — without the developer needing to type anything new. See this epic's "Terminal-run limitation" note above for the one case this genuinely cannot cover.
 
 **Acceptance Criteria (draft):**
 
-1. **Given** `source_of_truth: jira`
-   **When** the developer invokes the new close skill
-   **Then** it transitions the issue to a Done-equivalent state via MCP **before** invoking the existing close command (`tools/opsx-wrapper/main.py archive <name>` or `tools/snapshot-assembler/main.py --repo-root .`) — this ordering is deliberate: a failed archive run must never leave the ticket falsely marked Done
-2. **Given** the transition fails (no matching state, permission denied)
-   **When** the close skill continues
-   **Then** same non-blocking philosophy as Story 6.1 — warn plainly, then still run the archiver so the developer isn't blocked from closing their story just because the JIRA-side write failed
-3. **Given** `source_of_truth: confluence` or `docs-only`
-   **When** the developer invokes the close skill
-   **Then** it's a pure passthrough to today's close command — no new behavior, nothing to transition
-4. **Given** this is a brand-new skill, not a modification of `story-kickoff`
+1. **Given** `source_of_truth: jira` and a live Claude Code chat turn in which the developer asks to close/archive the story, **or** the assistant is about to run `tools/opsx-wrapper/main.py archive <name>` or `tools/snapshot-assembler/main.py --repo-root .` for that story
+   **When** the new skill activates
+   **Then** it triggers implicitly — matched by Claude Code on relevance to the skill's description, not by a memorized invocation phrase
+2. **Given** the skill has activated for a JIRA-backed story
+   **When** it runs, before any JIRA write happens
+   **Then** it discovers every sub-task under the parent issue (e.g. via a JQL search scoped to `parent = <issueKey>`) and, for each one not already Done: ensures it carries a story-points value (reusing Story 6.3's default-of-1 logic as a safety net, in case a value is somehow still missing), then prepares to transition it — but does **not** write anything to JIRA yet
+3. **Given** step 2 has determined what would happen
+   **When** the skill is about to make its first real JIRA write
+   **Then** it asks **one** `AskUserQuestion` confirmation, framed around the parent ticket (e.g. "This will close N sub-task(s) and transition the parent JIRA issue `<KEY>` to Done — proceed?") — a single gate covering the whole close-time JIRA write, not a separate prompt per sub-task
+4. **Given** the developer confirms
+   **When** the writes happen
+   **Then** the order is: all open sub-tasks transition to Done first, **then** the parent transitions to Done, **then** the existing close command (`opsx-wrapper archive` / `snapshot-assembler`) runs — a failed archive run must never leave the ticket falsely marked Done, so the archiver always runs last
+5. **Given** the developer declines the confirmation
+   **When** the skill continues
+   **Then** it skips the entire JIRA-write flow (no sub-task or parent transition) but still lets the developer proceed with the actual local close command if they want — declining the JIRA sync never blocks the real snapshot/archive from happening (FR5, same non-blocking philosophy as everywhere else in this pipeline)
+6. **Given** a transition fails partway (some sub-tasks succeed, one doesn't; or the parent transition fails after sub-tasks succeeded)
+   **When** the skill continues
+   **Then** it reports plainly which writes succeeded and which didn't, and still runs the local close command regardless — a partial JIRA-side failure never blocks the developer from closing their story locally
+7. **Given** `source_of_truth: confluence` or `docs-only`
+   **When** the developer closes the story
+   **Then** it's a pure passthrough to today's close command — no new behavior, no confirmation prompt, nothing to transition
+8. **Given** this is a brand-new skill, not a modification of `story-kickoff`
    **When** it's built
    **Then** it reuses existing helpers (manifest reading, `.story-config.yaml` reading) rather than duplicating them — exact code-sharing mechanism to be resolved during `create-story`
+9. **Given** the terminal-run limitation (this epic's cross-reference note above)
+   **When** `INSTALL.md` documents this feature
+   **Then** it states plainly that running the close commands directly in an external terminal (outside any Claude Code chat) skips the JIRA-side sync entirely — not a bug, an inherent platform constraint
 
 ### Story 6.3: Defect Sub-tasks Carry a Story-Points Value
 
@@ -947,7 +967,7 @@ As a JIRA board viewer,
 I want each defect sub-task to carry a small point estimate,
 so that sub-tasks show up realistically in JIRA reporting rather than as unestimated.
 
-**Context:** Story 5.4 already creates a JIRA Subtask for review defects via MCP (`createJiraIssue`) but never sets a points value on it. The reference tool always sets one (defaulting to 1, override-able).
+**Context:** Story 5.4 already creates a JIRA Subtask for review defects via MCP (`createJiraIssue`) but never sets a points value on it. The reference tool always sets one (defaulting to 1, override-able). This story's default-of-1 logic is also reused defensively by Story 6.2's close-time flow, for any older sub-task that somehow still lacks a points value.
 
 **Acceptance Criteria (draft):**
 
@@ -975,3 +995,54 @@ so that JIRA isn't left showing a stale pre-work guess.
 3. **Given** the write fails (permission denied, custom field misconfigured)
    **When** the close skill continues
    **Then** same non-blocking philosophy as Stories 6.1/6.2 — warn plainly, still complete the close
+
+### Story 6.5: Kickoff Captures Sprint Metadata (Name, Start/End Date)
+
+As someone who will later want sprint-level rollups,
+I want a JIRA-backed story's sprint name and its start/end dates captured at kickoff time,
+so that a later dashboard feature has real dates to show, not just a bare sprint name string.
+
+**Context:** added 2026-07-17 at the user's request (point 5 of the same-day rework), alongside Story 6.6 below — not deferred, unlike Story 6.7's graphs. Today, `pm_metrics.sprint` only ever holds a plain name string, extracted from the configured `jira_sprint_field`. JIRA Cloud's sprint custom field is frequently a richer object/array (id, name, state, `startDate`, `endDate`, `completeDate`) when the full field value is inspected rather than just its display name — this needs live verification against a real JIRA project during `create-story`/`dev-story`, not assumption; the Atlassian MCP tool surface available to this project has no dedicated "get sprint details" tool, so this data, if available at all, must come from the sprint field's own raw value on `getJiraIssue`.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `source_of_truth: jira` and a successful kickoff fetch
+   **When** the sprint field's raw value is inspected (not just today's extracted name string)
+   **Then** if it carries structured start/end date data, persist `sprint_start_date`/`sprint_end_date` into `.story.yaml` alongside the existing `sprint` name — additive only, `sprint`'s own existing meaning/format is unchanged
+2. **Given** the sprint field's raw value does **not** carry structured dates (a plain string, a different workflow scheme, or a JIRA instance/plan that doesn't expose this)
+   **When** kickoff runs
+   **Then** `sprint_start_date`/`sprint_end_date` are simply absent/null — never fabricated, and kickoff is not blocked either way (FR5)
+3. **Given** `source_of_truth: confluence` or `docs-only`
+   **When** kickoff runs
+   **Then** nothing changes — no sprint dates exist to capture for either backend
+
+### Story 6.6: Dashboard Shows Sprint-Level Rollups
+
+As someone reviewing the leadership dashboard,
+I want to see each sprint's name, start/end dates, story count, and overall status alongside the per-story table,
+so that I don't have to manually group stories by sprint myself to understand sprint-level progress.
+
+**Context:** added 2026-07-17 alongside Story 6.5 (its data source). Stories-count and per-sprint status can be computed entirely from **already-available local snapshot data** (grouping every discovered snapshot by `pm_metrics.sprint`, same discovery/highest-revision logic `tools/metrics-report/main.py`'s `discover_snapshots()` already provides) — no new JIRA fetch needed for that part. Only the start/end dates depend on Story 6.5 actually having captured them.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `tools/dashboard/main.py` renders `dashboard.html`
+   **When** two or more discovered snapshots share the same non-null `pm_metrics.sprint` value
+   **Then** a new sprint-rollup section/table appears (in addition to the existing per-story table, not replacing it) showing: Sprint Name, Start Date, End Date, Story Count, and an overall status summary (e.g. how many of that sprint's known stories are `done` vs. still open, based only on what's locally known — never a claim about JIRA's own sprint completion state unless Story 6.5 captured it)
+2. **Given** a story has no sprint value (`pm_metrics.sprint` is null)
+   **When** the rollup is built
+   **Then** it's grouped under an honest "no sprint" bucket, or omitted from the rollup entirely with a visible count of how many stories were excluded (AD-10 philosophy: never silently drop data without saying so)
+3. **Given** Story 6.5 didn't capture start/end dates for a given sprint (older snapshots, or the JIRA instance doesn't expose them)
+   **When** that sprint's row renders
+   **Then** dates show "unknown" rather than blank/fabricated, same null-with-reason posture as every other optional field in this dashboard
+4. **Given** this story only adds a new section
+   **When** the existing per-story table/stat-tiles render
+   **Then** they are completely unchanged — additive only, same precedent as Story 5.11's `field_guide`
+
+### Story 6.7: Committed-vs-Closed Trend Graphs (deferred — backlog only, not started)
+
+As someone reviewing the leadership dashboard,
+I want a simple visual (e.g. committed vs. closed story points/count over time) alongside the existing tables,
+so that a trend is visible at a glance instead of only in tabular form.
+
+**Status:** explicitly deferred by the user on 2026-07-17 — "we can work on this once the above points are completed." No AC drafted yet; revisit once Stories 6.1-6.6 are built, tested, and merged. Whatever form this takes should be checked against this project's own `dataviz` guidance on choosing a form (already cited by Story 5.5 when the dashboard table itself was designed) before assuming a chart is the right shape.

@@ -103,9 +103,12 @@ development_status:
   5-9-one-click-team-dashboard-workflow: done  # PR #42 merged 1343020, on enhancements-v3; live-verified 2026-07-15
   5-10-token-cost-reason-doesnt-distinguish-never-closed-from-failed: done  # PR #49, merged 55480f1
   5-11-snapshot-and-report-fields-explain-their-own-purpose: done  # PR #50, merged 3e23f82
-  epic-6: backlog  # opened 2026-07-17, inspired by a reference tool's real JIRA lifecycle sync
+  epic-6: backlog  # opened 2026-07-17, reworked same day (6 points from the user); building on dedicated branch epic-6-jira-lifecycle-sync, not main, until user testing is done
   6-1-kickoff-transitions-the-jira-issue-to-in-progress: backlog
-  6-2-a-new-close-story-skill-wraps-transition-to-done-plus-the-existing-archiver: backlog
+  6-2-a-new-skill-transitions-sub-tasks-plus-parent-to-done-around-the-existing-close-command: backlog  # renamed/reworked 2026-07-17: implicit skill trigger (not a memorized command), sub-tasks-before-parent ordering, one AskUserQuestion gate
   6-3-defect-sub-tasks-carry-a-story-points-value: backlog
   6-4-parent-tickets-story-points-sync-back-at-close: backlog
+  6-5-kickoff-captures-sprint-metadata-name-start-end-date: backlog  # added 2026-07-17
+  6-6-dashboard-shows-sprint-level-rollups: backlog  # added 2026-07-17
+  6-7-committed-vs-closed-trend-graphs: backlog  # added 2026-07-17, explicitly deferred by the user, not to be started this batch
   epic-5-retrospective: optional
