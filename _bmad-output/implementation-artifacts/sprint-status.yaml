@@ -106,7 +106,7 @@ development_status:
   epic-6: in-progress  # Story 6.1 created 2026-07-17; building on dedicated branch epic-6-jira-lifecycle-sync, not main, until user testing is done
   6-1-kickoff-transitions-the-jira-issue-to-in-progress: review
   6-2-a-new-skill-transitions-sub-tasks-plus-parent-to-done-around-the-existing-close-command: review
-  6-3-defect-sub-tasks-carry-a-story-points-value: ready-for-dev
+  6-3-defect-sub-tasks-carry-a-story-points-value: review
   6-4-parent-tickets-story-points-sync-back-at-close: backlog
   6-5-kickoff-captures-sprint-metadata-name-start-end-date: backlog  # added 2026-07-17
   6-6-dashboard-shows-sprint-level-rollups: backlog  # added 2026-07-17

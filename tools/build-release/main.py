@@ -28,6 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS = [
     Path(".claude/skills/story-kickoff/SKILL.md"),
     Path(".claude/skills/story-close/SKILL.md"),  # Story 6.2
+    Path(".claude/skills/log-review-defect/SKILL.md"),  # Story 6.3
 ]
 INSTALL = Path(__file__).resolve().parent / "INSTALL.md"
 STORY_CONFIG_EXAMPLE = Path(__file__).resolve().parent / ".story-config.yaml.example"

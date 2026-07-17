@@ -4,7 +4,7 @@ baseline_commit: b0c424e
 
 # Story 6.3: Defect Sub-tasks Carry a Story-Points Value
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -42,30 +42,30 @@ so that sub-tasks show up realistically in JIRA reporting rather than as unestim
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: new shipped skill `.claude/skills/log-review-defect/SKILL.md` (AC: 1, 3, 5, 6)
-  - [ ] Subtask 1.1: frontmatter `description` written to trigger implicitly (same "hidden trigger" pattern as `story-close`, Story 6.2) — matched whenever a pasted code review's finding has been verified against the diff, confirmed real, and fixed
-  - [ ] Subtask 1.2: step 1 — read `.story.yaml` for `source_of_truth` and `jira_issue_key`
-  - [ ] Subtask 1.3: step 2 — for `source_of_truth: jira` with a non-null `jira_issue_key`: call `createJiraIssue` (`parent` = `jira_issue_key`, `issueTypeName: "Subtask"`, summary/description from the finding) with `additional_fields` setting the points custom field (`.story-config.yaml`'s `jira_points_field`, default `customfield_10016`) to **1** (AC 1) — generalize project-context.md §9's existing instruction, don't just copy it verbatim (it currently omits the points field entirely, which is exactly this story's fix)
-  - [ ] Subtask 1.4: step 3 — for every other case (non-jira, or jira with null `jira_issue_key`): skip step 2 entirely (AC 5)
-  - [ ] Subtask 1.5: step 4 — always run `uv run tools/log-defect/main.py --repo-root . --type review --summary "<finding summary>" --description "<finding description>" [--jira-subtask-key <key from step 2, if applicable>]` (unchanged from today's existing script — no code change to `tools/log-defect/main.py` itself needed)
-  - [ ] Subtask 1.6: explicit rule carried over verbatim from project-context.md §9 (AC 6): only a finding confirmed real (against the diff) **and** actually fixed is ever logged this way — a declined/stale finding never is
+- [x] Task 1: new shipped skill `.claude/skills/log-review-defect/SKILL.md` (AC: 1, 3, 5, 6)
+  - [x] Subtask 1.1: frontmatter `description` written to trigger implicitly (same "hidden trigger" pattern as `story-close`, Story 6.2) — matched whenever a pasted code review's finding has been verified against the diff, confirmed real, and fixed
+  - [x] Subtask 1.2: step 1 — read `.story.yaml` for `source_of_truth` and `jira_issue_key`
+  - [x] Subtask 1.3: step 2 — for `source_of_truth: jira` with a non-null `jira_issue_key`: call `createJiraIssue` (`parent` = `jira_issue_key`, `issueTypeName: "Subtask"`, summary/description from the finding) with `additional_fields` setting the points custom field (`.story-config.yaml`'s `jira_points_field`, default `customfield_10016`) to **1** (AC 1) — generalize project-context.md §9's existing instruction, don't just copy it verbatim (it currently omits the points field entirely, which is exactly this story's fix)
+  - [x] Subtask 1.4: step 3 — for every other case (non-jira, or jira with null `jira_issue_key`): skip step 2 entirely (AC 5)
+  - [x] Subtask 1.5: step 4 — always run `uv run tools/log-defect/main.py --repo-root . --type review --summary "<finding summary>" --description "<finding description>" [--jira-subtask-key <key from step 2, if applicable>]` (unchanged from today's existing script — no code change to `tools/log-defect/main.py` itself needed)
+  - [x] Subtask 1.6: explicit rule carried over verbatim from project-context.md §9 (AC 6): only a finding confirmed real (against the diff) **and** actually fixed is ever logged this way — a declined/stale finding never is
 
-- [ ] Task 2: package the new skill into the release artifact (AC: 3) — same pattern Story 6.2 already established for `story-close`, done proactively this time, not discovered mid-implementation
-  - [ ] Subtask 2.1 (RED): extend `tests/build_release/test_build.py`'s existing `test_artifact_contains_the_deployable_surface` with an assertion for `.claude/skills/log-review-defect/SKILL.md` — confirm it fails first
-  - [ ] Subtask 2.2 (GREEN): add the new skill path to `tools/build-release/main.py`'s `SKILLS` list (already a list since Story 6.2 — this is now a one-line addition, not a re-generalization)
-  - [ ] Subtask 2.3: add `.claude/skills/log-review-defect` to both `tools/build-release/uninstall.sh` and `uninstall.ps1`'s removal path lists (same lists Story 6.2 already extended once)
-  - [ ] Subtask 2.4: `INSTALL.md`'s Install step 1 description and Uninstall section wording — now three skills, not two
+- [x] Task 2: package the new skill into the release artifact (AC: 3) — same pattern Story 6.2 already established for `story-close`, done proactively this time, not discovered mid-implementation
+  - [x] Subtask 2.1 (RED): extend `tests/build_release/test_build.py`'s existing `test_artifact_contains_the_deployable_surface` with an assertion for `.claude/skills/log-review-defect/SKILL.md` — confirm it fails first
+  - [x] Subtask 2.2 (GREEN): add the new skill path to `tools/build-release/main.py`'s `SKILLS` list (already a list since Story 6.2 — this is now a one-line addition, not a re-generalization)
+  - [x] Subtask 2.3: add `.claude/skills/log-review-defect` to both `tools/build-release/uninstall.sh` and `uninstall.ps1`'s removal path lists (same lists Story 6.2 already extended once)
+  - [x] Subtask 2.4: `INSTALL.md`'s Install step 1 description and Uninstall section wording — now three skills, not two
 
-- [ ] Task 3: `project-context.md` §9 — remove the duplication (AC: 4)
-  - [ ] Subtask 3.1: replace the inline `createJiraIssue`/`log-defect` instruction with a short reference to `.claude/skills/log-review-defect/SKILL.md` — confirm nothing project-specific is lost in the process (re-read the current §9 text fully before editing, don't paraphrase from memory)
+- [x] Task 3: `project-context.md` §9 — remove the duplication (AC: 4)
+  - [x] Subtask 3.1: replace the inline `createJiraIssue`/`log-defect` instruction with a short reference to `.claude/skills/log-review-defect/SKILL.md` — confirm nothing project-specific is lost in the process (re-read the current §9 text fully before editing, don't paraphrase from memory)
 
-- [ ] Task 4: `INSTALL.md` — document the new skill for end users (AC: 3, 5)
-  - [ ] Subtask 4.1: a short new subsection (or addition to an existing one) explaining that a confirmed-and-fixed review defect on a JIRA-backed story now automatically creates a real Jira Subtask (with a points value) alongside the local defect event — mention this is the same implicit-trigger mechanism as `story-close` (Story 6.2), not a new command to learn
-  - [ ] Subtask 4.2: a Known Limitations entry: same terminal-run limitation category as Stories 6.1/6.2 (only works inside a live Claude Code chat turn) — cross-reference rather than re-explain from scratch
+- [x] Task 4: `INSTALL.md` — document the new skill for end users (AC: 3, 5)
+  - [x] Subtask 4.1: a short new subsection (or addition to an existing one) explaining that a confirmed-and-fixed review defect on a JIRA-backed story now automatically creates a real Jira Subtask (with a points value) alongside the local defect event — mention this is the same implicit-trigger mechanism as `story-close` (Story 6.2), not a new command to learn
+  - [x] Subtask 4.2: a Known Limitations entry: same terminal-run limitation category as Stories 6.1/6.2 (only works inside a live Claude Code chat turn) — cross-reference rather than re-explain from scratch
 
-- [ ] Task 5: live verification (AC: 1, 3, 5, 6) — **coordinate with the user before running; this creates a real Jira subtask**
-  - [ ] Subtask 5.1: real invocation of the new skill's flow against a real JIRA-backed parent issue — confirm the created subtask genuinely carries the points value (re-fetch independently, same discipline as Stories 6.1/6.2), and confirm the local `tools/log-defect/main.py` event still gets appended correctly with the real `--jira-subtask-key`
-  - [ ] Subtask 5.2: confirm the no-`jira_issue_key`/non-jira passthrough (AC 5) structurally — no live JIRA call needed for this branch, same as prior stories' passthrough verification
+- [x] Task 5: live verification (AC: 1, 3, 5, 6) — **coordinate with the user before running; this creates a real Jira subtask**
+  - [x] Subtask 5.1: real invocation of the new skill's flow against a real JIRA-backed parent issue — confirm the created subtask genuinely carries the points value (re-fetch independently, same discipline as Stories 6.1/6.2), and confirm the local `tools/log-defect/main.py` event still gets appended correctly with the real `--jira-subtask-key`
+  - [x] Subtask 5.2: confirm the no-`jira_issue_key`/non-jira passthrough (AC 5) structurally — no live JIRA call needed for this branch, same as prior stories' passthrough verification
 
 ## Dev Notes
 
@@ -120,16 +120,41 @@ New skill directory (`.claude/skills/log-review-defect/`) sits alongside `story-
 
 ### Agent Model Used
 
-claude-sonnet-5 (create-story context engineering)
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
 
 ### Debug Log References
 
-_(filled in during dev-story implementation)_
+- Task 2: RED confirmed (`.claude/skills/log-review-defect/SKILL.md` missing from the built artifact), GREEN after a one-line `SKILLS` list addition. `uv run pytest tests/build_release/ -q` → 7/7 passed.
+- Task 5 (live E2E against the real connected Atlassian site, coordinated with the user beforehand):
+  1. `createJiraIssue` on `AI-143` (Story 6.1/6.2's own parent, already `Done`) with `additional_fields: {"customfield_10016": 1}` — succeeded even under an already-Done parent, creating `AI-148`.
+  2. **Re-fetched `AI-148` independently** — confirmed `customfield_10016: 1` was genuinely set **at creation time**, unlike `AI-144`/`AI-147` (Story 6.2's test subjects), which both started `null` and needed the close-time safety net. Direct, live proof this story's fix works.
+  3. In a scratch repo: wrote a real `.story.yaml` (`--jira-issue-key AI-143`), then ran the real, unmodified `tools/log-defect/main.py --type review --jira-subtask-key AI-148` — confirmed the resulting `.story-events.jsonl` line carries `jira_subtask_key: "AI-148"` correctly.
+  4. Ran the real `tools/snapshot-assembler/main.py` afterward — confirmed `defect_metrics` correctly reduces the one review defect (`total_defects: 1`, `review_efficiency: 100.0`). Scratch repo removed after.
+  5. Subtask 5.2 (non-jira/no-`jira_issue_key` passthrough) verified structurally, same category as prior stories' passthrough checks — the new skill's step 2 codes the skip as an explicit branch, and nothing in this story touches any file the docs-only/Confluence flows read.
+- Full regression: `uv run pytest -q` → 367 passed, unchanged in count (Task 2's new assertion extends an existing test).
 
 ### Completion Notes List
 
-_(filled in during dev-story implementation)_
+- Task 1: new `.claude/skills/log-review-defect/SKILL.md` — activates implicitly (same pattern as `story-close`), creates the Jira subtask with a points value at creation time for JIRA-backed stories with a `jira_issue_key`, always runs the existing unmodified `tools/log-defect/main.py` last.
+- **The real finding driving this story's expanded scope:** the whole review-defect-to-JIRA mechanism only ever existed in `project-context.md` §9 — this repo's own internal doc, never shipped. Confirmed by checking `INSTALL.md`/`story-kickoff`/`story-close` (the only things an end user ever sees) for any mention of it — none existed before this story.
+- Task 2: packaging fix done proactively this time (RED/GREEN), unlike Story 6.2 where the same category of gap was found mid-implementation as a surprise.
+- Task 3: `project-context.md` §9 simplified to a one-line reference to the shipped skill — the exact duplication that caused the original gap is now closed structurally, not just patched once.
+- Task 4: `INSTALL.md` gained a new paragraph (contrasting review-defect capture with the existing automatic compile/test capture) and an updated Known Limitations entry (previously said 6.3 hadn't shipped — now accurately describes the creation-time fix plus the still-standing close-time safety net for older sub-tasks).
+- Task 5: live-verified end to end, including direct proof of the fix (points set at creation, not needing the safety net this time) and confirmation the full pipeline — real Jira write, local event, snapshot reduction — all still work together correctly.
+- No changes to `tools/log-defect/main.py`, `tools/hooks/` (compile/test capture), or the event schema — confirmed untouched, as scoped.
 
 ### File List
 
-_(filled in during dev-story implementation)_
+- .claude/skills/log-review-defect/SKILL.md (new — the full review-defect-to-JIRA-subtask flow, generalized and shipped)
+- tools/build-release/main.py (modified — one-line addition to the existing `SKILLS` list)
+- tools/build-release/uninstall.sh (modified — added `.claude/skills/log-review-defect` to the removal list)
+- tools/build-release/uninstall.ps1 (modified — added `.claude/skills/log-review-defect` to the removal list)
+- tests/build_release/test_build.py (modified — new assertion confirming the skill ships in the artifact)
+- tools/build-release/INSTALL.md (modified — new paragraph documenting review-defect capture for end users; updated Known Limitations entry; Install/Uninstall wording for three skills)
+- project-context.md (modified — §9 de-duplicated to reference the shipped skill instead of an inline copy)
+- _bmad-output/implementation-artifacts/6-3-defect-sub-tasks-carry-a-story-points-value.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
+
+## Change Log
+
+- 2026-07-17: Story implemented and live-verified end to end (real subtask `AI-148` created with points at creation time; the full local-event + snapshot pipeline confirmed working with the real subtask key). Status: ready-for-dev → review.

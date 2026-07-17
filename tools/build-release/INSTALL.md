@@ -63,9 +63,9 @@ below is the manual alternative to this command.
 ## Install (per repository, once)
 
 1. Extract this zip **at your repository root** (it adds `tools/`,
-   `.claude/skills/story-kickoff/`, `.claude/skills/story-close/` (Story 6.2), and
-   `.story-config.yaml.example`; nothing is overwritten) — or use "Quick install"
-   above to skip the manual download.
+   `.claude/skills/story-kickoff/`, `.claude/skills/story-close/` (Story 6.2),
+   `.claude/skills/log-review-defect/` (Story 6.3), and `.story-config.yaml.example`;
+   nothing is overwritten) — or use "Quick install" above to skip the manual download.
 2. From the repo root, run:
    ```
    uv run tools/setup-hooks.py --repo-root .
@@ -101,6 +101,16 @@ below is the manual alternative to this command.
    ```
 4. Commit `tools/`, `.claude/skills/`, and `.story-config.yaml` so every teammate gets the
    same setup from a plain clone (they still each run step 2 once).
+
+**Review defects work differently from compile/test ones (Story 6.3).** The
+`test_commands`/`build_commands` capture above is fully automatic — no AI action needed.
+Review defects (findings from a pasted code review you've verified against the diff,
+confirmed real, and fixed) are captured by a third skill, `log-review-defect`, that
+activates implicitly the same way `story-close` does — no command to remember, it
+recognizes the moment on its own. For `source_of_truth: jira` stories, it also creates a
+real Jira Subtask under the story's parent issue with a story-points value (default 1,
+override via `jira_points_field` same as the points-reading config above) — never for a
+declined or stale finding, only one confirmed real and actually fixed.
 
 **Important — do step 2 before opening a Claude Code session in this repo.** Hooks (and
 MCP server connections, and custom slash commands) are only discovered at a session's
@@ -450,10 +460,11 @@ above, not something this project's own code can work around. Run these commands
 Claude Code to do it (or let it do so as part of a normal close conversation) if you want
 the JIRA sync to happen.
 
-**Until Story 6.3 ships, the close-time flow is the *only* place a defect sub-task ever
-gets a story-points value.** `createJiraIssue` (Story 5.4's review-defect subtask creation)
-sets no points field today — Story 6.2's close-time check is the primary mechanism, not a
-rarely-used safety net, until subtask creation itself starts setting one.
+**Review defect sub-tasks now get a story-points value at creation time (Story 6.3),
+not just as a close-time safety net.** The `log-review-defect` skill sets it when the
+subtask is first created; the close-time check in `story-close` (Story 6.2) remains as a
+safety net for any older sub-task that predates this fix. Same terminal-run limitation as
+above — `log-review-defect` only activates inside a live Claude Code chat turn.
 
 **Running the snapshot assembler always closes the story — its existence is the
 authoritative signal every other producer relies on to know a story is done** (a closed
@@ -492,8 +503,8 @@ installs are idempotent — re-running upgrades in place.
 
 ## Uninstall
 
-`uninstall.sh`/`uninstall.ps1` remove everything Install added — `tools/`, both skills
-(`story-kickoff`, `story-close`), `INSTALL.md`, `.story-config.yaml.example`, the four git hooks, this tooling's own
+`uninstall.sh`/`uninstall.ps1` remove everything Install added — `tools/`, all three skills
+(`story-kickoff`, `story-close`, `log-review-defect`), `INSTALL.md`, `.story-config.yaml.example`, the four git hooks, this tooling's own
 entries in `.claude/settings.json` (surgically — any other hooks/keys you have are left
 untouched), and, if present, anything a kickoff/close cycle created (`.story.yaml`,
 `.story-events.jsonl`, `.active-story`, `snapshots/`, `metrics-reports/`, etc.). Like
