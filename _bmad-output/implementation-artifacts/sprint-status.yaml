@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-09
-last_updated: 2026-07-16  # Stories 5.10/5.11 opened
+last_updated: 2026-07-17  # Epic 6 opened (JIRA ticket lifecycle sync)
 project: explore-jira-ai-metrics
 project_key: NOKEY
 tracking_system: file-system
@@ -103,4 +103,9 @@ development_status:
   5-9-one-click-team-dashboard-workflow: done  # PR #42 merged 1343020, on enhancements-v3; live-verified 2026-07-15
   5-10-token-cost-reason-doesnt-distinguish-never-closed-from-failed: done  # PR #49, merged 55480f1
   5-11-snapshot-and-report-fields-explain-their-own-purpose: done  # PR #50, merged 3e23f82
+  epic-6: backlog  # opened 2026-07-17, inspired by a reference tool's real JIRA lifecycle sync
+  6-1-kickoff-transitions-the-jira-issue-to-in-progress: backlog
+  6-2-a-new-close-story-skill-wraps-transition-to-done-plus-the-existing-archiver: backlog
+  6-3-defect-sub-tasks-carry-a-story-points-value: backlog
+  6-4-parent-tickets-story-points-sync-back-at-close: backlog
   epic-5-retrospective: optional

@@ -882,3 +882,96 @@ so that I don't have to go find `tools/snapshot-assembler/main.py`'s docstrings 
 5. **Given** this story only adds documentation-carrying fields/attributes
    **When** existing consumers (tests, other tools) read a snapshot
    **Then** nothing that reads specific data fields today breaks — `field_guide` is strictly additive, same precedent as `estimated_cost`/`defect_metrics` being added without a `schema_version` bump
+
+---
+
+## Epic 6: JIRA Ticket Lifecycle Sync
+
+A JIRA-backed story's ticket reflects real progress automatically — moves to "In Progress" at kickoff, "Done" at close, and carries back real story-point estimates — without any manual JIRA click.
+
+> 🆕 **Opened 2026-07-17** — inspired by directly reading a reference tool's own docs (`D:\mywork\myPOCs\mcp-google-stitch\docs\engineering_flow.md`, `developer_handover.md`, and a real completed-ticket walkthrough) after the user recalled discussing this idea in personal notes never actually shared with this assistant before. Confirmed via that reference material: real JIRA status transitions at both start (`POST /issue/{key}/transitions` → In Progress) and close (→ Done), plus a story-points value set on every defect sub-task and synced back to the parent ticket at close (`PUT` to the parent issue). This project currently does none of that — kickoff only ever *reads* JIRA fields, and Story 5.4's defect sub-tasks carry no points value at all.
+>
+> **Explicitly out of scope, confirmed with the user:** bulk backlog/ticket creation from a PRD (a fundamentally different product surface — PM-authoring vs. this project's "metrics as a byproduct" mission); Confluence-side status/points sync (pages have no workflow-status concept, and the MCP server already can't write labels back — a separate, already-documented gap, see Story 1.10's Known Limitations note); the reference tool's "save telemetry JSON to a JIRA issue entity property" idea (a nice-to-have, not in this batch).
+>
+> **A real architecture constraint this surfaces:** MCP tools are only reachable from a live assistant turn, never from a hook/CLI subprocess — the same constraint Story 5.4 already documented for defect sub-task creation. Kickoff is already a skill (assistant turn), so the "In Progress" transition fits naturally there (Story 6.1). But *closing* a story today is a pure CLI command (`tools/snapshot-assembler/main.py` / `tools/opsx-wrapper/main.py archive`), which cannot reach MCP tools on its own — the "Done" transition needs a new conversational step wrapping the existing close command, not a change to the script itself (Story 6.2).
+>
+> **Two design decisions confirmed with the user before formalizing this epic:** (1) Story 6.4 writes back `story_point_cost.phase2_points` (this project's own after-the-fact computed estimate), not the developer-confirmed `pm_metrics.points` and not an at-close developer prompt — the user chose the recommended option. (2) Story 6.2's close-time step is a **new dedicated skill** (mirroring `story-kickoff`'s own structure), not an extension of the existing kickoff skill into a combined one — also the recommended option.
+
+### Story 6.1: Kickoff Transitions the JIRA Issue to "In Progress"
+
+As a developer kicking off a JIRA-backed story,
+I want the ticket to automatically move to "In Progress" the moment I start work,
+so that the board reflects reality without a manual JIRA click.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `source_of_truth: jira` and a successful kickoff fetch (`story-kickoff/SKILL.md` step 4a, MCP or script fallback)
+   **When** the manifest is about to be written
+   **Then** the skill resolves the issue's available transitions (`getTransitionsForJiraIssue`), matches the "In Progress"-equivalent one, and calls `transitionJiraIssue` for that issue key
+2. **Given** a JIRA workflow that doesn't literally call its active-work state "In Progress" (workflow schemes vary across projects)
+   **When** matching a transition
+   **Then** match case-insensitively against a small allow-list of common names ("In Progress", "In Development", "Doing"), with a `.story-config.yaml` override (`jira_in_progress_transition`) if auto-match fails or the project wants a specific one
+3. **Given** the transition fails for any reason (no matching state found, permission denied, issue already in that state)
+   **When** kickoff continues
+   **Then** kickoff is never blocked (FR5, same non-blocking philosophy as every other degradation in this skill) — tell the developer plainly what happened and proceed with the rest of kickoff exactly as if this story didn't exist
+4. **Given** `source_of_truth: confluence` or `docs-only`
+   **When** kickoff runs
+   **Then** nothing changes — no transition is attempted (Confluence pages have no workflow-status concept; docs-only has no ticket at all)
+
+### Story 6.2: A New "Close Story" Skill Wraps Transition-to-Done + the Existing Archiver
+
+As a developer finishing a JIRA-backed story,
+I want the ticket to automatically move to "Done" when I close the story,
+so that I don't have to separately update JIRA by hand.
+
+**Context:** closing a story today is a pure CLI command with no MCP access (see this epic's architecture-constraint note above). This story introduces a new, small skill — analogous to `story-kickoff` — that a developer invokes conversationally (e.g. "close this story") to wrap the existing close command with a JIRA transition step for JIRA-backed stories.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `source_of_truth: jira`
+   **When** the developer invokes the new close skill
+   **Then** it transitions the issue to a Done-equivalent state via MCP **before** invoking the existing close command (`tools/opsx-wrapper/main.py archive <name>` or `tools/snapshot-assembler/main.py --repo-root .`) — this ordering is deliberate: a failed archive run must never leave the ticket falsely marked Done
+2. **Given** the transition fails (no matching state, permission denied)
+   **When** the close skill continues
+   **Then** same non-blocking philosophy as Story 6.1 — warn plainly, then still run the archiver so the developer isn't blocked from closing their story just because the JIRA-side write failed
+3. **Given** `source_of_truth: confluence` or `docs-only`
+   **When** the developer invokes the close skill
+   **Then** it's a pure passthrough to today's close command — no new behavior, nothing to transition
+4. **Given** this is a brand-new skill, not a modification of `story-kickoff`
+   **When** it's built
+   **Then** it reuses existing helpers (manifest reading, `.story-config.yaml` reading) rather than duplicating them — exact code-sharing mechanism to be resolved during `create-story`
+
+### Story 6.3: Defect Sub-tasks Carry a Story-Points Value
+
+As a JIRA board viewer,
+I want each defect sub-task to carry a small point estimate,
+so that sub-tasks show up realistically in JIRA reporting rather than as unestimated.
+
+**Context:** Story 5.4 already creates a JIRA Subtask for review defects via MCP (`createJiraIssue`) but never sets a points value on it. The reference tool always sets one (defaulting to 1, override-able).
+
+**Acceptance Criteria (draft):**
+
+1. **Given** a review defect is logged for a JIRA-backed story (Story 5.4's existing flow)
+   **When** the subtask is created
+   **Then** the create call includes a story-points value on the subtask, defaulting to **1**, using the same `jira_points_field` config key already used for reading points at kickoff (no new config key introduced)
+2. **Given** compile/test defects
+   **When** they're captured
+   **Then** nothing changes — still local-only, still the explicit non-goal Story 5.4 already documented (hooks can't reach MCP)
+
+### Story 6.4: Parent Ticket's Story Points Sync Back at Close
+
+As someone viewing the JIRA board,
+I want the ticket's points field to reflect what was actually estimated by the end of the story,
+so that JIRA isn't left showing a stale pre-work guess.
+
+**Acceptance Criteria (draft):**
+
+1. **Given** `source_of_truth: jira` and the close-time MCP step introduced by Story 6.2
+   **When** the story closes
+   **Then** `story_point_cost.phase2_points` (this project's own after-the-fact computed estimate, Story 2.6) is written back to the issue's points field via `editJiraIssue` — **not** `pm_metrics.points` and **not** an at-close developer prompt (decided with the user when this epic was scoped)
+2. **Given** `phase2_points` is null for any reason
+   **When** the close-time sync runs
+   **Then** it skips the write entirely rather than writing a null/zero (AD-10 null-with-reason philosophy, applied here to an outbound write instead of a snapshot field)
+3. **Given** the write fails (permission denied, custom field misconfigured)
+   **When** the close skill continues
+   **Then** same non-blocking philosophy as Stories 6.1/6.2 — warn plainly, still complete the close
