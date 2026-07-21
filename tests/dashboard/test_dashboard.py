@@ -334,6 +334,162 @@ def test_stat_tiles_carry_explanatory_tooltips(tmp_path):
     assert 'class="tile" title="' in html
 
 
+# --- Story 6.6: sprint-level rollups ---
+
+
+def test_parse_iso_handles_real_jira_z_suffixed_dates():
+    # Real confirmed shape from Story 6.5's live research: trailing Z + milliseconds,
+    # which datetime.fromisoformat() only accepts natively from Python 3.11 onward.
+    parsed = dashboard._parse_iso("2026-06-26T06:19:49.000Z")
+
+    assert parsed is not None
+    assert parsed.year == 2026 and parsed.month == 6 and parsed.day == 26
+
+
+def test_parse_iso_returns_none_for_malformed_or_missing_values():
+    assert dashboard._parse_iso(None) is None
+    assert dashboard._parse_iso("not a date") is None
+    assert dashboard._parse_iso("") is None
+
+
+def test_sprint_status_ended_for_a_past_end_date():
+    assert dashboard.sprint_status("2000-01-01T00:00:00.000Z") == "Ended"
+
+
+def test_sprint_status_active_or_upcoming_for_a_future_end_date():
+    assert dashboard.sprint_status("2099-01-01T00:00:00.000Z") == "Active or upcoming"
+
+
+def test_sprint_status_unknown_when_end_date_missing_or_unparsable():
+    assert dashboard.sprint_status(None) == "Unknown"
+    assert dashboard.sprint_status("not a date") == "Unknown"
+
+
+def test_group_by_sprint_groups_by_name_and_counts_no_sprint_stories():
+    snapshots = [
+        {"pm_metrics": {"sprint": "Sprint 9"}},
+        {"pm_metrics": {"sprint": "Sprint 9"}},
+        {"pm_metrics": {"sprint": "Sprint 10"}},
+        {"pm_metrics": {"sprint": None}},
+    ]
+
+    groups, no_sprint_count = dashboard.group_by_sprint(snapshots)
+
+    assert len(groups["Sprint 9"]) == 2
+    assert len(groups["Sprint 10"]) == 1
+    assert no_sprint_count == 1
+
+
+def test_group_by_sprint_a_single_story_sprint_still_gets_its_own_group():
+    groups, no_sprint_count = dashboard.group_by_sprint([{"pm_metrics": {"sprint": "Sprint 9"}}])
+
+    assert groups == {"Sprint 9": [{"pm_metrics": {"sprint": "Sprint 9"}}]}
+    assert no_sprint_count == 0
+
+
+def test_sprint_rollup_row_takes_first_non_null_date_found_in_the_group():
+    # An older snapshot (predating Story 6.5) sits alongside one that does carry dates.
+    group = [
+        {"pm_metrics": {"sprint": "Sprint 9", "sprint_start_date": None, "sprint_end_date": None}},
+        {
+            "pm_metrics": {
+                "sprint": "Sprint 9",
+                "sprint_start_date": "2026-06-08T06:03:51.792Z",
+                "sprint_end_date": "2026-06-26T06:19:49.000Z",
+            }
+        },
+    ]
+
+    row = dashboard.sprint_rollup_row("Sprint 9", group)
+
+    assert row["start_date"] == "2026-06-08T06:03:51.792Z"
+    assert row["end_date"] == "2026-06-26T06:19:49.000Z"
+    assert row["story_count"] == 2
+    assert row["status"] == "Ended"
+
+
+def test_sprint_rollup_row_dates_null_when_no_snapshot_in_the_group_has_them():
+    group = [{"pm_metrics": {"sprint": "Sprint 9"}}]
+
+    row = dashboard.sprint_rollup_row("Sprint 9", group)
+
+    assert row["start_date"] is None
+    assert row["end_date"] is None
+    assert row["status"] == "Unknown"
+
+
+def test_rollup_section_absent_when_no_snapshot_has_a_sprint(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1)  # default fixture: sprint is None
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert "Sprint Rollups" not in html
+
+
+def test_rollup_section_present_and_shows_sprint_row(tmp_path):
+    write_snapshot(
+        tmp_path,
+        "story-a",
+        1,
+        pm_metrics={
+            "sprint": "Sprint 9",
+            "sprint_start_date": "2026-06-08T06:03:51.792Z",
+            "sprint_end_date": "2000-01-01T00:00:00.000Z",
+        },
+    )
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert "Sprint Rollups" in html
+    assert "Sprint 9" in html
+    assert "2026-06-08T06:03:51.792Z" in html
+    assert "Ended" in html
+
+
+def test_rollup_unknown_dates_show_unknown_not_blank(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1, pm_metrics={"sprint": "Sprint 9"})
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert "unknown" in html.lower()
+    assert "Unknown" in html  # Overall Status
+
+
+def test_rollup_no_sprint_row_appears_only_when_count_is_nonzero(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1, pm_metrics={"sprint": "Sprint 9"})
+    write_snapshot(tmp_path, "story-b", 1)  # no sprint
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert "No Sprint" in html
+
+
+def test_rollup_gives_each_distinct_sprint_its_own_row_even_a_single_story_sprint(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1, pm_metrics={"sprint": "Sprint 9"})
+    write_snapshot(tmp_path, "story-b", 1, pm_metrics={"sprint": "Sprint 10"})
+    write_snapshot(tmp_path, "story-c", 1, pm_metrics={"sprint": "Sprint 10"})
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    assert "Sprint 9" in html
+    assert "Sprint 10" in html
+
+
+def test_rollup_headers_carry_explanatory_tooltips(tmp_path):
+    write_snapshot(tmp_path, "story-a", 1, pm_metrics={"sprint": "Sprint 9"})
+
+    run(tmp_path)
+
+    html = dashboard_html(tmp_path)
+    # Story 6.5's own FIELD_GUIDE wording, distinctive to the new sprint-date columns.
+    assert "Story 6.5" in html
+
+
 def test_a_present_but_null_section_does_not_crash_generation(tmp_path):
     # Review finding (PR #28): dict.get(key, {}) only supplies its default for an
     # ABSENT key - a corrupted/hand-edited snapshot with e.g. "pm_metrics": null

@@ -581,6 +581,8 @@ def main(argv: "list[str] | None" = None) -> int:
             "points": as_number(manifest.get("points")),
             "goal": manifest.get("goal"),
             "sprint": manifest.get("sprint"),
+            "sprint_start_date": manifest.get("sprint_start_date"),
+            "sprint_end_date": manifest.get("sprint_end_date"),
             "source_of_truth": manifest.get("source_of_truth"),
             "ai_tool": manifest.get("ai_tool"),
             "created": manifest.get("created"),
