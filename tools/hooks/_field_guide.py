@@ -10,6 +10,12 @@ source system, a plain-language summary of the calculation.
 Bridge-imported the same way tools/hooks/_events.py already is (by the
 snapshot assembler, metrics-report, and dashboard tools) — a shared static
 dict, not a new abstraction layer (project-context.md §7).
+
+Dotted-path keys mostly mirror the snapshot envelope's own nesting exactly;
+the one exception is the `dashboard.sprint_rollup.*` prefix (Story 6.6),
+which documents two dashboard-only aggregate columns (Story Count, Overall
+Status) that are computed purely at render time and have no corresponding
+snapshot field to mirror.
 """
 
 from __future__ import annotations
@@ -35,6 +41,15 @@ FIELD_GUIDE: "dict[str, str]" = {
     ),
     "pm_metrics.goal": "One-line goal/summary captured at kickoff.",
     "pm_metrics.sprint": "Sprint or milestone name, if your PM tool tracks one; null if not.",
+    "pm_metrics.sprint_start_date": (
+        "The sprint's start date (Story 6.5), from the same JIRA sprint object "
+        "pm_metrics.sprint's name came from. Null if the story predates Story "
+        "6.5, isn't JIRA-backed, or the sprint hadn't started yet at kickoff time."
+    ),
+    "pm_metrics.sprint_end_date": (
+        "The sprint's end date (Story 6.5) — same source and null conditions as "
+        "pm_metrics.sprint_start_date."
+    ),
     "pm_metrics.source_of_truth": (
         "Which PM system this story's kickoff data came from: jira, confluence, or docs-only."
     ),
@@ -183,5 +198,16 @@ FIELD_GUIDE: "dict[str, str]" = {
     "defect_metrics.reason": (
         "Explains null defect fields: no defects were ever logged for this story "
         "(not evidence of zero real defects — just none captured)."
+    ),
+    "dashboard.sprint_rollup.story_count": (
+        "How many locally-known stories share this sprint name. Every story "
+        "shown here is already closed — a snapshot only ever exists after a "
+        "story closes (AD-3) — so this is never a count of a sprint's total "
+        "planned work, only of what this pipeline has captured so far."
+    ),
+    "dashboard.sprint_rollup.status": (
+        "The sprint's own timeline, not story completion: 'Ended' once the "
+        "sprint's end date (Story 6.5) has passed, 'Active or upcoming' "
+        "otherwise, or 'Unknown' if no end date was ever captured for it."
     ),
 }

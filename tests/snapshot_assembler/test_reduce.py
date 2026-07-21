@@ -48,8 +48,16 @@ def write_story_config(root: Path, **rates) -> None:
     (root / ".story-config.yaml").write_text(lines, encoding="utf-8")
 
 
-def write_manifest(root: Path, story_id: str = STORY_ID, points_estimated=None) -> None:
+def write_manifest(
+    root: Path,
+    story_id: str = STORY_ID,
+    points_estimated=None,
+    sprint_start_date=None,
+    sprint_end_date=None,
+) -> None:
     estimated_line = "null" if points_estimated is None else json.dumps(points_estimated)
+    start_line = "null" if sprint_start_date is None else json.dumps(sprint_start_date)
+    end_line = "null" if sprint_end_date is None else json.dumps(sprint_end_date)
     (root / ".story.yaml").write_text(
         f'story_id: "{story_id}"\n'
         'source_of_truth: "docs-only"\n'
@@ -58,6 +66,8 @@ def write_manifest(root: Path, story_id: str = STORY_ID, points_estimated=None) 
         f"points_estimated: {estimated_line}\n"
         'goal: "Close the loop"\n'
         'sprint: "S3"\n'
+        f"sprint_start_date: {start_line}\n"
+        f"sprint_end_date: {end_line}\n"
         "description: null\n"
         'created: "2026-07-10T09:00:00+05:30"\n',
         encoding="utf-8",
@@ -194,6 +204,36 @@ def test_pm_metrics_name_round_trips_from_the_manifest(tmp_path, capsys):
     run(tmp_path)
 
     assert read_snapshot(tmp_path)["pm_metrics"]["name"] == "Hello World"
+
+
+def test_pm_metrics_sprint_dates_round_trip_from_the_manifest(tmp_path, capsys):
+    # Story 6.6 gap: Story 6.5 wrote these into .story.yaml but the assembler
+    # never picked them up into pm_metrics — confirmed by reading the assembler
+    # fresh during Story 6.6's authoring, not assumed.
+    write_manifest(
+        tmp_path,
+        sprint_start_date="2026-06-08T06:03:51.792Z",
+        sprint_end_date="2026-06-26T06:19:49.000Z",
+    )
+    write_events(tmp_path, [])
+
+    run(tmp_path)
+
+    pm = read_snapshot(tmp_path)["pm_metrics"]
+    assert pm["sprint_start_date"] == "2026-06-08T06:03:51.792Z"
+    assert pm["sprint_end_date"] == "2026-06-26T06:19:49.000Z"
+
+
+def test_pm_metrics_sprint_dates_are_null_when_manifest_lacks_them(tmp_path, capsys):
+    # An older manifest (predating Story 6.5), or a docs-only/confluence story.
+    write_manifest(tmp_path)
+    write_events(tmp_path, [])
+
+    run(tmp_path)
+
+    pm = read_snapshot(tmp_path)["pm_metrics"]
+    assert pm["sprint_start_date"] is None
+    assert pm["sprint_end_date"] is None
 
 
 def test_story_point_cost_keys_present_with_null_phase1_when_no_estimate(tmp_path, capsys):

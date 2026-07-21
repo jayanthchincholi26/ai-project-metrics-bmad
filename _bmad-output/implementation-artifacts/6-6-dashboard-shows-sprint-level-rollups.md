@@ -4,7 +4,7 @@ baseline_commit: 5ab1158
 
 # Story 6.6: Dashboard Shows Sprint-Level Rollups
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,33 +38,33 @@ so that I don't have to manually group stories by sprint myself to understand sp
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: `tools/snapshot-assembler/main.py` — real gap found during authoring: wire Story 6.5's `sprint_start_date`/`sprint_end_date` into `pm_metrics` (AC: 1, 3)
-  - [ ] Subtask 0.1 (RED): add a test alongside `test_pm_metrics_come_from_the_manifest` asserting `pm_metrics["sprint_start_date"]`/`["sprint_end_date"]` round-trip from `.story.yaml` when present, and a second test asserting both are `None` when the manifest doesn't carry them (older manifests, or docs-only/confluence stories) — confirm RED first (`KeyError`, since `pm_metrics` doesn't have these keys at all today)
-  - [ ] Subtask 0.2 (GREEN): add `manifest.get("sprint_start_date")`/`manifest.get("sprint_end_date")` to the `pm_metrics` dict literal, same pattern as every other manifest-sourced field there
-  - [ ] Subtask 0.3: update `ENVELOPE_KEYS`-adjacent fixtures/tests if the exact-equality `pm_metrics` dict assertions elsewhere in the test file need the two new always-present keys added (mirror how Story 6.5 fixed `test_success_ack_contains_the_normalized_shape` in `test_jira.py`)
+- [x] Task 0: `tools/snapshot-assembler/main.py` — real gap found during authoring: wire Story 6.5's `sprint_start_date`/`sprint_end_date` into `pm_metrics` (AC: 1, 3)
+  - [x] Subtask 0.1 (RED): add a test alongside `test_pm_metrics_come_from_the_manifest` asserting `pm_metrics["sprint_start_date"]`/`["sprint_end_date"]` round-trip from `.story.yaml` when present, and a second test asserting both are `None` when the manifest doesn't carry them (older manifests, or docs-only/confluence stories) — confirm RED first (`KeyError`, since `pm_metrics` doesn't have these keys at all today)
+  - [x] Subtask 0.2 (GREEN): add `manifest.get("sprint_start_date")`/`manifest.get("sprint_end_date")` to the `pm_metrics` dict literal, same pattern as every other manifest-sourced field there
+  - [x] Subtask 0.3: update `ENVELOPE_KEYS`-adjacent fixtures/tests if the exact-equality `pm_metrics` dict assertions elsewhere in the test file need the two new always-present keys added (mirror how Story 6.5 fixed `test_success_ack_contains_the_normalized_shape` in `test_jira.py`)
 
-- [ ] Task 1: `tools/hooks/_field_guide.py` — document the two new `pm_metrics` fields (AC: 1, 3)
-  - [ ] Subtask 1.1: add `"pm_metrics.sprint_start_date"` / `"pm_metrics.sprint_end_date"` entries, mirroring the existing `"pm_metrics.sprint"` entry's style — state they're null when the story predates Story 6.5, isn't JIRA-backed, or the chosen sprint hadn't started yet
+- [x] Task 1: `tools/hooks/_field_guide.py` — document the two new `pm_metrics` fields (AC: 1, 3)
+  - [x] Subtask 1.1: add `"pm_metrics.sprint_start_date"` / `"pm_metrics.sprint_end_date"` entries, mirroring the existing `"pm_metrics.sprint"` entry's style — state they're null when the story predates Story 6.5, isn't JIRA-backed, or the chosen sprint hadn't started yet
 
-- [ ] Task 2: `tools/dashboard/main.py` — group snapshots by sprint and compute each row (AC: 1, 2, 3, 4)
-  - [ ] Subtask 2.1 (RED): write tests for a new `group_by_sprint(snapshots)` helper — returns sprint name → list of snapshots (insertion order or sorted, developer's choice, but document it), plus a separate count of no-sprint stories. Cover: two distinct sprints, a single-story sprint, an empty no-sprint bucket (count 0), a non-empty one
-  - [ ] Subtask 2.2 (GREEN): implement `group_by_sprint()`
-  - [ ] Subtask 2.3 (RED): write tests for a small ISO-8601 date parser helper (JIRA's real dates carry a trailing `Z` and millisecond fractions, e.g. `"2026-06-26T06:19:49.000Z"` — confirmed real shape from Story 6.5's own live research; Python's `datetime.fromisoformat` does not accept a trailing `Z` before 3.11, and this project's scripts declare `requires-python = ">=3.8"`) — cover a real-shaped string, a malformed string (returns `None`, never raises), and `None` input
-  - [ ] Subtask 2.4 (GREEN): implement the parser (e.g. `_parse_iso(value)`, replacing a trailing `Z` with `+00:00` before calling `datetime.fromisoformat`, wrapped in try/except)
-  - [ ] Subtask 2.5 (RED): write tests for a `sprint_status(end_date)` helper — a past date → `"Ended"`, a future date → `"Active or upcoming"`, `None`/unparsable → `"Unknown"`. Use dates far enough in the past/future (e.g. year 2000 / year 2099) that the test stays valid regardless of when it's run — no mocking `datetime.now()`
-  - [ ] Subtask 2.6 (GREEN): implement `sprint_status()`
-  - [ ] Subtask 2.7 (RED): write tests for a `sprint_rollup_row(sprint_name, snapshots)` helper (or equivalent) — Start/End Date taken from the first non-null value found among that sprint's snapshots, "unknown" if none found; Story Count is `len(snapshots)`; Overall Status from `sprint_status()` on the resolved end date
-  - [ ] Subtask 2.8 (GREEN): implement it
+- [x] Task 2: `tools/dashboard/main.py` — group snapshots by sprint and compute each row (AC: 1, 2, 3, 4)
+  - [x] Subtask 2.1 (RED): write tests for a new `group_by_sprint(snapshots)` helper — returns sprint name → list of snapshots (insertion order or sorted, developer's choice, but document it), plus a separate count of no-sprint stories. Cover: two distinct sprints, a single-story sprint, an empty no-sprint bucket (count 0), a non-empty one
+  - [x] Subtask 2.2 (GREEN): implement `group_by_sprint()`
+  - [x] Subtask 2.3 (RED): write tests for a small ISO-8601 date parser helper (JIRA's real dates carry a trailing `Z` and millisecond fractions, e.g. `"2026-06-26T06:19:49.000Z"` — confirmed real shape from Story 6.5's own live research; Python's `datetime.fromisoformat` does not accept a trailing `Z` before 3.11, and this project's scripts declare `requires-python = ">=3.8"`) — cover a real-shaped string, a malformed string (returns `None`, never raises), and `None` input
+  - [x] Subtask 2.4 (GREEN): implement the parser (e.g. `_parse_iso(value)`, replacing a trailing `Z` with `+00:00` before calling `datetime.fromisoformat`, wrapped in try/except)
+  - [x] Subtask 2.5 (RED): write tests for a `sprint_status(end_date)` helper — a past date → `"Ended"`, a future date → `"Active or upcoming"`, `None`/unparsable → `"Unknown"`. Use dates far enough in the past/future (e.g. year 2000 / year 2099) that the test stays valid regardless of when it's run — no mocking `datetime.now()`
+  - [x] Subtask 2.6 (GREEN): implement `sprint_status()`
+  - [x] Subtask 2.7 (RED): write tests for a `sprint_rollup_row(sprint_name, snapshots)` helper (or equivalent) — Start/End Date taken from the first non-null value found among that sprint's snapshots, "unknown" if none found; Story Count is `len(snapshots)`; Overall Status from `sprint_status()` on the resolved end date
+  - [x] Subtask 2.8 (GREEN): implement it
 
-- [ ] Task 3: `tools/dashboard/main.py` — render the new section (AC: 1, 2, 4, 5)
-  - [ ] Subtask 3.1 (RED): write tests asserting: the section is present with a non-null-sprint snapshot and absent with none (AC4); a "No Sprint" row appears only when that count is non-zero; each distinct sprint gets exactly one row regardless of story count; the existing stat-tiles/per-story table output is unchanged (a regression check — same assertions as an existing passing test, run again after this story's change)
-  - [ ] Subtask 3.2 (GREEN): add a `render_sprint_rollups(snapshots)` function producing an HTML `<table>` (own heading, e.g. `<h2>Sprint Rollups</h2>`), wired into `render_dashboard()` between the stat tiles and the existing per-story table; returns `""` when there are no non-null-sprint snapshots (AC4), which naturally renders nothing
-  - [ ] Subtask 3.3: extend the column-tooltip convention (Story 5.11) to the new table's headers — Sprint Name/Start Date/End Date reuse the `pm_metrics.sprint`/`sprint_start_date`/`sprint_end_date` `FIELD_GUIDE` entries (Task 1); Story Count and Overall Status have no snapshot-field analog, so add two new `FIELD_GUIDE` entries under a `dashboard.sprint_rollup.*` prefix describing the aggregation/computation in plain language, and adjust `_field_guide.py`'s module docstring's one sentence claiming dotted keys "mirror the snapshot envelope's own nesting exactly" to note this one dashboard-only exception
+- [x] Task 3: `tools/dashboard/main.py` — render the new section (AC: 1, 2, 4, 5)
+  - [x] Subtask 3.1 (RED): write tests asserting: the section is present with a non-null-sprint snapshot and absent with none (AC4); a "No Sprint" row appears only when that count is non-zero; each distinct sprint gets exactly one row regardless of story count; the existing stat-tiles/per-story table output is unchanged (a regression check — same assertions as an existing passing test, run again after this story's change)
+  - [x] Subtask 3.2 (GREEN): add a `render_sprint_rollups(snapshots)` function producing an HTML `<table>` (own heading, e.g. `<h2>Sprint Rollups</h2>`), wired into `render_dashboard()` between the stat tiles and the existing per-story table; returns `""` when there are no non-null-sprint snapshots (AC4), which naturally renders nothing
+  - [x] Subtask 3.3: extend the column-tooltip convention (Story 5.11) to the new table's headers — Sprint Name/Start Date/End Date reuse the `pm_metrics.sprint`/`sprint_start_date`/`sprint_end_date` `FIELD_GUIDE` entries (Task 1); Story Count and Overall Status have no snapshot-field analog, so add two new `FIELD_GUIDE` entries under a `dashboard.sprint_rollup.*` prefix describing the aggregation/computation in plain language, and adjust `_field_guide.py`'s module docstring's one sentence claiming dotted keys "mirror the snapshot envelope's own nesting exactly" to note this one dashboard-only exception
 
-- [ ] Task 4: live/manual verification (AC: 1, 2, 3, 4, 5)
-  - [ ] Subtask 4.1: build a scratch repo with several snapshots (reusing the real snapshot-assembler run pattern from prior Epic 6 stories) — at least two distinct sprints (one with a real past end date → "Ended", one with a real future end date → "Active or upcoming"), one sprint with only a single story, one story with `sprint: null`, and one sprint with a name but no captured dates (predating Story 6.5) → "Unknown". Run the real `tools/dashboard/main.py` and open the actual generated `dashboard.html` to confirm every row renders correctly and the existing per-story table/tiles are untouched
-  - [ ] Subtask 4.2: confirm a docs-only-only scratch repo (no sprint values at all) produces no rollup section (AC4)
-  - [ ] Subtask 4.3: run the full test suite (`uv run pytest -q`) to confirm no regressions
+- [x] Task 4: live/manual verification (AC: 1, 2, 3, 4, 5)
+  - [x] Subtask 4.1: build a scratch repo with several snapshots (reusing the real snapshot-assembler run pattern from prior Epic 6 stories) — at least two distinct sprints (one with a real past end date → "Ended", one with a real future end date → "Active or upcoming"), one sprint with only a single story, one story with `sprint: null`, and one sprint with a name but no captured dates (predating Story 6.5) → "Unknown". Run the real `tools/dashboard/main.py` and open the actual generated `dashboard.html` to confirm every row renders correctly and the existing per-story table/tiles are untouched
+  - [x] Subtask 4.2: confirm a docs-only-only scratch repo (no sprint values at all) produces no rollup section (AC4)
+  - [x] Subtask 4.3: run the full test suite (`uv run pytest -q`) to confirm no regressions
 
 ## Dev Notes
 
@@ -146,12 +146,39 @@ Builds on the `epic-6-jira-lifecycle-sync` integration branch (already checked o
 
 ### Agent Model Used
 
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
+
 ### Debug Log References
+
+- Task 0: RED confirmed (2 new tests, both `KeyError: 'sprint_start_date'`), GREEN after adding `manifest.get("sprint_start_date")`/`manifest.get("sprint_end_date")` to `pm_metrics`. No exact-equality `pm_metrics` dict assertions existed elsewhere needing an update (checked — only individual-key assertions). `uv run pytest tests/snapshot_assembler/test_reduce.py -q` → 65/65 passed.
+- Task 2/3: RED confirmed (14 new tests failed — `AttributeError` for the not-yet-existing functions, plus content assertions against a dashboard with no rollup section). One test (`test_rollup_headers_carry_explanatory_tooltips`) passed prematurely on a too-weak assertion (`>= 2` tooltips, already true from the existing 7-column table) — strengthened to check for Story 6.5's distinctive `FIELD_GUIDE` wording before re-confirming RED. GREEN after implementing `_parse_iso()`, `sprint_status()`, `group_by_sprint()`, `sprint_rollup_row()`, `render_sprint_rollups()`, wired into `render_dashboard()`. `uv run pytest tests/dashboard/test_dashboard.py -q` → 36/36 passed.
+- Full regression: `uv run pytest -q` → 392 passed (up from 375, +17 new tests).
+- Task 4 (live verification, real pipeline tools, no hand-crafted JSON):
+  1. Built a scratch repo, running the real `tools/snapshot-assembler/main.py` once per story (manifest + minimal event, matching this project's own manifest format) to produce 5 real snapshots: two sharing `AI Sprint 19` (real dates from Story 6.5's own research, end date in the past), one on `AI Sprint 21` (a constructed future end date), one on `AI Sprint 22` (sprint name present, no dates — simulating a pre-6.5 snapshot or an unstarted sprint), one with no sprint at all.
+  2. Ran the real `tools/dashboard/main.py` and inspected the actual generated `dashboard.html`: `AI Sprint 19` row showed both real dates, story count 2, status `Ended`; `AI Sprint 21` showed story count 1, status `Active or upcoming`; `AI Sprint 22` showed `unknown`/`unknown` dates, status `Unknown`; a `No Sprint` row showed count 1 with `—` placeholders. The existing per-story table (all 5 stories, correct points/goal) was confirmed unchanged.
+  3. Built a second scratch repo with a single docs-only story (`sprint: null`) — confirmed the string "Sprint Rollups" appears zero times in the generated HTML (AC4).
+  4. Both scratch repos removed after the run.
 
 ### Completion Notes List
 
+- Task 0: closed a real gap found during story authoring — Story 6.5 wrote `sprint_start_date`/`sprint_end_date` into `.story.yaml` but the snapshot assembler never read them into `pm_metrics`, so they were silently dropped at every close until now.
+- Task 1: two new `FIELD_GUIDE` entries follow the existing `pm_metrics.sprint` entry's style exactly.
+- Task 2/3: `group_by_sprint()`/`sprint_rollup_row()`/`render_sprint_rollups()` reuse the existing `(s.get("key") or {})` present-but-null guard convention and the `COLUMN_FIELD_GUIDE_KEYS`-style tooltip lookup already established in this file, rather than introducing a new pattern. `_parse_iso()` handles JIRA's real `Z`-suffixed, millisecond-bearing timestamps (Python's `fromisoformat` only accepts a bare `Z` from 3.11 onward; this project's scripts declare `>=3.8`). "Overall Status" deliberately describes the sprint's own end-date timeline, not a story-done/open count — the latter is structurally impossible with this pipeline's closed-only snapshot data (see Dev Notes correction).
+- Task 3: added two `dashboard.sprint_rollup.*` `FIELD_GUIDE` entries for the two columns with no snapshot-envelope analog, and adjusted `_field_guide.py`'s docstring to note this one exception rather than silently breaking its own stated "mirrors the snapshot envelope" invariant.
+- Task 4: live-verified against the real assembler + dashboard tools end to end, covering every AC: multi-story same-sprint grouping, single-story sprint, past-ended vs. future-ending status, missing-dates "unknown" rendering, the "No Sprint" bucket, and full section omission when no sprint exists anywhere.
+- `tools/metrics-report/main.py` and its tests confirmed untouched — out of scope per this story's own boundary.
+
 ### File List
+
+- tools/snapshot-assembler/main.py (modified — `pm_metrics` gains `sprint_start_date`/`sprint_end_date`)
+- tests/snapshot_assembler/test_reduce.py (modified — `write_manifest()` gains two optional params; 2 new tests)
+- tools/hooks/_field_guide.py (modified — 2 new `pm_metrics.*` entries; 2 new `dashboard.sprint_rollup.*` entries; docstring exception noted)
+- tools/dashboard/main.py (modified — `SPRINT_COLUMN_FIELD_GUIDE_KEYS`; new `_parse_iso()`, `sprint_status()`, `group_by_sprint()`, `sprint_rollup_row()`, `render_sprint_rollups()`; wired into `render_dashboard()`; small CSS addition for the new section heading)
+- tests/dashboard/test_dashboard.py (modified — 14 new tests covering date parsing, status computation, grouping, and the rendered section)
+- _bmad-output/implementation-artifacts/6-6-dashboard-shows-sprint-level-rollups.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
 
 ## Change Log
 
 - 2026-07-17: Story drafted from epics.md's Epic 6 section, with a real `pm_metrics` gap and two acceptance-criteria corrections found and fixed during authoring (see Dev Notes). Status: backlog → ready-for-dev.
+- 2026-07-21: Story implemented and live-verified end to end against the real snapshot-assembler and dashboard tools. Status: ready-for-dev → review.
