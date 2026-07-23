@@ -1078,3 +1078,19 @@ I want a simple visual (e.g. committed vs. closed story points/count over time) 
 so that a trend is visible at a glance instead of only in tabular form.
 
 **Status:** explicitly deferred by the user on 2026-07-17 — "we can work on this once the above points are completed." No AC drafted yet; revisit once Stories 6.1-6.6 are built, tested, and merged. Whatever form this takes should be checked against this project's own `dataviz` guidance on choosing a form (already cited by Story 5.5 when the dashboard table itself was designed) before assuming a chart is the right shape.
+
+### Story 6.8: Close Commands Reliably Trigger the JIRA-Sync Skill (backlog — real bug found in live pilot testing, fix deferred)
+
+As a developer closing a JIRA-backed story,
+I want the close command to reliably trigger `story-close`'s JIRA sub-task/parent sync no matter how I invoke it,
+so that I don't have to remember special phrasing to get the same "avoid developer interaction" outcome Story 6.2 was built for.
+
+**Context:** found 2026-07-23 during the user's own live pilot testing of the v0.11.0 release (the first real end-to-end JIRA-flow test outside this repo's own dogfooding) — see [GitHub Issue #52](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/issues/52) for the full repro. The user typed the exact close command `INSTALL.md`'s own JIRA-flow step 7 tells them to type, as a literal chat message. The assistant executed it directly via its own Bash tool with zero awareness of `story-close` at all — no sub-task discovery, no confirmation gate, no transition, no points sync. The parent issue and its sub-tasks were still "To Do" afterward.
+
+**Root cause:** `story-close`'s implicit trigger (Story 6.2's whole design premise — "avoid hidden triggers... a memorized invocation phrase") is a judgment call the assistant makes per turn from the skill's frontmatter `description`, not a deterministic interceptor. Pasting the literal command reads as "just run this," not "close my story," so the skill flow is skipped entirely. This isn't a one-off misfire — it's a gap in the core design premise behind Stories 6.2/6.3/6.4, confirmed by the very first real user (not this repo's own author) trying the documented flow exactly as written.
+
+**Suggested fix direction (not yet built):** this project already solved an analogous reliability problem deterministically for automatic defect capture (Story 5.7/5.8) — a `PreToolUse` hook pattern-matches a Bash command *before* it executes, no model judgment involved. The same mechanism should intercept the two known close-command patterns (`tools/opsx-wrapper/main.py archive`, `tools/snapshot-assembler/main.py`) and **block** the raw invocation, returning a reason that forces the assistant to run `story-close`'s steps first, then retry. Binding constraint to design around: a `PreToolUse` hook is a plain subprocess and cannot reach MCP tools itself — it can only block/redirect, never perform the JIRA sync directly; the redirect must hand control back to the assistant, which does have MCP access.
+
+**Immediate workaround (no code change, in use today):** say "close this story" instead of pasting the raw command — the skill engages reliably when the assistant's own trigger-recognition has a clearer intent signal to match against.
+
+**Status:** backlog, no AC drafted yet — deferred by the user's own explicit call (2026-07-23: "workaround for now, fix later") to keep their pilot testing moving. Revisit before recommending this flow to any user beyond this one pilot.
