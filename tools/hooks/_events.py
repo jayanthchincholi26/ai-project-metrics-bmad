@@ -170,6 +170,25 @@ def read_story_config(root: Path) -> "dict[str, str]":
     return config
 
 
+def read_manifest(root: Path) -> "dict[str, str]":
+    """Story 6.8: the same flat-scalar shape as read_story_config() above, just
+    for .story.yaml instead - used by pre_tool_use.py's close-command gate to
+    check source_of_truth/jira_issue_key without a second parsing style.
+    story_id() above stays as its own narrow single-key reader; this is a
+    separate, general one for callers that need more than just story_id."""
+    path = root / MANIFEST
+    if not path.is_file():
+        return {}
+    manifest: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or ":" not in stripped:
+            continue
+        key, raw = stripped.split(":", 1)
+        manifest[key.strip()] = parse_scalar(raw)
+    return manifest
+
+
 DEFECT_EXIT_MARKER = "__AI_METRICS_EXIT__"
 """Story 5.8: Claude Code's PostToolUse payload never exposes a Bash exit
 code (confirmed platform gap, not fixable in this project - see

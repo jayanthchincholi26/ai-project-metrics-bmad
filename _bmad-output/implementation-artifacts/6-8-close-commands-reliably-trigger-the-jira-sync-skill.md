@@ -4,7 +4,7 @@ baseline_commit: 8b6dbcd
 
 # Story 6.8: Close Commands Reliably Trigger the JIRA-Sync Skill
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,34 +38,34 @@ so that I don't have to remember special phrasing to get the same "avoid develop
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `tools/hooks/_events.py` — a generalized `.story.yaml` reader (AC: 1, 3)
-  - [ ] Subtask 1.1 (RED): add tests for a new `read_manifest(root)` function — returns a dict of every flat scalar key/value in `.story.yaml` (mirroring `read_story_config()`'s existing shape for `.story-config.yaml`), and `{}` when the file is absent
-  - [ ] Subtask 1.2 (GREEN): implement `read_manifest()`, reusing the existing `parse_scalar()` helper — don't duplicate `read_story_config()`'s body, generalize the shared bit if that's cleaner, but don't touch `story_id()` (already works, not this story's concern)
+- [x] Task 1: `tools/hooks/_events.py` — a generalized `.story.yaml` reader (AC: 1, 3)
+  - [x] Subtask 1.1 (RED): add tests for a new `read_manifest(root)` function — returns a dict of every flat scalar key/value in `.story.yaml` (mirroring `read_story_config()`'s existing shape for `.story-config.yaml`), and `{}` when the file is absent
+  - [x] Subtask 1.2 (GREEN): implement `read_manifest()`, reusing the existing `parse_scalar()` helper — don't duplicate `read_story_config()`'s body, generalize the shared bit if that's cleaner, but don't touch `story_id()` (already works, not this story's concern)
 
-- [ ] Task 2: `tools/hooks/claude/pre_tool_use.py` — detect and gate the two close commands (AC: 1, 2, 3, 4, 5)
-  - [ ] Subtask 2.1 (RED): tests for a new `_is_close_command(command)` helper — matches `tools/snapshot-assembler/main.py` (any flags), matches `tools/opsx-wrapper/main.py ... archive ...`, does **not** match either when `--dry-run` is present anywhere in the command, does not match an unrelated command
-  - [ ] Subtask 2.2 (GREEN): implement `_is_close_command()`
-  - [ ] Subtask 2.3 (RED): tests for the gating behavior end to end via `main()`: a JIRA-backed story with no ack marker → `permissionDecision: "deny"` with a non-empty `additionalContext` mentioning `story-close`/`SKILL.md`; the same story with the ack marker present → `permissionDecision` is **not** `"deny"` (either absent entirely, i.e. falls through to the existing rewrite-or-no-op path, or `"allow"`) **and** the marker file no longer exists afterward (consumed); a non-JIRA story (or no `.story.yaml` at all) → never gated regardless of the marker; `--dry-run` on the assembler → never gated even with no marker and a JIRA-backed story
-  - [ ] Subtask 2.4 (GREEN): implement the gate in `main()`'s existing `Bash` branch — check `_is_close_command()` + JIRA-backed (`read_manifest()`'s `source_of_truth`/`jira_issue_key`) *before* the existing test/build-command rewrite logic; on deny, `return 0` immediately (print the deny JSON, skip the rest of the Bash branch entirely) so the two mechanisms never both fire for the same call
-  - [ ] Subtask 2.5: update this file's module docstring — the existing "Returns 0 unconditionally... metrics capture must never [block the tool call]" claim needs a narrow, explicit carve-out for this one new case, so a future reader doesn't treat this story's deny path as a violation of that rule
+- [x] Task 2: `tools/hooks/claude/pre_tool_use.py` — detect and gate the two close commands (AC: 1, 2, 3, 4, 5)
+  - [x] Subtask 2.1 (RED): tests for a new `_is_close_command(command)` helper — matches `tools/snapshot-assembler/main.py` (any flags), matches `tools/opsx-wrapper/main.py ... archive ...`, does **not** match either when `--dry-run` is present anywhere in the command, does not match an unrelated command
+  - [x] Subtask 2.2 (GREEN): implement `_is_close_command()`
+  - [x] Subtask 2.3 (RED): tests for the gating behavior end to end via `main()`: a JIRA-backed story with no ack marker → `permissionDecision: "deny"` with a non-empty `additionalContext` mentioning `story-close`/`SKILL.md`; the same story with the ack marker present → `permissionDecision` is **not** `"deny"` (either absent entirely, i.e. falls through to the existing rewrite-or-no-op path, or `"allow"`) **and** the marker file no longer exists afterward (consumed); a non-JIRA story (or no `.story.yaml` at all) → never gated regardless of the marker; `--dry-run` on the assembler → never gated even with no marker and a JIRA-backed story
+  - [x] Subtask 2.4 (GREEN): implement the gate in `main()`'s existing `Bash` branch — check `_is_close_command()` + JIRA-backed (`read_manifest()`'s `source_of_truth`/`jira_issue_key`) *before* the existing test/build-command rewrite logic; on deny, `return 0` immediately (print the deny JSON, skip the rest of the Bash branch entirely) so the two mechanisms never both fire for the same call
+  - [x] Subtask 2.5: update this file's module docstring — the existing "Returns 0 unconditionally... metrics capture must never [block the tool call]" claim needs a narrow, explicit carve-out for this one new case, so a future reader doesn't treat this story's deny path as a violation of that rule
 
-- [ ] Task 3: `.claude/skills/story-close/SKILL.md` — step 6 creates the marker; document the new backstop (AC: 1, 2)
-  - [ ] Subtask 3.1: extend step 6 with an explicit sub-step, immediately before running the close command: create the ack marker (`touch .story-close-ack`, with the PowerShell equivalent noted for Windows users without a `touch` alias) — runs every time step 6 runs, regardless of whether step 4 was confirmed or declined (step 6's own "always, last, unconditionally" framing is unchanged)
-  - [ ] Subtask 3.2: add a short paragraph near the top (after the existing "Real limitation, not a design gap" note) explaining the new deterministic backstop in plain terms: a `PreToolUse` hook (Story 6.8) now denies the two close commands outright for a JIRA-backed story unless this skill's own step 6 has already created the marker — so even a raw pasted command gets redirected back to this skill's flow, not silently skipped
-  - [ ] Subtask 3.3: a one-line caveat in Boundaries: this is a reliability nudge, not tamper-proofing — the hook can only see that the marker exists, not that steps 3-5 were genuinely followed
+- [x] Task 3: `.claude/skills/story-close/SKILL.md` — step 6 creates the marker; document the new backstop (AC: 1, 2)
+  - [x] Subtask 3.1: extend step 6 with an explicit sub-step, immediately before running the close command: create the ack marker (`touch .story-close-ack`, with the PowerShell equivalent noted for Windows users without a `touch` alias) — runs every time step 6 runs, regardless of whether step 4 was confirmed or declined (step 6's own "always, last, unconditionally" framing is unchanged)
+  - [x] Subtask 3.2: add a short paragraph near the top (after the existing "Real limitation, not a design gap" note) explaining the new deterministic backstop in plain terms: a `PreToolUse` hook (Story 6.8) now denies the two close commands outright for a JIRA-backed story unless this skill's own step 6 has already created the marker — so even a raw pasted command gets redirected back to this skill's flow, not silently skipped
+  - [x] Subtask 3.3: a one-line caveat in Boundaries: this is a reliability nudge, not tamper-proofing — the hook can only see that the marker exists, not that steps 3-5 were genuinely followed
 
-- [ ] Task 4: `tools/setup-hooks.py` — ship the new `.gitignore` entry (AC: 2)
-  - [ ] Subtask 4.1: add `.story-close-ack` to `GITIGNORE_ENTRIES` — a local, single-use marker, same "never git-tracked" reasoning as the other four entries
-  - [ ] Subtask 4.2: rename `tests/test_setup_hooks.py::test_fresh_install_creates_gitignore_with_all_four_entries` to stay accurate now that there are five (the test body already iterates `GITIGNORE_ENTRIES` dynamically, so no assertion logic changes — just the now-stale name)
+- [x] Task 4: `tools/setup-hooks.py` — ship the new `.gitignore` entry (AC: 2)
+  - [x] Subtask 4.1: add `.story-close-ack` to `GITIGNORE_ENTRIES` — a local, single-use marker, same "never git-tracked" reasoning as the other four entries
+  - [x] Subtask 4.2: rename `tests/test_setup_hooks.py::test_fresh_install_creates_gitignore_with_all_four_entries` to stay accurate now that there are five (the test body already iterates `GITIGNORE_ENTRIES` dynamically, so no assertion logic changes — just the now-stale name)
 
-- [ ] Task 5: `tools/build-release/INSTALL.md` — document the new backstop briefly (AC: 1)
-  - [ ] Subtask 5.1: a short addition to the JIRA flow's step 7 (or a new Known Limitations entry) noting that a raw/pasted close command may get denied-and-redirected on the first attempt for a JIRA-backed story — expected behavior, not an error, and following the redirect's instructions gets you to the same place `story-close` always intended
+- [x] Task 5: `tools/build-release/INSTALL.md` — document the new backstop briefly (AC: 1)
+  - [x] Subtask 5.1: a short addition to the JIRA flow's step 7 (or a new Known Limitations entry) noting that a raw/pasted close command may get denied-and-redirected on the first attempt for a JIRA-backed story — expected behavior, not an error, and following the redirect's instructions gets you to the same place `story-close` always intended
 
-- [ ] Task 6: live verification (AC: 1, 2, 3, 4, 5)
-  - [ ] Subtask 6.1: in a real Claude Code session against a real JIRA-backed test story (reuse the pattern from the user's own v0.11.0 pilot test — a real issue, real sub-tasks), paste the raw close command as a literal chat message with **no** ack marker present — confirm the tool call is genuinely denied, confirm `additionalContext` is visible to the assistant (i.e. it actually reacts and starts following `story-close`'s steps in the same turn, not a second user message), then confirm retrying the same command succeeds once the skill's step 6 has created the marker
-  - [ ] Subtask 6.2: confirm a second, immediate re-run of the same close command (simulating a re-close) gets gated again — the marker was single-use and is gone
-  - [ ] Subtask 6.3: confirm a docs-only story's close command is never gated (no marker ever created, no denial)
-  - [ ] Subtask 6.4: run the full test suite (`uv run pytest -q`) to confirm no regressions
+- [x] Task 6: live verification (AC: 1, 2, 3, 4, 5)
+  - [ ] Subtask 6.1: in a real Claude Code session against a real JIRA-backed test story (reuse the pattern from the user's own v0.11.0 pilot test — a real issue, real sub-tasks), paste the raw close command as a literal chat message with **no** ack marker present — confirm the tool call is genuinely denied, confirm `additionalContext` is visible to the assistant (i.e. it actually reacts and starts following `story-close`'s steps in the same turn, not a second user message), then confirm retrying the same command succeeds once the skill's step 6 has created the marker. **Not done from this session — see Dev Notes "What's verified vs. not" below; needs the user's own real session.**
+  - [x] Subtask 6.2: confirm a second, immediate re-run of the same close command (simulating a re-close) gets gated again — the marker was single-use and is gone (done via a real subprocess run, not just pytest's mocked fixtures — see Debug Log)
+  - [x] Subtask 6.3: confirm a docs-only story's close command is never gated (no marker ever created, no denial) (same real-subprocess method)
+  - [x] Subtask 6.4: run the full test suite (`uv run pytest -q`) to confirm no regressions — 403 passed (up from 392)
 
 ## Dev Notes
 
@@ -100,6 +100,14 @@ This means:
 - Re-closing (e.g. after a fix, producing rev2/rev3 — already an established, supported pattern in this pipeline) goes through the gate again each time, which is fine: `story-close`'s own discovery step already handles "sub-task/parent already Done" gracefully.
 
 **This is explicitly not adversarial-proof (AC 5).** The hook can't verify the skill's steps were genuinely followed, only that a file exists. That's an accepted, deliberate trade-off — the goal is fixing the *observed* failure mode (the assistant never even considering the skill), not defending against a model trying to cheat past its own instructions. Claude Code's own hook docs make the same point generally: "Pattern matching... is best-effort... don't rely on hooks alone for hard security boundaries."
+
+### What's verified vs. not (honest gap, not glossed over)
+
+This repo has no `.claude/settings.json` of its own (it doesn't dogfood the kickoff/close flow on itself — it's the tool's own source repo, developed via BMad's story flow instead). That means, from *this* session, there is no live Claude Code `PreToolUse` hook wired to `pre_tool_use.py` to test the real harness behavior against. What **was** verified, for real:
+- The full pytest RED/GREEN suite (Tasks 1-2) via mocked stdin/fixtures — the standard project convention.
+- `pre_tool_use.py` run as a genuine subprocess (not through pytest's mocked fixtures) in a scratch repo, piping real stdin JSON exactly as Claude Code would: confirmed the real deny JSON for a JIRA-backed story with no marker; confirmed the marker is consumed and the command allowed through when present; confirmed an immediate second attempt is denied again (single-use); confirmed a docs-only story and a `--dry-run` invocation are never gated.
+
+What was **not** verified, and can't be from this session: whether Claude Code's actual harness truly denies the tool call on this JSON (not just that the script prints the right thing), and whether `additionalContext` is genuinely surfaced to the assistant model the way the documentation describes. This needs the user's own real Claude Code session — the same test folder from the original bug report already has hooks wired via a real `setup-hooks.py` run, so retrying the exact scenario that surfaced GitHub #52 (paste the raw close command, no marker present) is the real Task 6.1 verification, still outstanding.
 
 ### Architecture compliance (binding invariants)
 
@@ -144,12 +152,44 @@ Builds on the `epic-6-jira-lifecycle-sync` integration branch, not `main` — th
 
 ### Agent Model Used
 
+claude-sonnet-5 (create-story context engineering + dev-story implementation)
+
 ### Debug Log References
+
+- Task 1: RED confirmed (`AttributeError: module '_events' has no attribute 'read_manifest'`), GREEN after adding `read_manifest()`. `uv run pytest tests/hooks/test_claude_hooks.py -q -k read_manifest` → 2/2 passed.
+- Task 2: RED confirmed (6 failed — `AttributeError` on `_is_close_command` plus the marker-not-consumed assertion), GREEN after adding `_is_close_command()`, `_jira_backed()`, and the gate in `main()`. Full `tests/hooks/test_claude_hooks.py` → 51/51 passed.
+- Task 4: `tests/test_setup_hooks.py` → 29/29 passed after the rename.
+- Full regression after all tasks: `uv run pytest -q` → 403 passed (up from 392, +11 new tests).
+- Task 6 (real-subprocess verification, in a scratch repo, piping real stdin JSON to the actual script — not through pytest's mocked fixtures):
+  1. JIRA-backed story, no marker: real `deny` JSON with the expected `additionalContext` text.
+  2. Marker present: silent allow (no output at all — correctly falls through with nothing else to report), marker file gone afterward.
+  3. Immediate retry (marker now consumed): denied again — single-use confirmed for real.
+  4. `source_of_truth: docs-only`: never gated.
+  5. `--dry-run` on a JIRA-backed story with no marker: never gated.
+  6. **Not done**: the real Claude Code harness's own enforcement of this JSON (actual tool-call denial, actual `additionalContext` visibility to the model) — this repo has no `.claude/settings.json` wiring these hooks on itself, so there is no live harness to test against from this session. See Dev Notes "What's verified vs. not."
 
 ### Completion Notes List
 
+- Task 1: `read_manifest()` mirrors `read_story_config()`'s exact flat-scalar shape, reusing `parse_scalar()` — no third parsing style introduced. `story_id()` left untouched.
+- Task 2: the gate runs *before* the existing test/build-command rewrite check in `main()`'s `Bash` branch, with an early `return 0` on deny, so the two mechanisms never both fire for the same call. `permissionDecisionReason` (UI-only) and `additionalContext` (model-visible) are both set correctly — verified against real Claude Code hook documentation during story authoring, not assumed, given this project's history of the hook docs being wrong twice before.
+- Task 3: `story-close/SKILL.md` step 6 now creates the marker immediately before running the close command, unconditionally (same as the rest of step 6); a new paragraph explains the backstop near the top; a Boundaries caveat states plainly this isn't tamper-proofing.
+- Task 4: `.story-close-ack` added to `GITIGNORE_ENTRIES`; the now-stale `..._all_four_entries` test renamed (its body already iterated the tuple dynamically, so no assertion changes needed).
+- Task 5: `INSTALL.md`'s JIRA flow step 7 gets a short note explaining the new deny-and-redirect is expected behavior, not an error.
+- Task 6: real subprocess-level verification done and confirmed (see Debug Log); harness-level verification is an honest, explicit gap — flagged for the user's own real session rather than claimed without evidence.
+
 ### File List
+
+- tools/hooks/_events.py (modified — new `read_manifest()`)
+- tests/hooks/test_claude_hooks.py (modified — new tests for `read_manifest()`, `_is_close_command()`, and the full gate/marker behavior)
+- tools/hooks/claude/pre_tool_use.py (modified — `CLOSE_ACK_MARKER`, `_is_close_command()`, `_jira_backed()`, the gate in `main()`, docstring carve-out)
+- .claude/skills/story-close/SKILL.md (modified — step 6 creates the marker; new backstop paragraph; Boundaries caveat)
+- tools/setup-hooks.py (modified — new `.gitignore` entry)
+- tests/test_setup_hooks.py (modified — renamed test)
+- tools/build-release/INSTALL.md (modified — brief note on the new behavior)
+- _bmad-output/implementation-artifacts/6-8-close-commands-reliably-trigger-the-jira-sync-skill.md (this file — task checkboxes, Dev Agent Record, status)
+- _bmad-output/implementation-artifacts/sprint-status.yaml (modified — story status transitions)
 
 ## Change Log
 
 - 2026-07-23: Story drafted from epics.md's Epic 6.8 entry, with the exact `PreToolUse` deny/`additionalContext` mechanism confirmed via real documentation research (not assumed) before any code was planned. Status: backlog → ready-for-dev.
+- 2026-07-23: Implemented with full RED/GREEN discipline (403 tests passing, +11 new) and real-subprocess verification of the gate's own logic. Harness-level verification (does Claude Code's actual runtime deny/redirect as designed) explicitly deferred to the user's own live session — this repo has no hooks wired on itself to test against. Status: ready-for-dev → review.

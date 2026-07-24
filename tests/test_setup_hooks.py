@@ -306,7 +306,7 @@ def test_commit_msg_shim_unconditionally_exits_zero():
 # cross-branch event-log forking found during 2026-07-13 pilot testing).
 
 
-def test_fresh_install_creates_gitignore_with_all_four_entries(fake_repo, capsys):
+def test_fresh_install_creates_gitignore_with_all_entries(fake_repo, capsys):
     assert not (fake_repo / ".gitignore").exists()
 
     run(fake_repo)
