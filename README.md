@@ -48,11 +48,18 @@ Git hooks, Claude Code hooks, and an openspec/speckit CLI wrapper each append ev
 
 ## Status
 
-All 5 planned epics are built and merged to `main` (the project's only trunk since 2026-07-15 —
-see `project-context.md` §10): docs-only/JIRA/Confluence kickoff with real MCP-based auto-fill,
-silent git + AI-session capture, idle-aware active-time tracking, a one-command installer and
-release-artifact distribution, and real cost/token/defect metrics rolling up into a shareable HTML
-dashboard — including a one-click GitHub Actions version (Story 5.9) needing no local install.
+All 5 originally-planned epics are built and merged to `main` (the project's only trunk since
+2026-07-15 — see `project-context.md` §10): docs-only/JIRA/Confluence kickoff with real
+MCP-based auto-fill, silent git + AI-session capture, idle-aware active-time tracking, a
+one-command installer and release-artifact distribution, and real cost/token/defect metrics
+rolling up into a shareable HTML dashboard — including a one-click GitHub Actions version
+(Story 5.9) needing no local install.
+
+A 6th epic (JIRA Ticket Lifecycle Sync — auto-transitions at kickoff/close, defect sub-tasks,
+points sync-back, sprint metadata, dashboard sprint rollups) is built and live-pilot-tested on
+its own integration branch (`epic-6-jira-lifecycle-sync`), deliberately kept off `main` until
+that pilot testing finishes, given how much of it writes to a real JIRA board.
+
 `_bmad-output/planning-artifacts/epics.md` is the authoritative, continuously-updated record of
 exactly what's done, in review, or still open — check there for current state, not this file.
 

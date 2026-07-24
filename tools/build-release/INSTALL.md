@@ -274,7 +274,12 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
    ```
    Same command as the docs-only flow — writes `metrics-reports/metrics-<MMDDYYYY>.md`.
 10. *(optional)* Generate the leadership dashboard: `uv run tools/dashboard/main.py --repo-root .`
-    — same command as the docs-only flow, writes `metrics-reports/dashboard.html`.
+    — same command as the docs-only flow, writes `metrics-reports/dashboard.html`. For
+    JIRA-backed stories, kickoff also captures the sprint's name and start/end dates
+    (Story 6.5), so once two or more stories share a sprint, the dashboard adds a **Sprint
+    Rollups** table above the per-story one — Sprint Name, Start Date, End Date, Story
+    Count, and an Overall Status (Story 6.6). See "Known limitations" below for what
+    Overall Status actually means (it isn't what it sounds like).
 
 **Why JIRA's step order differs from docs-only's:** `/opsx:propose` has no JIRA-fetching
 capability of its own — it only accepts a kebab-case name or a plain-text description you
@@ -480,6 +485,26 @@ command has actually produced a snapshot — the sync is a final step in `story-
 after the sub-task/parent Done transitions above, not part of the same confirmation's
 writes. If it's null (nothing measurable happened), the write is skipped entirely, same
 null-with-reason posture as everywhere else in this tool — never a fabricated zero.
+
+**The dashboard's Sprint Rollups "Overall Status" describes the sprint's own timeline,
+never how many of its stories are done (Story 6.6).** A snapshot only ever exists for a
+story that's already closed (this tool's own definition of "done") — there is no "still
+open" story anywhere in its local data, so a per-sprint done-vs-open count could never be
+honest here. `Ended` / `Active or upcoming` / `Unknown` instead compares the sprint's own
+end date (Story 6.5) against today, and `Unknown` just means that date was never captured
+— an older story that predates Story 6.5, or a JIRA instance/sprint that doesn't expose
+one. The whole section is omitted entirely (not shown empty) when no discovered story has
+a sprint value at all.
+
+**A raw/pasted close command may get denied and redirected on its first try, for a
+JIRA-backed story (Story 6.8).** A `PreToolUse` hook requires `story-close`'s own steps
+to run first (see step 7 of the JIRA flow above) — this is expected, not an error, and
+retrying the same command after the redirect always succeeds. It's a reliability nudge,
+not a security boundary: the hook can only see that a local marker file exists, not that
+the sync actually happened, so it never replaces the honesty of checking JIRA yourself if
+you want to be certain. Same terminal-run limitation as the sync it protects — this only
+ever engages inside a live Claude Code chat turn; a close command run in an external
+terminal is never gated (or synced) at all.
 
 **Running the snapshot assembler always closes the story — its existence is the
 authoritative signal every other producer relies on to know a story is done** (a closed

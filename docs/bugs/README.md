@@ -1,5 +1,16 @@
 # Bugs
 
+> **Superseded — real bug tracking moved to GitHub Issues.** This folder's
+> markdown-file convention below was early planning-phase scaffolding; it was
+> never actually adopted (`api-bugs/`, `ui-bugs/` have stayed empty since this
+> repo's initial commit). Every real bug found once implementation started —
+> including everything found via live pilot testing (e.g.
+> [GitHub Issue #52](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/issues/52),
+> Story 6.8's close-command reliability gap) — is filed as a GitHub Issue on
+> `jayanthchincholi26/ai-project-metrics-bmad`, titled `Bug: {short description}`,
+> labeled `bug`, per `project-context.md` §14. This file is kept for historical
+> context only, not as a description of current practice.
+
 All bugs captured during OpenSpec SDD development lifecycle.
 
 ## Folder Structure

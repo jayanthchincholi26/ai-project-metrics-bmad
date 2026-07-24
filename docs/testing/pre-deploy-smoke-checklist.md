@@ -90,3 +90,38 @@ real git repo and real hook invocations, not mocked unit tests.
 | Machine / OS | Tester | Date | Result |
 |---|---|---|---|
 | Windows 11 Pro, Python 3.14.6, uv 0.11.24 | Jayanth | 2026-07-10/11 | **PASS** (all core steps; wrapper E2E + 15-min idle simulation deferred — see caveats) |
+
+## Epic 6 (JIRA lifecycle sync) pilot round — real, not a scripted re-run
+
+Unlike the checklist above (a scripted pre-deploy run against a scratch repo), this round
+was the user's own real pilot test of the JIRA daily-use flow (`v0.11.0`, then `v0.11.1`),
+against a real JIRA site and a real GitHub-hosted test repo. Findings here are logged as
+they were actually found — see the story files under
+`_bmad-output/implementation-artifacts/6-*.md` and `epics.md`'s Epic 6 section for full
+detail; this is a summary, not the record of truth.
+
+- [x] Kickoff (`AI-143` and others), auto-transition to In Progress (Story 6.1): confirmed
+      real, via independent re-fetch after the transition, not just trusting the write call
+- [x] Sprint name + start/end dates captured at kickoff (Story 6.5): confirmed against real
+      sprint data, including the null-dates case (a sprint that hadn't started yet)
+- [x] Defect sub-task creation with a points value at creation time (Story 6.3): confirmed
+      real, `AI-148` created with `customfield_10016: 1` set at creation
+- [x] Close-time sub-task + parent → Done sync, points sync-back (Stories 6.2/6.4):
+      confirmed real against `AI-143` and its sub-tasks
+- [x] Dashboard Sprint Rollups table (Story 6.6): confirmed real via the user's own
+      generated `dashboard.html` (`AI Sprint 20`, real dates, correct story count/status)
+- [ ] ~~Story-close skill reliably triggers on any close-command invocation~~ — **real bug
+      found 2026-07-23** ([GitHub #52](https://github.com/jayanthchincholi26/ai-project-metrics-bmad/issues/52)):
+      pasting the raw close command as a literal chat message ran it directly via Bash with
+      zero JIRA sync — no confirmation, no sub-task discovery, no transition. Root cause:
+      the skill's implicit trigger depended on the model recognizing intent, not a
+      deterministic interceptor. **Fixed in Story 6.8 / `v0.11.1`** — a `PreToolUse` hook
+      now denies the raw command and redirects the assistant to the skill's flow. The
+      fix's own gate logic was verified via real subprocess runs; the real Claude Code
+      harness behavior (actual denial, actual redirect-message visibility to the assistant)
+      is still pending the user's own retest — **update this row once that's confirmed.**
+- **Known, unrelated finding** (not a bug — see `INSTALL.md`'s Known Limitations): a story
+  showed `token_cost` stuck on `"no AI session_end event observed for this story"` across
+  several real test rounds — root cause was ending the AI session via the VS Code panel's
+  "x" button, which doesn't reliably fire `SessionEnd`. Resolved by ending sessions with
+  `/exit` + Ctrl+D instead.
