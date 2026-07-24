@@ -11,6 +11,8 @@ This skill activates implicitly (Claude Code matches it against relevance to thi
 
 **Real limitation, not a design gap:** this can only happen during a live Claude Code chat turn. Running either close command directly in an external terminal (outside any Claude Code conversation) skips everything below entirely — there's no assistant turn to intercept it, and MCP tools are categorically unreachable outside one. Same category of platform gap as the already-documented `SessionEnd`/VS-Code-panel-"x"-button limitation.
 
+**Backstop, not just hope (Story 6.8):** relying purely on this skill being recognized as relevant has a real failure mode, confirmed in live pilot testing — pasting the raw close command reads to the model as "just run this," not "close my story," and the whole flow below gets silently skipped. A `PreToolUse` hook now denies both close commands outright for a JIRA-backed story until step 6 below has actually created its ack marker — so even a raw pasted command gets redirected back to this flow instead of silently bypassing it. This is a reliability nudge, not tamper-proofing: the hook can only see that the marker file exists, not that steps 3-5 were genuinely followed.
+
 ## Flow
 
 ### 1. Resolve the source of truth and read the manifest
@@ -58,7 +60,15 @@ Ask a single `AskUserQuestion` — not one per sub-task:
 
 ### 6. Run the existing close command — always, last, unconditionally
 
-Run whichever close command already applies to this project (already known from this conversation's own context — openspec project vs. not, exactly as a developer already knows today):
+Immediately before running it, create the ack marker the `PreToolUse` hook (Story 6.8) requires for a JIRA-backed story's close command to run at all — a single-use, local, gitignored file:
+
+```
+touch .story-close-ack
+```
+
+(Windows PowerShell without a `touch` alias: `New-Item -ItemType File -Path .story-close-ack -Force`.) The hook consumes (deletes) this marker itself the moment it lets the close command through — it's not meant to persist, and it runs every time this step runs, whether step 4 was confirmed or declined.
+
+Then run whichever close command already applies to this project (already known from this conversation's own context — openspec project vs. not, exactly as a developer already knows today):
 
 ```
 uv run tools/opsx-wrapper/main.py archive <change-name>
@@ -89,3 +99,4 @@ This step runs **regardless of everything above** — a JIRA-side failure, a dec
 - Credentials: MCP-path only, same as `story-kickoff`. This skill has no fallback-script path and sees no credential of any kind — auth lives entirely in the MCP server's own OAuth session.
 - Do not attempt to detect *which* close command applies (openspec vs. not) — that's already known from the live conversation, not this skill's job to figure out.
 - Do not re-transition a sub-task or parent that's already in a Done-equivalent status — leave it alone, it's not this skill's job to second-guess an already-correct state.
+- The `.story-close-ack` marker (Story 6.8) is a reliability nudge, not a security boundary — creating it without actually following steps 3-5 first defeats the entire point of this skill existing.

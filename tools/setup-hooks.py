@@ -45,6 +45,7 @@ GITIGNORE_ENTRIES = (
     ".story-events.pending.jsonl",
     ".active-story",
     ".active-claude-session",
+    ".story-close-ack",  # Story 6.8: single-use PreToolUse gate marker, never committed
 )
 
 

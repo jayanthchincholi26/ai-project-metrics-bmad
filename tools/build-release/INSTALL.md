@@ -261,6 +261,11 @@ instead of an auto-computed suggestion (Phase-1 needs a real `tasks.md` to read)
    snapshot, the ticket's own points field is updated to match `story_point_cost.phase2_points`
    (Story 6.4) — the real, after-the-fact estimate, not your original kickoff-time guess. See
    "Known limitations" below for when this doesn't apply.
+
+   **If you paste either close command directly instead of asking in your own words** (e.g.
+   "close this story"), it may get denied with a message redirecting you back to this same
+   flow (Story 6.8) — this is expected, not an error. Just let the assistant follow the
+   redirect and retry the same command; it'll go through once the JIRA sync above has run.
 8. Check the resulting snapshot under `snapshots/` — every field explains itself inline (see
    the docs-only flow's step 8 above).
 9. *(optional)* Generate a human-readable report:

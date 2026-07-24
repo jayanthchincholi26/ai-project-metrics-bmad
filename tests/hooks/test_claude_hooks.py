@@ -672,3 +672,161 @@ def test_every_claude_hook_returns_0_even_on_total_append_failure(repo, monkeypa
     # +1: session_start also emits time.slice_opened via update_active_story (Story 3.1)
     # +1: session_end also emits time.slice_closed via close_active_story_slice (Story 3.3)
     assert err.count("METRICS CAPTURE FAILED") == len(ALL_HOOKS) + 2
+
+
+# --- read_manifest() (Story 6.8) ---
+
+
+def test_read_manifest_returns_every_flat_scalar_key(tmp_path):
+    (tmp_path / ".story.yaml").write_text(
+        'story_id: "story-1"\n'
+        'source_of_truth: "jira"\n'
+        'jira_issue_key: "AI-143"\n'
+        "points: 3\n",
+        encoding="utf-8",
+    )
+
+    manifest = events.read_manifest(tmp_path)
+
+    assert manifest["story_id"] == "story-1"
+    assert manifest["source_of_truth"] == "jira"
+    assert manifest["jira_issue_key"] == "AI-143"
+    assert manifest["points"] == "3"  # flat-scalar reader: everything is a string, same as read_story_config()
+
+
+def test_read_manifest_returns_empty_dict_when_absent(tmp_path):
+    assert events.read_manifest(tmp_path) == {}
+
+
+# --- close-command JIRA gate (Story 6.8) ---
+
+
+def write_jira_manifest(repo_root: Path, jira_issue_key="AI-143") -> None:
+    (repo_root / ".story.yaml").write_text(
+        f'story_id: "{STORY_ID}"\n'
+        'source_of_truth: "jira"\n'
+        f'jira_issue_key: "{jira_issue_key}"\n',
+        encoding="utf-8",
+    )
+
+
+def test_is_close_command_matches_the_bare_assembler():
+    assert pre_tool_use._is_close_command("uv run tools/snapshot-assembler/main.py --repo-root .")
+
+
+def test_is_close_command_matches_the_opsx_wrapper_archive():
+    assert pre_tool_use._is_close_command('uv run tools/opsx-wrapper/main.py archive my-change')
+
+
+def test_is_close_command_never_matches_dry_run():
+    assert not pre_tool_use._is_close_command(
+        "uv run tools/snapshot-assembler/main.py --repo-root . --dry-run"
+    )
+
+
+def test_is_close_command_never_matches_an_unrelated_command():
+    assert not pre_tool_use._is_close_command("uv run pytest -q")
+    assert not pre_tool_use._is_close_command("uv run tools/opsx-wrapper/main.py status")
+
+
+def test_close_command_denied_for_jira_story_with_no_ack_marker(repo, monkeypatch, capsys):
+    write_jira_manifest(repo)
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "uv run tools/snapshot-assembler/main.py --repo-root ."},
+        },
+    )
+
+    exit_code = pre_tool_use.main([])
+
+    assert exit_code == 0
+    out = json.loads(capsys.readouterr().out)
+    hook_out = out["hookSpecificOutput"]
+    assert hook_out["permissionDecision"] == "deny"
+    assert "story-close" in hook_out["additionalContext"]
+    assert "SKILL.md" in hook_out["additionalContext"]
+
+
+def test_close_command_allowed_and_marker_consumed_when_ack_present(repo, monkeypatch, capsys):
+    write_jira_manifest(repo)
+    (repo / ".story-close-ack").write_text("", encoding="utf-8")
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "uv run tools/snapshot-assembler/main.py --repo-root ."},
+        },
+    )
+
+    pre_tool_use.main([])
+
+    out_text = capsys.readouterr().out
+    if out_text.strip():
+        decision = json.loads(out_text)["hookSpecificOutput"].get("permissionDecision")
+        assert decision != "deny"
+    assert not (repo / ".story-close-ack").exists()
+
+
+def test_close_command_never_gated_for_a_docs_only_story(repo, monkeypatch, capsys):
+    # repo fixture's default .story.yaml has no source_of_truth/jira_issue_key at all
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "uv run tools/snapshot-assembler/main.py --repo-root ."},
+        },
+    )
+
+    pre_tool_use.main([])
+
+    out_text = capsys.readouterr().out
+    if out_text.strip():
+        decision = json.loads(out_text)["hookSpecificOutput"].get("permissionDecision")
+        assert decision != "deny"
+
+
+def test_close_command_never_gated_when_jira_issue_key_is_absent(repo, monkeypatch, capsys):
+    (repo / ".story.yaml").write_text(
+        f'story_id: "{STORY_ID}"\nsource_of_truth: "jira"\n', encoding="utf-8"
+    )
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {"command": "uv run tools/snapshot-assembler/main.py --repo-root ."},
+        },
+    )
+
+    pre_tool_use.main([])
+
+    out_text = capsys.readouterr().out
+    if out_text.strip():
+        decision = json.loads(out_text)["hookSpecificOutput"].get("permissionDecision")
+        assert decision != "deny"
+
+
+def test_dry_run_never_gated_even_for_a_jira_story_with_no_marker(repo, monkeypatch, capsys):
+    write_jira_manifest(repo)
+    feed_stdin(
+        monkeypatch,
+        {
+            "session_id": "s-1",
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "uv run tools/snapshot-assembler/main.py --repo-root . --dry-run"
+            },
+        },
+    )
+
+    pre_tool_use.main([])
+
+    out_text = capsys.readouterr().out
+    if out_text.strip():
+        decision = json.loads(out_text)["hookSpecificOutput"].get("permissionDecision")
+        assert decision != "deny"
