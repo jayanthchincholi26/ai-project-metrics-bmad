@@ -111,5 +111,5 @@ development_status:
   6-5-kickoff-captures-sprint-metadata-name-start-end-date: review
   6-6-dashboard-shows-sprint-level-rollups: review  # built + live-verified 2026-07-21 on epic-6-jira-lifecycle-sync
   6-7-committed-vs-closed-trend-graphs: backlog  # added 2026-07-17, explicitly deferred by the user, not to be started this batch
-  6-8-close-commands-reliably-trigger-the-jira-sync-skill: ready-for-dev  # story drafted 2026-07-23, GitHub #52
+  6-8-close-commands-reliably-trigger-the-jira-sync-skill: review  # built + real-subprocess-verified 2026-07-24 on epic-6-jira-lifecycle-sync; real-harness verification still needs the user's own session
   epic-5-retrospective: optional
